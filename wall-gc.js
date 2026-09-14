@@ -627,10 +627,7 @@ function showTab(tab, focusPanel = false) {
   if (view.dataset.toolView === "inspection") {
     activeTab = tab;
     document.body.dataset.activeTab = tab;
-    if (activeTool === "inspection") {
-      $("#active-tab-label").textContent = TAB_LABELS[tab];
-      $("#export-current-label").textContent = currentExportLabel("inspection", tab);
-    }
+    if (activeTool === "inspection") $("#export-current-label").textContent = currentExportLabel("inspection", tab);
   }
   if (focusPanel) $(`#panel-${tab}`).focus({ preventScroll: true });
 }
@@ -644,7 +641,8 @@ function showTool(tool) {
     if (button.dataset.selectTool === tool) button.setAttribute("aria-current", "page");
     else button.removeAttribute("aria-current");
   });
-  $("#active-tab-label").textContent = tool === "inspection" ? TAB_LABELS[activeTab] : TOOL_LABELS[tool];
+  // 底部工具列只顯示切換列上的短名稱（導溝／鋼筋籠／連續壁），直接取切換鈕文字，永遠一致。
+  $("#active-tab-label").textContent = $(`[data-select-tool="${tool}"] strong`).textContent;
   $("#export-current-label").textContent = currentExportLabel(tool, activeTab);
   updateIdentity();
 }

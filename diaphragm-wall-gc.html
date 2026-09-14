@@ -32,6 +32,13 @@
         <h1>營造廠<span>品質查驗表</span></h1>
       </div>
 
+      <section class="form-grid shared-info-grid" aria-labelledby="shared-info-heading">
+        <div class="shared-info-head span-two"><span id="shared-info-heading">工程資訊</span><small>導溝、鋼筋籠、連續壁三表共用</small></div>
+        <label class="field span-two"><span>工程名稱</span><input type="text" data-bind="overview.project" autocomplete="organization" /></label>
+        <label class="field"><span>施工廠商（專業分包商）</span><input type="text" data-bind="overview.contractor" autocomplete="organization" /></label>
+        <label class="field"><span>營造廠查驗／複核人</span><input type="text" data-bind="overview.reviewer" autocomplete="name" /></label>
+      </section>
+
       <nav class="record-switcher" id="record-switcher" aria-label="查驗紀錄類型">
         <button type="button" data-select-tool="guideWall"><strong>導溝</strong></button>
         <button type="button" data-select-tool="rebarCage"><strong>鋼筋籠</strong></button>
@@ -59,10 +66,7 @@
               <p>本次查驗的基本識別資料</p>
             </div>
             <div class="form-grid overview-grid">
-              <label class="field span-two"><span>工程名稱</span><input type="text" data-bind="overview.project" autocomplete="organization" /></label>
-              <label class="field span-two"><span>施工廠商（專業分包商）</span><input type="text" data-bind="overview.contractor" autocomplete="organization" /></label>
               <label class="field span-two"><span>查驗日期</span><span class="native-field-wrap"><input type="date" data-bind="overview.date" /><span class="native-field-display" aria-hidden="true"></span></span></label>
-              <label class="field span-two"><span>營造廠現場查驗工程師</span><input type="text" data-bind="overview.reviewer" autocomplete="name" /></label>
               <label class="field span-two"><span>營造廠品管／工務主任</span><input type="text" data-bind="overview.manager" autocomplete="name" /></label>
             </div>
             <p class="quality-context-note">本表為營造廠（總包）二級品管查驗紀錄。逐車出土時間、泥漿池操作、逐車澆置日誌等一級自主品管項目由專業分包商填報，並以附件方式檢附。</p>
@@ -172,11 +176,8 @@
             <p>成槽前停留點</p>
           </div>
           <div class="form-grid checklist-meta-grid">
-            <label class="field span-two"><span>工程名稱</span><input type="text" data-check-bind="guideWall.project" /></label>
-            <label class="field span-two"><span>施工廠商</span><input type="text" data-check-bind="guideWall.contractor" /></label>
             <label class="field span-two"><span>複核日期</span><span class="native-field-wrap"><input type="date" data-check-bind="guideWall.date" /><span class="native-field-display" aria-hidden="true"></span></span></label>
             <label class="field span-two"><span>單元編號</span><input type="text" data-check-bind="guideWall.unitNo" /></label>
-            <label class="field span-two"><span>營造廠複核人</span><input type="text" data-check-bind="guideWall.reviewer" /></label>
           </div>
           <dl class="check-progress" aria-live="polite">
             <div><dt>已完成複核</dt><dd id="guide-wall-progress">0 / 15</dd></div>
@@ -206,12 +207,10 @@
               <p>本次複核的基本識別資料</p>
             </div>
             <div class="form-grid checklist-meta-grid">
-            <label class="field span-two"><span>工程名稱</span><input type="text" data-check-bind="rebarCage.project" /></label>
             <label class="field span-two"><span>複核日期</span><span class="native-field-wrap"><input type="date" data-check-bind="rebarCage.date" /><span class="native-field-display" aria-hidden="true"></span></span></label>
             <label class="field"><span>單元編號</span><input type="text" data-check-bind="rebarCage.unitNo" /></label>
             <label class="field"><span>鋼筋籠編號</span><input type="text" data-check-bind="rebarCage.cageNo" /></label>
-            <label class="field"><span>核定配筋圖號</span><input type="text" data-check-bind="rebarCage.drawingNo" placeholder="例如：S-21 Rev.C" /></label>
-            <label class="field"><span>營造廠複核人</span><input type="text" data-check-bind="rebarCage.reviewer" /></label>
+            <label class="field span-two"><span>核定配筋圖號</span><input type="text" data-check-bind="rebarCage.drawingNo" placeholder="例如：S-21 Rev.C" /></label>
             </div>
           <dl class="check-progress rebar-cage-progress" aria-live="polite">
             <div><dt>抽查明細完成</dt><dd id="rebar-cage-rebar-progress">0 / 4</dd></div>

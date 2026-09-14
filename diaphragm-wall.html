@@ -32,6 +32,12 @@
         <h1>施工管理<span>檢核表</span></h1>
       </div>
 
+      <section class="form-grid shared-info-grid" aria-labelledby="shared-info-heading">
+        <div class="shared-info-head span-two"><span id="shared-info-heading">工程資訊</span><small>導溝、鋼筋籠、連續壁三表共用</small></div>
+        <label class="field span-two"><span>工程名稱</span><input type="text" data-bind="overview.project" autocomplete="organization" /></label>
+        <label class="field span-two"><span>施工廠商</span><input type="text" data-bind="overview.contractor" autocomplete="organization" /></label>
+      </section>
+
       <nav class="record-switcher" id="record-switcher" aria-label="施工紀錄類型">
         <button type="button" data-select-tool="guideWall"><strong>導溝</strong></button>
         <button type="button" data-select-tool="rebarCage"><strong>鋼筋籠</strong></button>
@@ -59,8 +65,6 @@
             <p>本次施工的基本識別資料</p>
           </div>
           <div class="form-grid overview-grid">
-            <label class="field span-two"><span>工程名稱</span><input type="text" data-bind="overview.project" autocomplete="organization" /></label>
-            <label class="field span-two"><span>施工廠商</span><input type="text" data-bind="overview.contractor" autocomplete="organization" /></label>
             <label class="field span-two"><span>施工日期</span><span class="native-field-wrap"><input type="date" data-bind="overview.date" /><span class="native-field-display" aria-hidden="true"></span></span></label>
             <label class="field span-two"><span>填表人</span><input type="text" data-bind="overview.reviewer" autocomplete="name" /></label>
           </div>
@@ -172,8 +176,6 @@
             <p>成槽前停留點</p>
           </div>
           <div class="form-grid checklist-meta-grid">
-            <label class="field span-two"><span>工程名稱</span><input type="text" data-check-bind="guideWall.project" /></label>
-            <label class="field span-two"><span>施工廠商</span><input type="text" data-check-bind="guideWall.contractor" /></label>
             <label class="field span-two"><span>複核日期</span><span class="native-field-wrap"><input type="date" data-check-bind="guideWall.date" /><span class="native-field-display" aria-hidden="true"></span></span></label>
             <label class="field span-two"><span>單元編號</span><input type="text" data-check-bind="guideWall.unitNo" /></label>
             <label class="field span-two"><span>營造廠複核人</span><input type="text" data-check-bind="guideWall.reviewer" /></label>
@@ -206,11 +208,10 @@
               <p>本次複核的基本識別資料</p>
             </div>
             <div class="form-grid checklist-meta-grid">
-            <label class="field span-two"><span>工程名稱</span><input type="text" data-check-bind="rebarCage.project" /></label>
             <label class="field span-two"><span>複核日期</span><span class="native-field-wrap"><input type="date" data-check-bind="rebarCage.date" /><span class="native-field-display" aria-hidden="true"></span></span></label>
             <label class="field"><span>單元編號</span><input type="text" data-check-bind="rebarCage.unitNo" /></label>
             <label class="field"><span>鋼筋籠編號</span><input type="text" data-check-bind="rebarCage.cageNo" /></label>
-            <label class="field"><span>營造廠複核人</span><input type="text" data-check-bind="rebarCage.reviewer" /></label>
+            <label class="field span-two"><span>營造廠複核人</span><input type="text" data-check-bind="rebarCage.reviewer" /></label>
             </div>
           <dl class="check-progress rebar-cage-progress" aria-live="polite">
             <div><dt>配筋明細完成</dt><dd id="rebar-cage-rebar-progress">0 / 9</dd></div>

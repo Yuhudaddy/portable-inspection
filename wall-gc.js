@@ -503,12 +503,13 @@ const state = {
   standards: { ...STANDARD_DEFAULTS },
   holds: emptyHolds(),
   conclusion: { verdict: "待判定", note: "" },
+  // 工程名稱／施工廠商／查驗人由 overview 統一持有，導溝與鋼筋籠共用，不再各自複製一份。
   guideWall: {
-    project: "", contractor: "", date: today, unitNo: "", reviewer: "", note: "",
+    date: today, unitNo: "", note: "",
     checks: GUIDE_WALL_CHECKS.map(createGuideWallCheck)
   },
   rebarCage: {
-    project: "", date: today, unitNo: "", cageNo: "", drawingNo: "", reviewer: "", note: "",
+    date: today, unitNo: "", cageNo: "", drawingNo: "", note: "",
     rebars: REBAR_CAGE_PARTS.map(part => ({ part, designNo: "", designQty: "", actualNo: "", actualQty: "", result: "待確認" })),
     checks: REBAR_CAGE_CHECKS.map(([item, standard]) => ({ item, standard, actual: "", result: "待確認" }))
   }
@@ -800,11 +801,11 @@ function clearAllData() {
   state.holds = emptyHolds();
   state.conclusion = { verdict: "待判定", note: "" };
   state.guideWall = {
-    project: "", contractor: "", date: "", unitNo: "", reviewer: "", note: "",
+    date: "", unitNo: "", note: "",
     checks: GUIDE_WALL_CHECKS.map(createGuideWallCheck)
   };
   state.rebarCage = {
-    project: "", date: "", unitNo: "", cageNo: "", drawingNo: "", reviewer: "", note: "",
+    date: "", unitNo: "", cageNo: "", drawingNo: "", note: "",
     rebars: REBAR_CAGE_PARTS.map(part => ({ part, designNo: "", designQty: "", actualNo: "", actualQty: "", result: "待確認" })),
     checks: REBAR_CAGE_CHECKS.map(([item, standard]) => ({ item, standard, actual: "", result: "待確認" }))
   };
@@ -934,7 +935,7 @@ function renderPrint() {
     ${printConclusion()}${printFooter()}`;
 
   const guideWallRows = state.guideWall.checks.map((check, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(check.item)}</td><td class="text-left">${esc(check.standard)}</td><td class="text-left">${esc(guideCheckActual(check))}</td><td>${esc(check.result)}</td></tr>`).join("");
-  $("#print-guide-wall").innerHTML = `${printHeader("導溝施工複核表", "03", state.guideWall.project, state.guideWall.unitNo || "未指定單元", { project: state.guideWall.project, contractor: state.guideWall.contractor, date: state.guideWall.date, reviewer: state.guideWall.reviewer }, { date: "複核日期", reviewer: "營造廠複核人" })}
+  $("#print-guide-wall").innerHTML = `${printHeader("導溝施工複核表", "03", state.overview.project, state.guideWall.unitNo || "未指定單元", { project: state.overview.project, contractor: state.overview.contractor, date: state.guideWall.date, reviewer: state.overview.reviewer }, { date: "複核日期", reviewer: "營造廠複核人" })}
     <section class="print-section"><h2>導溝資料</h2><div class="print-meta-grid three">
       <div><span>單元編號</span><strong>${esc(display(state.guideWall.unitNo))}</strong></div>
       <div><span>導溝頂基準高程</span><strong>${number(state.unit.guideTopElevation) === null ? "—" : `GL ${signed(number(state.unit.guideTopElevation))} m`}</strong></div>
@@ -944,7 +945,7 @@ function renderPrint() {
 
   const rebarRows = state.rebarCage.rebars.length ? state.rebarCage.rebars.map((rebar, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(rebar.part)}</td><td>${esc(display(rebar.designNo))}</td><td>${esc(display(rebar.designQty))}</td><td>${esc(display(rebar.actualNo))}</td><td>${esc(display(rebar.actualQty))}</td><td>${esc(rebar.result)}</td></tr>`).join("") : `<tr><td colspan="7" class="print-empty">尚無抽查項目</td></tr>`;
   const rebarCageRows = state.rebarCage.checks.map((check, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(check.item)}</td><td class="text-left">${esc(check.standard)}</td><td class="text-left">${esc(display(check.actual))}</td><td>${esc(check.result)}</td></tr>`).join("");
-  $("#print-rebar-cage").innerHTML = `${printHeader("鋼筋籠吊放前複核表", "04", state.rebarCage.project, [state.rebarCage.unitNo, state.rebarCage.cageNo].filter(Boolean).join("｜") || "未指定鋼筋籠", { project: state.rebarCage.project, contractor: state.overview.contractor, date: state.rebarCage.date, reviewer: state.rebarCage.reviewer }, { date: "複核日期", reviewer: "營造廠複核人" })}
+  $("#print-rebar-cage").innerHTML = `${printHeader("鋼筋籠吊放前複核表", "04", state.overview.project, [state.rebarCage.unitNo, state.rebarCage.cageNo].filter(Boolean).join("｜") || "未指定鋼筋籠", { project: state.overview.project, contractor: state.overview.contractor, date: state.rebarCage.date, reviewer: state.overview.reviewer }, { date: "複核日期", reviewer: "營造廠複核人" })}
     <section class="print-section"><h2>鋼筋籠資料</h2><div class="print-meta-grid three compact-meta">
       <div><span>單元編號</span><strong>${esc(display(state.rebarCage.unitNo))}</strong></div>
       <div><span>鋼筋籠編號</span><strong>${esc(display(state.rebarCage.cageNo))}</strong></div>
@@ -1047,11 +1048,11 @@ function exportData() {
       required_attachments: ATTACHMENTS
     },
     guide_wall_review: {
-      project: state.guideWall.project || null,
-      contractor: state.guideWall.contractor || null,
+      project: state.overview.project || null,
+      contractor: state.overview.contractor || null,
       review_date: state.guideWall.date || null,
       unit_no: state.guideWall.unitNo || null,
-      reviewer: state.guideWall.reviewer || null,
+      reviewer: state.overview.reviewer || null,
       note: state.guideWall.note || null,
       items: state.guideWall.checks.map((check, index) => ({
         item_no: index + 1,
@@ -1064,12 +1065,12 @@ function exportData() {
       }))
     },
     rebar_cage_review: {
-      project: state.rebarCage.project || null,
+      project: state.overview.project || null,
       review_date: state.rebarCage.date || null,
       unit_no: state.rebarCage.unitNo || null,
       cage_no: state.rebarCage.cageNo || null,
       drawing_no: state.rebarCage.drawingNo || null,
-      reviewer: state.rebarCage.reviewer || null,
+      reviewer: state.overview.reviewer || null,
       note: state.rebarCage.note || null,
       rebar_items: state.rebarCage.rebars.map((rebar, index) => ({
         item_no: index + 1,
@@ -1268,10 +1269,7 @@ function importVendorPayload(payload) {
     topElevation: importText(wall.top_elevation_m),
     designVolume: ""
   };
-  state.guideWall.project = state.overview.project;
-  state.guideWall.contractor = state.overview.contractor;
   state.guideWall.unitNo = state.unit.unitNo;
-  state.rebarCage.project = state.overview.project;
   state.rebarCage.unitNo = state.unit.unitNo;
   return "匯入完成：已帶入廠商版的工程名稱與設計參數；實測值請由營造廠自行查驗填寫。";
 }
@@ -1283,11 +1281,12 @@ function importGcPayload(payload) {
   const guideWall = payload.guide_wall_review || {};
   const rebarCage = payload.rebar_cage_review || {};
 
+  // 舊版 JSON 的工程名稱／廠商／複核人可能只填在導溝或鋼筋籠區塊，匯入時往回補進共用欄位。
   state.overview = {
-    project: importText(project.name),
-    contractor: importText(project.contractor),
+    project: importText(project.name) || importText(guideWall.project) || importText(rebarCage.project),
+    contractor: importText(project.contractor) || importText(guideWall.contractor),
     date: importText(project.inspection_date),
-    reviewer: importText(project.site_engineer),
+    reviewer: importText(project.site_engineer) || importText(guideWall.reviewer) || importText(rebarCage.reviewer),
     manager: importText(project.qc_manager)
   };
   state.unit = {
@@ -1326,23 +1325,18 @@ function importGcPayload(payload) {
     note: importText(conclusion.note)
   };
   state.guideWall = {
-    project: importText(guideWall.project),
-    contractor: importText(guideWall.contractor),
     date: importText(guideWall.review_date),
     unitNo: importText(guideWall.unit_no),
-    reviewer: importText(guideWall.reviewer),
     note: importText(guideWall.note),
     checks: importGuideWallItems(guideWall.items)
   };
 
   const importedRebars = Array.isArray(rebarCage.rebar_items) ? rebarCage.rebar_items : [];
   state.rebarCage = {
-    project: importText(rebarCage.project),
     date: importText(rebarCage.review_date),
     unitNo: importText(rebarCage.unit_no),
     cageNo: importText(rebarCage.cage_no),
     drawingNo: importText(rebarCage.drawing_no),
-    reviewer: importText(rebarCage.reviewer),
     note: importText(rebarCage.note),
     rebars: importedRebars.length ? importedRebars.map(record => ({
       part: importText(record.part),

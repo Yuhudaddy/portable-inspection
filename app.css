@@ -89,6 +89,20 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 .tool-title h1 span { color: var(--glass-accent); }
 
+/* ---- 共用工程資訊：三種表單同步的欄位，放在工具切換列上方 ---------------------- */
+.shared-info-grid { margin-bottom: 14px; }
+.shared-info-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 0 6px;
+  color: var(--glass-label);
+  font-size: 0.71875rem;
+  font-weight: 600;
+}
+.shared-info-head small { color: var(--glass-faint); font-size: 0.6875rem; font-weight: 500; }
+
 /* ---- 工具切換（導溝／鋼筋籠／連續壁）-------------------------------------- */
 .record-switcher {
   display: grid;

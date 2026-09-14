@@ -648,12 +648,6 @@ function emptyState(text) {
   return `<p class="empty-state">${esc(text)}</p>`;
 }
 
-function resultOptions(selected) {
-  return ["待確認", "符合", "不符合", "不適用"]
-    .map(value => `<option value="${value}" ${value === selected ? "selected" : ""}>${value}</option>`)
-    .join("");
-}
-
 // 三段式結果膠囊：以隱藏 radio + 相鄰 span 呈現（沿用既有 .unit-type 手法）。
 // 未勾選任一段＝原本下拉選單的「待確認」狀態；點選其一會如同 <select> 觸發 change，
 // 既有的委派事件（依 data-* 屬性讀取 event.target.value）不需更動。
@@ -758,7 +752,7 @@ function renderRebars() {
   $("#rebar-cage-rebar-list").innerHTML = rows.length ? rows.map((rebar, index) => `
     <article class="rebar-card ${rebar.result === "不符合" ? "is-failed" : rebar.result === "符合" ? "is-passed" : ""}">
       <div class="rebar-card-main">
-        <div class="rebar-card-title"><span>${String(index + 1).padStart(2, "0")}</span><strong>${esc(rebar.part)}</strong><em>${esc(rebar.result)}</em></div>
+        <div class="rebar-card-title"><strong>${esc(rebar.part)}</strong><em>${esc(rebar.result)}</em></div>
         <dl>
           <div><dt>設計</dt><dd>${esc([rebar.designNo, rebar.designQty].filter(Boolean).join("／") || "尚未填寫")}</dd></div>
           <div><dt>實際</dt><dd>${esc([rebar.actualNo, rebar.actualQty].filter(Boolean).join("／") || "尚未填寫")}</dd></div>

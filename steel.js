@@ -11,7 +11,6 @@ const TABS = {
   optional: "選用項目"
 };
 
-const RESULT_VALUES = ["待確認", "符合", "不符合", "不適用"];
 const localDate = new Date();
 const today = `${localDate.getFullYear()}-${String(localDate.getMonth() + 1).padStart(2, "0")}-${String(localDate.getDate()).padStart(2, "0")}`;
 
@@ -82,10 +81,6 @@ const esc = value => String(value ?? "")
   .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
   .replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 const display = value => String(value ?? "").trim() || "—";
-
-function resultOptions(selected) {
-  return RESULT_VALUES.map(value => `<option value="${esc(value)}" ${value === selected ? "selected" : ""}>${esc(value)}</option>`).join("");
-}
 
 // 三段式結果膠囊：以隱藏 radio + 相鄰 span 呈現（沿用既有 .unit-type 手法）。
 // 未勾選任一段＝原本下拉選單的「待確認」狀態；點選其一會如同 <select> 觸發 change，

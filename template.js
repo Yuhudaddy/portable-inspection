@@ -3,8 +3,6 @@ const APP_VERSION = "1.0-template";
 const localDate = new Date();
 const today = `${localDate.getFullYear()}-${String(localDate.getMonth() + 1).padStart(2, "0")}-${String(localDate.getDate()).padStart(2, "0")}`;
 
-const STATUS_OPTIONS = ["待確認", "合格", "不合格", "不適用"];
-
 const COMMON_CHECKS = [
   ["setout", "放樣線與標示", "軸線、邊線、中心線及完成面標示完成；一般放樣誤差控制於 ±2 mm 內", "填寫實測偏差（mm）"],
   ["condition", "模板外觀與使用狀態", "模板無過度破損、翹曲、變形或影響混凝土外觀與尺寸之情形", "填寫模板狀況"],
@@ -114,7 +112,6 @@ const num = value => { const n = Number.parseFloat(value); return Number.isFinit
 const fixed = value => Number.isFinite(value) ? value.toFixed(1) : "—";
 const formatDate = value => { const [y, m, d] = String(value ?? "").split("-"); return y && m && d ? `${y}/${m}/${d}` : ""; };
 
-function statusOptions(selected = "待確認") { return STATUS_OPTIONS.map(item => `<option value="${esc(item)}" ${item === selected ? "selected" : ""}>${item}</option>`).join(""); }
 // 三段式結果膠囊：以隱藏 radio + 相鄰 span 呈現（沿用既有 .unit-type 手法）。
 // 未勾選任一段＝原本下拉選單的「待確認」狀態；點選其一會如同 <select> 觸發 change，
 // 既有的委派事件（依 data-* 屬性讀取 event.target.value）不需更動。

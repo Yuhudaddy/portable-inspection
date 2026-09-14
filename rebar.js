@@ -92,7 +92,6 @@ const $$ = selector => [...document.querySelectorAll(selector)];
 const esc = value => String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 const display = value => String(value ?? "").trim() || "—";
 const formatDate = value => { const [y, m, d] = String(value ?? "").split("-"); return y && m && d ? `${y}/${m}/${d}` : ""; };
-const statusOptions = selected => STATUS_OPTIONS.map(item => `<option value="${item}" ${item === selected ? "selected" : ""}>${item}</option>`).join("");
 // 三段式結果膠囊：以隱藏 radio + 相鄰 span 呈現（沿用既有 .unit-type 手法）。
 // 未勾選任一段＝原本下拉選單的「待確認」狀態；點選其一會如同 <select> 觸發 change，
 // 既有的委派事件（依 data-* 屬性讀取 event.target.value）不需更動。

@@ -1,8 +1,5 @@
 :root {
   --line: var(--glass-line);
-  --warning: var(--glass-danger-wash);
-  --danger: var(--glass-danger);
-  --focus: var(--glass-accent);
   --header-height: 60px;
   color: var(--glass-ink);
   background: var(--glass-page-bg);
@@ -27,7 +24,7 @@ body {
 button, input, select, textarea { font: inherit; }
 button { color: inherit; cursor: pointer; }
 button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visible {
-  outline: 3px solid var(--focus);
+  outline: 3px solid var(--glass-accent);
   outline-offset: 2px;
 }
 
@@ -61,7 +58,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 .header-nav > * { pointer-events: auto; }
 .header-back { color: var(--glass-ink); }
-.header-back svg { display: block; color: oklch(35% 0.03 270); }
+.header-back svg { display: block; color: var(--glass-icon); }
 .header-identity {
   max-width: 55%;
   overflow: hidden;
@@ -101,10 +98,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   margin-bottom: 14px;
   padding: 4px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.4);
-  backdrop-filter: var(--glass-card-blur);
-  -webkit-backdrop-filter: var(--glass-card-blur);
-  box-shadow: inset 1px 1px 1px rgba(255, 255, 255, 0.9), 0 6px 18px rgba(40, 40, 80, 0.06);
+  background: var(--glass-sunken);
+  box-shadow: var(--glass-hairline), 0 6px 18px rgba(60, 50, 30, 0.06);
   scroll-margin-top: calc(var(--header-height) + env(safe-area-inset-top));
 }
 .record-switcher button {
@@ -116,19 +111,16 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   border: 0;
   border-radius: 999px;
   background: transparent;
-  color: oklch(45% 0.03 270);
+  color: var(--glass-soft);
   text-align: center;
 }
 .record-switcher button strong { min-width: 0; font-size: 0.875rem; font-weight: 500; white-space: nowrap; }
-.record-switcher button small { display: none; }
-.record-switcher button[aria-current="page"],
-.record-switcher button[data-current-tool] {
-  background: var(--glass-accent);
-  color: var(--glass-accent-on);
-  box-shadow: var(--glass-accent-shadow);
+.record-switcher button[aria-current="page"] {
+  background: #fff;
+  color: var(--glass-ink);
+  box-shadow: var(--glass-lift-shadow);
 }
-.record-switcher button[aria-current="page"] strong,
-.record-switcher button[data-current-tool] strong { font-weight: 600; }
+.record-switcher button[aria-current="page"] strong { font-weight: 600; }
 
 /* ---- 分頁：橫向捲動膠囊 ------------------------------------------------- */
 .tab-navigation {
@@ -154,18 +146,18 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   padding: 0 14px;
   border: 0;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.45);
-  box-shadow: inset 1px 1px 1px rgba(255, 255, 255, 0.9);
-  color: oklch(45% 0.03 270);
+  background: var(--glass-sunken);
+  box-shadow: var(--glass-hairline);
+  color: var(--glass-soft);
   font-size: 0.8125rem;
   white-space: nowrap;
 }
 .tab-row button[aria-selected="true"] {
   padding: 0 16px;
-  background: var(--glass-accent);
-  color: var(--glass-accent-on);
+  background: var(--glass-ink);
+  color: #fff;
   font-weight: 600;
-  box-shadow: var(--glass-accent-shadow);
+  box-shadow: none;
 }
 .tab-row button:active { transform: translateY(1px); }
 
@@ -204,8 +196,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   padding: 6px 16px;
   border-radius: var(--glass-radius-lg);
   background: var(--glass-card-bg);
-  backdrop-filter: var(--glass-card-blur);
-  -webkit-backdrop-filter: var(--glass-card-blur);
   box-shadow: var(--glass-card-shadow);
 }
 .form-grid:has(+ .check-progress) { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
@@ -231,24 +221,27 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   font-style: normal;
   font-weight: 600;
 }
-.field input, .field select, .field textarea, .phase-editor select {
+.field input:not([type="radio"]), .field select, .field textarea, .phase-editor select, .quality-standard-field select {
   width: 100%;
   min-width: 0;
   min-height: 44px;
   padding: 8px 12px;
-  border: 0;
+  border: 1px solid transparent;
   border-radius: var(--glass-radius-sm);
   background: var(--glass-sunken);
   color: var(--glass-ink);
   font-size: 0.8125rem;
 }
 .calculated-field input[readonly] { color: var(--glass-soft); }
+/* 清單式欄位：框往兩側各多出 10px，文字位置不變，聚焦時整顆框浮現。 */
 .form-grid > .field input,
 .form-grid > .field select,
 .form-grid > .field textarea {
+  width: calc(100% + 20px);
   min-height: 32px;
-  padding: 0;
-  border-radius: 0;
+  margin: 0 -10px;
+  padding: 0 10px;
+  border-radius: 10px;
   background: transparent;
   font-size: 1rem;
 }
@@ -303,10 +296,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   pointer-events: none;
 }
 .form-grid .native-field-display { height: 32px; padding: 0; font-size: 1rem; }
-.native-field-display.is-empty { color: oklch(68% 0.02 270); }
+.native-field-display.is-empty { color: var(--glass-placeholder); }
 .field textarea { min-height: 76px; resize: vertical; }
-.field input::placeholder, .field textarea::placeholder { color: oklch(68% 0.02 270); }
-.field input:invalid:not(:placeholder-shown) { box-shadow: inset 0 0 0 1.5px var(--danger); }
+.field input::placeholder, .field textarea::placeholder { color: var(--glass-placeholder); }
+.field input:invalid:not(:placeholder-shown) { box-shadow: inset 0 0 0 1.5px var(--glass-danger); }
 
 /* 單元類型／穩定液種類：三段膠囊 */
 .form-grid > .unit-type {
@@ -333,33 +326,18 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   min-height: 38px;
   place-items: center;
   border-radius: 999px;
-  color: oklch(45% 0.03 270);
+  color: var(--glass-soft);
   font-size: 0.8125rem;
   white-space: nowrap;
 }
 .unit-type input:checked + span {
-  background: var(--glass-accent);
-  color: var(--glass-accent-on);
+  background: #fff;
+  color: var(--glass-ink);
   font-weight: 600;
-  box-shadow: var(--glass-accent-shadow);
+  box-shadow: var(--glass-lift-shadow);
 }
-.unit-type input:focus-visible + span { outline: 3px solid var(--focus); outline-offset: 2px; }
+.unit-type input:focus-visible + span { outline: 3px solid var(--glass-accent); outline-offset: 2px; }
 
-.calculation-strip {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 2px 12px;
-  margin-top: 10px;
-  padding: 12px 16px;
-  border-radius: var(--glass-radius-lg);
-  background: var(--glass-card-bg);
-  backdrop-filter: var(--glass-card-blur);
-  -webkit-backdrop-filter: var(--glass-card-blur);
-  box-shadow: var(--glass-card-shadow);
-}
-.calculation-strip span { color: var(--glass-soft); font-size: 0.75rem; }
-.calculation-strip strong { font-family: var(--glass-font-num); font-size: 1rem; font-weight: 500; font-variant-numeric: tabular-nums; }
-.calculation-strip small { grid-column: span 2; color: var(--glass-muted); font-size: 0.6875rem; }
 
 /* ---- 主控顯示板（廠商版開挖／澆置）-------------------------------------- */
 .control-board {
@@ -367,8 +345,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   margin: 0;
   border-radius: var(--glass-radius-lg);
   background: var(--glass-card-bg);
-  backdrop-filter: var(--glass-card-blur);
-  -webkit-backdrop-filter: var(--glass-card-blur);
   box-shadow: var(--glass-card-shadow);
   overflow: hidden;
 }
@@ -393,7 +369,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   white-space: nowrap;
 }
 .control-board small { color: var(--glass-soft); font-family: inherit; font-size: 0.6875rem; font-weight: 500; }
-.control-board .is-warning { background: var(--warning); }
+.control-board .is-warning { background: var(--glass-danger-wash); }
 
 /* ---- 區段標題與新增鈕 ---------------------------------------------------- */
 .record-section { margin-top: 0; }
@@ -422,8 +398,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   min-height: 36px;
   padding: 0 14px 0 10px;
   border: 0;
-  background: rgba(255, 255, 255, 0.6);
-  box-shadow: inset 1px 1px 1px rgba(255, 255, 255, 0.9), 0 4px 12px rgba(40, 40, 80, 0.06);
+  background: #fff;
+  box-shadow: var(--glass-hairline), 0 4px 12px rgba(60, 50, 30, 0.06);
   color: var(--glass-accent);
 }
 .add-button span { font-size: 1rem; }
@@ -433,7 +409,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   border: 0;
   background: var(--glass-accent);
   color: var(--glass-accent-on);
-  box-shadow: 0 4px 12px oklch(50% 0.12 275 / 0.3);
+  box-shadow: var(--glass-accent-shadow);
 }
 .secondary-button {
   padding: 8px 18px;
@@ -447,8 +423,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   display: block;
   border-radius: var(--glass-radius-lg);
   background: var(--glass-card-bg);
-  backdrop-filter: var(--glass-card-blur);
-  -webkit-backdrop-filter: var(--glass-card-blur);
   box-shadow: var(--glass-card-shadow);
   overflow: hidden;
 }
@@ -499,8 +473,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   padding: 16px;
   border-radius: var(--glass-radius-lg);
   background: var(--glass-card-bg);
-  backdrop-filter: var(--glass-card-blur);
-  -webkit-backdrop-filter: var(--glass-card-blur);
   box-shadow: var(--glass-card-shadow);
 }
 .phase-time-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
@@ -510,8 +482,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   margin-top: 10px;
   border-radius: var(--glass-radius-lg);
   background: var(--glass-card-bg);
-  backdrop-filter: var(--glass-card-blur);
-  -webkit-backdrop-filter: var(--glass-card-blur);
   box-shadow: var(--glass-card-shadow);
   overflow: hidden;
 }
@@ -548,8 +518,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   margin: 0;
   border-radius: var(--glass-radius-lg);
   background: var(--glass-card-bg);
-  backdrop-filter: var(--glass-card-blur);
-  -webkit-backdrop-filter: var(--glass-card-blur);
   box-shadow: var(--glass-card-shadow);
   overflow: hidden;
 }
@@ -557,9 +525,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   border-top: 1px solid var(--line);
   border-top-left-radius: 0;
   border-top-right-radius: 0;
-  box-shadow: 0 10px 30px rgba(40, 40, 80, 0.07);
+  box-shadow: 0 10px 30px rgba(60, 50, 30, 0.07);
 }
-.panel-heading + .check-progress { margin-bottom: 0; }
 .check-progress > div { min-width: 0; padding: 12px 16px; }
 .check-progress > div + div { border-left: 1px solid var(--line); }
 .check-progress dt { color: var(--glass-label); font-size: 0.6875rem; font-weight: 500; }
@@ -576,8 +543,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   display: block;
   border-radius: var(--glass-radius-lg);
   background: var(--glass-card-bg);
-  backdrop-filter: var(--glass-card-blur);
-  -webkit-backdrop-filter: var(--glass-card-blur);
   box-shadow: var(--glass-card-shadow);
   overflow: hidden;
 }
@@ -587,14 +552,13 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .check-card.is-failed, .rebar-card.is-failed { background: var(--glass-danger-wash); }
 .check-card { padding: 16px; }
 .check-card-head { display: flex; align-items: baseline; gap: 10px; }
-.check-card-head span, .rebar-card-title > span { font-family: var(--glass-font-num); color: oklch(55% 0.03 270); font-size: 0.75rem; }
+.check-card-head span { font-family: var(--glass-font-num); color: var(--glass-faint); font-size: 0.75rem; }
 .check-card-head strong { font-size: 0.9375rem; font-weight: 600; }
 .check-card > p { margin: 3px 0 12px 24px; color: var(--glass-soft); font-size: 0.75rem; line-height: 1.55; }
 .check-card > p strong { display: block; margin-top: 4px; color: var(--glass-danger-ink); font-weight: 500; }
 .check-card-fields { display: flex; align-items: center; gap: 8px; }
 .check-card-fields > .field { flex: 1 1 auto; min-width: 0; gap: 0; }
-.check-card-fields > .field > span,
-.check-card-fields > .result-field > span:first-child {
+.check-card-fields > .field > span {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -611,12 +575,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 .check-card-fields > .result-field { flex: 0 0 auto; position: relative; }
 .check-card.is-failed .check-card-fields > .field input,
-.check-card.is-failed .check-card-fields > .field select,
-.check-card.is-failed .glass-segmented { background: rgba(255, 255, 255, 0.6); }
+.check-card.is-failed .check-card-fields > .field select { background: #fff; }
 .guide-rebar-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; margin-top: 10px; margin-left: 24px; }
 .guide-rebar-fields .field > span { font-size: 0.6875rem; }
 .guide-rebar-fields .field input, .guide-rebar-fields .field select { min-height: 40px; border-radius: 999px; font-size: 0.875rem; }
-.check-card-list .empty-state, .rebar-card-list .empty-state { border: 0; }
 
 .note-field {
   display: grid;
@@ -625,18 +587,15 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   padding: 12px 16px 14px;
   border-radius: var(--glass-radius-lg);
   background: var(--glass-card-bg);
-  backdrop-filter: var(--glass-card-blur);
-  -webkit-backdrop-filter: var(--glass-card-blur);
   box-shadow: var(--glass-card-shadow);
 }
 .note-field > span { font-size: 0.6875rem; font-weight: 500; }
-.note-field textarea { min-height: 72px; padding: 4px 0; border-radius: 0; background: transparent; font-size: 1rem; }
+.note-field textarea { width: calc(100% + 20px); min-height: 72px; margin: 0 -10px; padding: 4px 10px; border-radius: 10px; background: transparent; font-size: 1rem; }
 
 /* 配筋抽查明細列 */
 .rebar-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 14px 16px; }
 .rebar-card-main { min-width: 0; }
 .rebar-card-title { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 8px; }
-.rebar-card-title > span { display: none; }
 .rebar-card-title strong { min-width: 0; font-size: 0.9375rem; font-weight: 600; }
 .rebar-card-title em {
   display: inline-flex;
@@ -677,9 +636,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   height: 60px;
   padding: 6px;
   border-radius: 999px;
-  background: var(--glass-card-bg-strong);
-  backdrop-filter: var(--glass-card-blur);
-  -webkit-backdrop-filter: var(--glass-card-blur);
+  background: var(--glass-card-bg);
   box-shadow: var(--glass-bar-shadow);
 }
 .dock-tool {
@@ -693,7 +650,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   border: 0;
   border-radius: 999px;
   background: transparent;
-  color: oklch(40% 0.03 270);
+  color: var(--glass-icon);
   text-decoration: none;
 }
 .dock-tool svg { display: block; }
@@ -705,8 +662,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   white-space: nowrap;
 }
 .dock-tool.is-active {
-  background: rgba(255, 255, 255, 0.85);
-  box-shadow: 0 1px 4px rgba(40, 40, 80, 0.1);
+  background: var(--glass-accent-soft);
+  box-shadow: 0 1px 4px rgba(60, 50, 30, 0.1);
   color: var(--glass-accent);
 }
 .dock-tool.is-active small { font-weight: 600; }
@@ -721,8 +678,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   background: var(--glass-accent);
   color: var(--glass-accent-on);
   box-shadow:
-    inset 1px 1px 1px rgba(255, 255, 255, 0.35),
-    0 6px 16px oklch(50% 0.12 275 / 0.35);
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 6px 16px oklch(40% 0.05 250 / 0.35);
 }
 .dock-primary svg { display: block; }
 
@@ -783,8 +740,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   margin-top: 24px;
   border-radius: var(--glass-radius-lg);
   background: var(--glass-card-bg);
-  backdrop-filter: var(--glass-card-blur);
-  -webkit-backdrop-filter: var(--glass-card-blur);
   box-shadow: var(--glass-card-shadow);
   overflow: hidden;
 }
@@ -792,13 +747,12 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .quality-check-list > :first-child { border-top: 0; }
 .quality-card.is-failed { background: var(--glass-danger-wash); }
 .quality-card-head { display: flex; align-items: baseline; gap: 10px; }
-.quality-card-head span { font-family: var(--glass-font-num); color: oklch(55% 0.03 270); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+.quality-card-head span { font-family: var(--glass-font-num); color: var(--glass-faint); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
 .quality-card-head strong { font-size: 0.9375rem; font-weight: 600; }
 .quality-card > p { margin: 3px 0 12px 24px; color: var(--glass-soft); font-size: 0.75rem; line-height: 1.55; }
 .quality-card-fields { display: flex; align-items: center; gap: 8px; margin-left: 0; }
 .quality-card-fields > .field { flex: 1 1 auto; min-width: 0; gap: 0; }
-.quality-card-fields > .field > span,
-.quality-card-fields > .result-field > span:first-child {
+.quality-card-fields > .field > span {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -808,15 +762,12 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 .quality-card-fields > .field input { min-height: 42px; padding: 0 14px; border-radius: 999px; font-size: 0.875rem; }
 .quality-card-fields > .result-field { flex: 0 0 auto; position: relative; }
-.quality-card.is-failed .quality-card-fields > .field input,
-.quality-card.is-failed .glass-segmented { background: rgba(255, 255, 255, 0.6); }
+.quality-card.is-failed .quality-card-fields > .field input { background: #fff; }
 .quality-context-note {
   margin: 10px 0 0;
   padding: 12px 16px;
   border-radius: var(--glass-radius-lg);
   background: var(--glass-card-bg);
-  backdrop-filter: var(--glass-card-blur);
-  -webkit-backdrop-filter: var(--glass-card-blur);
   box-shadow: var(--glass-card-shadow);
   color: var(--glass-soft);
   font-size: 0.75rem;
@@ -827,8 +778,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   padding: 16px;
   border-radius: var(--glass-radius-lg);
   background: var(--glass-card-bg);
-  backdrop-filter: var(--glass-card-blur);
-  -webkit-backdrop-filter: var(--glass-card-blur);
   box-shadow: var(--glass-card-shadow);
 }
 .quality-standard-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
@@ -839,7 +788,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .quality-standard-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
 .quality-standard-field { display: grid; gap: 5px; min-width: 0; }
 .quality-standard-field > span { color: var(--glass-label); font-size: 0.69rem; line-height: 1.3; }
-.quality-standard-field select { width: 100%; min-height: 38px; padding: 0 12px; border: 0; border-radius: 999px; background: var(--glass-sunken); color: var(--glass-ink); font-size: 0.875rem; }
+.quality-standard-field select { min-height: 38px; padding: 0 12px; border-radius: 999px; font-size: 0.875rem; }
 .quality-standard-field.is-disabled { opacity: 0.45; }
 .quality-standard-note { margin-top: 10px; }
 .example-actions { display: grid; width: 100%; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
@@ -853,8 +802,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   padding: 10px 12px;
   border: 0;
   border-radius: var(--glass-radius-sm);
-  background: rgba(255, 255, 255, 0.55);
-  box-shadow: inset 1px 1px 1px rgba(255, 255, 255, 0.85);
+  background: var(--glass-sunken);
+  box-shadow: var(--glass-hairline);
   color: var(--glass-ink);
   text-decoration: none;
 }
@@ -865,7 +814,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .example-button span { font-size: 0.8125rem; font-weight: 600; }
 .example-button small { color: var(--glass-muted); font-size: 0.6875rem; }
 .clear-confirmation p { margin: 0; color: var(--glass-soft); font-size: 0.8125rem; line-height: 1.7; }
-.danger-button { background: var(--glass-danger); box-shadow: 0 4px 12px oklch(58% 0.14 28 / 0.3); }
+.danger-button { background: var(--glass-danger); box-shadow: 0 4px 12px oklch(58% 0.13 30 / 0.3); }
 .export-options { display: grid; gap: 8px; }
 .export-option-group { display: grid; gap: 7px; }
 .export-option-group h3 {
@@ -884,8 +833,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   padding: 12px 14px;
   border: 0;
   border-radius: var(--glass-radius-sm);
-  background: rgba(255, 255, 255, 0.55);
-  box-shadow: inset 1px 1px 1px rgba(255, 255, 255, 0.85);
+  background: var(--glass-sunken);
+  box-shadow: var(--glass-hairline);
   text-align: left;
 }
 .export-options button:active { transform: translateY(1px); }
@@ -973,14 +922,14 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 @media (hover: hover) {
   .header-back:hover, .add-button:hover, .secondary-button:hover { filter: brightness(0.97); }
-  .tab-row button:hover, .record-switcher button:hover { background: rgba(255, 255, 255, 0.7); }
-  .tab-row button[aria-selected="true"]:hover, .record-switcher button[aria-current="page"]:hover, .record-switcher button[data-current-tool]:hover { background: var(--glass-accent-strong); }
+  .tab-row button:hover, .record-switcher button:hover { background: rgba(60, 50, 30, 0.09); }
+  .tab-row button[aria-selected="true"]:hover { background: var(--glass-ink); }
+  .record-switcher button[aria-current="page"]:hover { background: #fff; }
   .confirm-button:hover, .dock-primary:hover { background: var(--glass-accent-strong); }
-  .dock-tool:hover { background: rgba(255, 255, 255, 0.6); }
+  .dock-tool:hover { background: rgba(60, 50, 30, 0.09); }
 }
 
 @media (pointer: coarse) {
-  .add-button, .confirm-button, .secondary-button { min-height: 44px; }
   .add-button { min-height: 40px; }
   /* iOS Safari 會在聚焦小於 16px 的輸入欄時自動放大整頁。觸控裝置維持 1rem，
      日期／時間欄的實際文字是透明的，改由 .native-field-display 以小字繪製，不受影響。 */
@@ -988,21 +937,12 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 
 /* ---- 輸入焦點：旋轉漸層環貼著欄位本身的圓角，無外暈；聚焦時底色轉白 --------
-   常駐 1.5px 透明邊框，聚焦時才在邊框區畫漸層，避免尺寸跳動。 */
-.field input:not([type="radio"]), .field select, .field textarea,
-.phase-editor select, .quality-standard-field select { border: 1px solid transparent; }
+   欄位常駐 1px 透明邊框（見 .field input 基礎規則），聚焦只換背景，不會位移。 */
 .field input:not([type="radio"]):focus, .field select:focus, .field textarea:focus,
 .phase-editor select:focus, .quality-standard-field select:focus {
   outline: none;
   background: linear-gradient(#fff, #fff) padding-box, var(--glass-focus-ring) border-box;
   animation: glass-glow-spin 2.6s linear infinite;
-}
-.form-grid > .field input:focus, .form-grid > .field select:focus, .form-grid > .field textarea:focus,
-.note-field textarea:focus {
-  width: calc(100% + 20px);
-  margin: 0 -10px;
-  padding-inline: 10px;
-  border-radius: 10px;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1019,7 +959,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 @media print {
   :root { background: #fdfdfd; color: #222; }
   html, body { min-width: 0; margin: 0; padding: 0; background: #fdfdfd; color: #222; font-size: 9pt; }
-  .app-header, .app-shell, .action-dock, .sheet-dialog, .undo-toast, .skip-link, .glass-scene { display: none !important; }
+  .app-header, .app-shell, .action-dock, .sheet-dialog, .undo-toast, .skip-link { display: none !important; }
   .print-report { display: block; }
   .print-page { display: none; break-after: page; }
   .print-page[data-print-tab="overview-wall"] { display: none !important; }

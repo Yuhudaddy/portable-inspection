@@ -6,24 +6,17 @@
     <meta name="description" content="鋼構施工管理複核工具" />
     <meta name="referrer" content="no-referrer" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; worker-src 'self'" />
-    <meta name="theme-color" content="#f7f7f5" />
-    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#ffffff" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="鋼構施工複核" />
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="./glass.css?v=5" />
-    <link rel="stylesheet" href="./app.css?v=50" />
-    <link rel="stylesheet" href="./steel.css?v=4" />
+    <link rel="stylesheet" href="./glass.css" />
+    <link rel="stylesheet" href="./app.css" />
+    <link rel="stylesheet" href="./steel.css" />
     <title>鋼構施工複核｜Project Portal</title>
   </head>
   <body data-print-scope="none" data-active-tab="overview">
-    <div class="glass-scene" aria-hidden="true">
-      <span class="glass-blob glass-blob-indigo"></span>
-      <span class="glass-blob glass-blob-mint"></span>
-      <span class="glass-blob glass-blob-peach"></span>
-    </div>
-
     <a class="skip-link" href="#project-tool">跳至鋼構施工複核</a>
 
     <header class="app-header">
@@ -40,10 +33,10 @@
       </div>
 
       <nav class="record-switcher" id="record-switcher" aria-label="施工紀錄類型">
-        <a class="record-switcher-link" href="./diaphragm-wall.html"><strong>連續壁</strong><small>Diaphragm Wall</small></a>
-        <a class="record-switcher-link" href="./template.html"><strong>模板</strong><small>Formwork</small></a>
-        <a class="record-switcher-link" href="./rebar.html"><strong>鋼筋</strong><small>Rebar</small></a>
-        <button type="button" data-current-tool="steel"><strong>鋼構</strong><small>Steel Structure</small></button>
+        <a class="record-switcher-link" href="./diaphragm-wall.html"><strong>連續壁</strong></a>
+        <a class="record-switcher-link" href="./template.html"><strong>模板</strong></a>
+        <a class="record-switcher-link" href="./rebar.html"><strong>鋼筋</strong></a>
+        <button type="button" aria-current="page"><strong>鋼構</strong></button>
       </nav>
 
       <nav class="tab-navigation steel-tabs" aria-label="鋼構複核分頁">
@@ -265,6 +258,6 @@
       <article class="print-page" data-print-tab="optional" id="print-optional"></article>
     </section>
 
-    <script src="./steel.js?v=3" defer></script>
+    <script src="./steel.js" defer></script>
   </body>
 </html>

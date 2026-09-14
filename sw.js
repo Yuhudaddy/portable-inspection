@@ -1,10 +1,10 @@
-const CACHE_NAME = "project-portal-v63";
-const APP_SHELL = ["./index.html", "./404.html", "./glass.css?v=5", "./portal.css?v=32", "./diaphragm-wall.html", "./diaphragm-wall-gc.html", "./wall-gc.js?v=3", "./app.css?v=50", "./app.js?v=3", "./template.html", "./template.css?v=35", "./template.js?v=3", "./rebar.html", "./rebar.css?v=3", "./rebar.js?v=3", "./steel-structure.html", "./steel.css?v=4", "./steel.js?v=3", "./record.html", "./checklists.html", "./manifest.webmanifest", "./icon.svg", "./taisei.png", "./examples/diaphragm-wall-example.pdf", "./examples/diaphragm-wall-example-separate-pouring.pdf", "./examples/guide-wall-example.pdf", "./examples/rebar-cage-example.pdf", "./examples/diaphragm-wall-gc-example.pdf", "./examples/gc-guide-wall-example.pdf", "./examples/gc-rebar-cage-example.pdf", "./examples/template-example.pdf", "./examples/rebar-example.pdf", "./examples/steel-structure-example.pdf"];
+const CACHE_NAME = "project-portal-v64";
+const APP_SHELL = ["./index.html", "./404.html", "./glass.css", "./portal.css", "./diaphragm-wall.html", "./diaphragm-wall-gc.html", "./wall-gc.js", "./app.css", "./app.js", "./template.html", "./template.css", "./template.js", "./rebar.html", "./rebar.css", "./rebar.js", "./steel-structure.html", "./steel.css", "./steel.js", "./record.html", "./checklists.html", "./manifest.webmanifest", "./icon.svg", "./taisei.png", "./examples/diaphragm-wall-example.pdf", "./examples/diaphragm-wall-example-separate-pouring.pdf", "./examples/guide-wall-example.pdf", "./examples/rebar-cage-example.pdf", "./examples/diaphragm-wall-gc-example.pdf", "./examples/gc-guide-wall-example.pdf", "./examples/gc-rebar-cage-example.pdf", "./examples/template-example.pdf", "./examples/rebar-example.pdf", "./examples/steel-structure-example.pdf"];
 
 self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(APP_SHELL))
+      .then(cache => cache.addAll(APP_SHELL.map(url => new Request(url, { cache: "reload" }))))
       .then(() => self.skipWaiting())
   );
 });

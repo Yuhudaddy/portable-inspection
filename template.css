@@ -1,7 +1,5 @@
 :root {
   --line: var(--glass-line);
-  --danger: var(--glass-danger);
-  --focus: var(--glass-accent);
   --header-height: 60px;
   color: var(--glass-ink);
   background: var(--glass-page-bg);
@@ -15,7 +13,7 @@ body { min-width: 320px; margin: 0; padding: 0 0 calc(110px + env(safe-area-inse
 button, input, select, textarea { font: inherit; }
 button, a { color: inherit; }
 button { cursor: pointer; }
-button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visible { outline: 3px solid var(--glass-accent); outline-offset: 2px; }
 .skip-link { position: fixed; top: -80px; left: 12px; z-index: 600; padding: 9px 12px; border-radius: var(--glass-radius-sm); background: var(--glass-ink); color: var(--glass-page-bg); }
 .skip-link:focus { top: 8px; }
 
@@ -24,7 +22,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .header-nav { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: min(100% - 32px, 880px); margin: 0 auto; }
 .header-nav > * { pointer-events: auto; }
 .header-back { color: var(--glass-ink); }
-.header-back svg { display: block; color: oklch(35% 0.03 270); }
+.header-back svg { display: block; color: var(--glass-icon); }
 .header-identity { max-width: 55%; overflow: hidden; color: var(--glass-ink); text-overflow: ellipsis; }
 
 .app-shell { width: min(100% - 32px, 880px); margin: 0 auto; padding: 6px 0 28px; scroll-margin-top: calc(var(--header-height) + env(safe-area-inset-top)); }
@@ -37,8 +35,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .tab-navigation { display: flex; gap: 6px; margin: 0 -16px 14px; padding: 0 16px 4px; overflow-x: auto; scroll-padding-inline: 16px; scrollbar-width: none; white-space: nowrap; -webkit-overflow-scrolling: touch; }
 .tab-navigation::-webkit-scrollbar { display: none; }
 .tab-row { display: contents; }
-.tab-row button { flex: none; display: inline-flex; align-items: center; justify-content: center; height: 38px; padding: 0 14px; border: 0; border-radius: 999px; background: rgba(255, 255, 255, 0.45); box-shadow: inset 1px 1px 1px rgba(255, 255, 255, 0.9); color: oklch(45% 0.03 270); font-size: .8125rem; white-space: nowrap; }
-.tab-row button[aria-selected="true"] { padding: 0 16px; background: var(--glass-accent); color: var(--glass-accent-on); font-weight: 600; box-shadow: var(--glass-accent-shadow); }
+.tab-row button { flex: none; display: inline-flex; align-items: center; justify-content: center; height: 38px; padding: 0 14px; border: 0; border-radius: 999px; background: var(--glass-sunken); box-shadow: var(--glass-hairline); color: var(--glass-soft); font-size: .8125rem; white-space: nowrap; }
+.tab-row button[aria-selected="true"] { padding: 0 16px; background: var(--glass-ink); color: #fff; font-weight: 600; }
 .tab-row button:active { transform: translateY(1px); }
 .panel-frame { min-height: 0; }
 .tab-panel { padding: 0; }
@@ -50,7 +48,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .panel-heading p { max-width: 48%; margin: 0; color: var(--glass-soft); font-size: .75rem; text-align: right; }
 
 /* ---- 基本資料：清單式玻璃卡 ---------------------------------------------- */
-.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; padding: 6px 16px; border-radius: var(--glass-radius-lg); background: var(--glass-card-bg); backdrop-filter: var(--glass-card-blur); -webkit-backdrop-filter: var(--glass-card-blur); box-shadow: var(--glass-card-shadow); }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; padding: 6px 16px; border-radius: var(--glass-radius-lg); background: var(--glass-card-bg); box-shadow: var(--glass-card-shadow); }
 .span-two { grid-column: span 2; }
 .field { display: grid; gap: 4px; min-width: 0; }
 .form-grid > .field { gap: 2px; padding: 10px 0; border-top: 1px solid var(--line); }
@@ -58,11 +56,12 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .form-grid > :first-child:not(.span-two) + .field:not(.span-two) { border-top: 0; }
 .field > span { color: var(--glass-label); font-size: .71875rem; font-weight: 600; }
 .form-grid > .field > span { font-size: .6875rem; font-weight: 500; }
-.field input, .field select, .field textarea { width: 100%; min-width: 0; min-height: 44px; padding: 8px 12px; border: 0; border-radius: var(--glass-radius-sm); background: var(--glass-sunken); color: var(--glass-ink); font-size: 1rem; }
-.form-grid > .field input, .form-grid > .field select, .form-grid > .field textarea { min-height: 32px; padding: 0; border-radius: 0; background: transparent; }
+.field input:not([type="radio"]), .field select, .field textarea { width: 100%; min-width: 0; min-height: 44px; padding: 8px 12px; border: 1px solid transparent; border-radius: var(--glass-radius-sm); background: var(--glass-sunken); color: var(--glass-ink); font-size: 1rem; }
+/* 清單式欄位：框往兩側各多出 10px，文字位置不變，聚焦時整顆框浮現。 */
+.form-grid > .field input, .form-grid > .field select, .form-grid > .field textarea { width: calc(100% + 20px); min-height: 32px; margin: 0 -10px; padding: 0 10px; border-radius: 10px; background: transparent; }
 .form-grid > .field select { padding-right: 20px; }
 .field textarea { min-height: 76px; resize: vertical; }
-.field input::placeholder, .field textarea::placeholder { color: oklch(68% 0.02 270); }
+.field input::placeholder, .field textarea::placeholder { color: var(--glass-placeholder); }
 .field input[type="date"] { display: block; width: 100%; max-width: 100%; min-width: 0; height: 44px; max-height: 44px; padding: 0; overflow: hidden; color: transparent; -webkit-text-fill-color: transparent; -webkit-text-size-adjust: 100%; }
 .form-grid > .field input[type="date"] { height: 32px; max-height: 32px; }
 .field input[type="date"]::-webkit-date-and-time-value { min-width: 0; text-align: left; }
@@ -70,9 +69,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .native-field-wrap { position: relative; display: block; }
 .native-field-display { position: absolute; top: 0; left: 0; right: 34px; display: flex; align-items: center; height: 44px; padding: 0 12px; overflow: hidden; color: var(--glass-ink); font-size: 1rem; white-space: nowrap; text-overflow: ellipsis; pointer-events: none; }
 .form-grid .native-field-display { height: 32px; padding: 0; }
-.native-field-display.is-empty { color: oklch(68% 0.02 270); }
+.native-field-display.is-empty { color: var(--glass-placeholder); }
 
-.info-strip, .measurement-note { display: grid; gap: 4px; margin-top: 10px; padding: 12px 16px; border-radius: var(--glass-radius-lg); background: var(--glass-card-bg); backdrop-filter: var(--glass-card-blur); -webkit-backdrop-filter: var(--glass-card-blur); box-shadow: var(--glass-card-shadow); }
+.info-strip, .measurement-note { display: grid; gap: 4px; margin-top: 10px; padding: 12px 16px; border-radius: var(--glass-radius-lg); background: var(--glass-card-bg); box-shadow: var(--glass-card-shadow); }
 .info-strip strong, .measurement-note strong { font-size: .8125rem; font-weight: 600; }
 .info-strip span, .measurement-note span { color: var(--glass-soft); font-size: .75rem; line-height: 1.6; }
 
@@ -81,10 +80,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .member-toolbar > div { display: grid; gap: 1px; }
 .member-toolbar strong { font-size: .875rem; font-weight: 600; }
 .member-toolbar span { color: var(--glass-muted); font-size: .6875rem; }
-.add-button, .confirm-button, .secondary-button, .export-option { min-height: 44px; border: 0; border-radius: 999px; background: rgba(255, 255, 255, 0.6); box-shadow: inset 1px 1px 1px rgba(255, 255, 255, 0.9), 0 4px 12px rgba(40, 40, 80, 0.06); color: var(--glass-ink); font-weight: 600; }
+.add-button, .confirm-button, .secondary-button, .export-option { min-height: 44px; border: 0; border-radius: 999px; background: #fff; box-shadow: var(--glass-hairline), 0 4px 12px rgba(60, 50, 30, 0.06); color: var(--glass-ink); font-weight: 600; }
 .add-button { display: inline-flex; align-items: center; gap: 4px; min-height: 36px; padding: 0 14px 0 10px; color: var(--glass-accent); font-size: .8125rem; white-space: nowrap; }
 .secondary-button { padding: 0 16px; font-size: .8125rem; }
-.confirm-button { padding: 0 18px; background: var(--glass-accent); color: var(--glass-accent-on); box-shadow: 0 4px 12px oklch(50% 0.12 275 / 0.3); font-size: .8125rem; }
+.confirm-button { padding: 0 18px; background: var(--glass-accent); color: var(--glass-accent-on); box-shadow: var(--glass-accent-shadow); font-size: .8125rem; }
 .add-button:hover, .secondary-button:hover { filter: brightness(0.97); }
 .member-list { display: grid; gap: 4px; }
 .member-card { display: block; }
@@ -92,16 +91,17 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .member-card:first-child .member-card-header { padding-top: 4px; }
 .member-card-header strong { font-size: 1rem; font-weight: 600; }
 .member-card-header button { border: 0; background: transparent; color: var(--glass-accent); font-size: .75rem; font-weight: 500; }
-.empty-state { padding: 20px 16px; border-radius: var(--glass-radius-lg); background: var(--glass-card-bg); backdrop-filter: var(--glass-card-blur); -webkit-backdrop-filter: var(--glass-card-blur); box-shadow: var(--glass-card-shadow); color: var(--glass-muted); font-size: .8125rem; text-align: center; }
+.empty-state { padding: 20px 16px; color: var(--glass-muted); font-size: .8125rem; text-align: center; }
+.member-list > .empty-state { border-radius: var(--glass-radius-lg); background: var(--glass-card-bg); box-shadow: var(--glass-card-shadow); }
 
-.member-selector-row { align-items: center; margin-bottom: 10px; padding: 8px 16px; border-radius: var(--glass-radius-lg); background: var(--glass-card-bg); backdrop-filter: var(--glass-card-blur); -webkit-backdrop-filter: var(--glass-card-blur); box-shadow: var(--glass-card-shadow); }
+.member-selector-row { align-items: center; margin-bottom: 10px; padding: 8px 16px; border-radius: var(--glass-radius-lg); background: var(--glass-card-bg); box-shadow: var(--glass-card-shadow); }
 .member-selector-row .field { flex: 0 1 300px; gap: 2px; }
 .member-selector-row .field > span { font-size: .6875rem; font-weight: 500; }
-.member-selector-row .field select { min-height: 32px; padding: 0 20px 0 0; border-radius: 0; background: transparent; }
+.member-selector-row .field select { width: calc(100% + 20px); min-height: 32px; margin: 0 -10px; padding: 0 20px 0 10px; border-radius: 10px; background: transparent; }
 .selection-summary { max-width: 48%; color: var(--glass-muted); font-size: .6875rem; text-align: right; }
 
 /* ---- 統計列 + 查驗項目清單 ------------------------------------------------ */
-.check-progress { display: grid; grid-template-columns: repeat(2, 1fr); margin: 0 0 24px; border-radius: var(--glass-radius-lg); background: var(--glass-card-bg); backdrop-filter: var(--glass-card-blur); -webkit-backdrop-filter: var(--glass-card-blur); box-shadow: var(--glass-card-shadow); overflow: hidden; }
+.check-progress { display: grid; grid-template-columns: repeat(2, 1fr); margin: 0 0 24px; border-radius: var(--glass-radius-lg); background: var(--glass-card-bg); box-shadow: var(--glass-card-shadow); overflow: hidden; }
 .check-progress > div { min-width: 0; padding: 12px 16px; }
 .check-progress > div + div { border-left: 1px solid var(--line); }
 .check-progress dt { color: var(--glass-label); font-size: .6875rem; font-weight: 500; }
@@ -113,8 +113,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .record-heading span { font-family: var(--glass-font-num); color: var(--glass-accent); font-size: .75rem; font-weight: 700; }
 .record-heading h3 { margin: 0; font-size: 1rem; font-weight: 600; }
 .record-heading + .check-progress { margin-bottom: 10px; }
-.check-card-list { display: block; border-radius: var(--glass-radius-lg); background: var(--glass-card-bg); backdrop-filter: var(--glass-card-blur); -webkit-backdrop-filter: var(--glass-card-blur); box-shadow: var(--glass-card-shadow); overflow: hidden; }
-.check-card-list .empty-state { border-radius: 0; background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; box-shadow: none; }
+.check-card-list { display: block; border-radius: var(--glass-radius-lg); background: var(--glass-card-bg); box-shadow: var(--glass-card-shadow); overflow: hidden; }
 .check-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px 8px; padding: 16px; border-top: 1px solid var(--line); }
 .check-card-list > :first-child { border-top: 0; }
 .check-card > div:first-child { grid-column: 1 / -1; }
@@ -124,16 +123,13 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .check-card-fields > .field { flex: 1 1 auto; min-width: 0; }
 .check-card > .field { gap: 0; }
 .check-card .field > span,
-.check-card .result-field > span:first-child { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .check-card .field input, .check-card .field select { min-height: 42px; padding: 0 14px; border-radius: 999px; font-size: .875rem; }
 .check-card .result-field { position: relative; flex: 0 0 auto; }
 .check-card.is-failed { background: var(--glass-danger-wash); }
-.check-card.is-failed .field input, .check-card.is-failed .glass-segmented { background: rgba(255, 255, 255, 0.6); }
-.type-title-note { margin: -4px 0 10px; padding: 0 4px; color: var(--glass-muted); font-size: .6875rem; }
+.check-card.is-failed .field input { background: #fff; }
 
 /* ---- 尺寸複核 ---------------------------------------------------------- */
-.measurement-list { display: block; margin-top: 10px; border-radius: var(--glass-radius-lg); background: var(--glass-card-bg); backdrop-filter: var(--glass-card-blur); -webkit-backdrop-filter: var(--glass-card-blur); box-shadow: var(--glass-card-shadow); overflow: hidden; }
-.measurement-list .empty-state { border-radius: 0; background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; box-shadow: none; }
+.measurement-list { display: block; margin-top: 10px; border-radius: var(--glass-radius-lg); background: var(--glass-card-bg); box-shadow: var(--glass-card-shadow); overflow: hidden; }
 .measurement-card { padding: 16px; border-top: 1px solid var(--line); }
 .measurement-list > :first-child { border-top: 0; }
 .measurement-card-header { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
@@ -147,26 +143,26 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .measurement-result.is-failed strong { background: var(--glass-danger-bg); color: var(--glass-danger-ink); }
 .measurement-result.is-passed strong { background: var(--glass-success-bg); color: var(--glass-success-ink); }
 
-.decision-panel { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: 0 12px; margin: 24px 0 0; padding: 6px 16px; border-radius: var(--glass-radius-lg); background: var(--glass-card-bg); backdrop-filter: var(--glass-card-blur); -webkit-backdrop-filter: var(--glass-card-blur); box-shadow: var(--glass-card-shadow); }
+.decision-panel { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: 0 12px; margin: 24px 0 0; padding: 6px 16px; border-radius: var(--glass-radius-lg); background: var(--glass-card-bg); box-shadow: var(--glass-card-shadow); }
 .decision-panel > .field { gap: 2px; padding: 10px 0; }
 .decision-panel > .field > span { font-size: .6875rem; font-weight: 500; }
-.decision-panel > .field select, .decision-panel > .field textarea { min-height: 32px; padding: 0; border-radius: 0; background: transparent; }
+.decision-panel > .field select, .decision-panel > .field textarea { width: calc(100% + 20px); min-height: 32px; margin: 0 -10px; padding: 0 10px; border-radius: 10px; background: transparent; }
 .decision-panel > .field select { padding-right: 20px; }
 .demolition-section { padding-top: 0; }
-.danger-button { background: var(--glass-danger); color: #fff; box-shadow: 0 4px 12px oklch(58% 0.14 28 / 0.3); }
-.note-field { display: grid; gap: 4px; margin-top: 10px; padding: 12px 16px 14px; border-radius: var(--glass-radius-lg); background: var(--glass-card-bg); backdrop-filter: var(--glass-card-blur); -webkit-backdrop-filter: var(--glass-card-blur); box-shadow: var(--glass-card-shadow); }
+.danger-button { background: var(--glass-danger); color: #fff; box-shadow: 0 4px 12px oklch(58% 0.13 30 / 0.3); }
+.note-field { display: grid; gap: 4px; margin-top: 10px; padding: 12px 16px 14px; border-radius: var(--glass-radius-lg); background: var(--glass-card-bg); box-shadow: var(--glass-card-shadow); }
 .note-field > span { font-size: .6875rem; font-weight: 500; }
-.note-field textarea { min-height: 72px; padding: 4px 0; border-radius: 0; background: transparent; }
+.note-field textarea { width: calc(100% + 20px); min-height: 72px; margin: 0 -10px; padding: 4px 10px; border-radius: 10px; background: transparent; }
 
 /* ---- 底部分離式玻璃列 ------------------------------------------------------ */
 .action-dock { position: fixed; left: 16px; right: 16px; bottom: max(16px, calc(env(safe-area-inset-bottom) + 8px)); z-index: 200; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.dock-tools { display: flex; align-items: center; gap: 2px; height: 60px; padding: 6px; border-radius: 999px; background: var(--glass-card-bg-strong); backdrop-filter: var(--glass-card-blur); -webkit-backdrop-filter: var(--glass-card-blur); box-shadow: var(--glass-bar-shadow); }
-.dock-tool { display: grid; place-items: center; gap: 1px; min-width: 58px; max-width: 88px; height: 48px; padding: 0 6px; border: 0; border-radius: 999px; background: transparent; color: oklch(40% 0.03 270); text-decoration: none; }
+.dock-tools { display: flex; align-items: center; gap: 2px; height: 60px; padding: 6px; border-radius: 999px; background: var(--glass-card-bg); box-shadow: var(--glass-bar-shadow); }
+.dock-tool { display: grid; place-items: center; gap: 1px; min-width: 58px; max-width: 88px; height: 48px; padding: 0 6px; border: 0; border-radius: 999px; background: transparent; color: var(--glass-icon); text-decoration: none; }
 .dock-tool svg { display: block; }
 .dock-tool small { max-width: 100%; overflow: hidden; font-size: .59375rem; text-overflow: ellipsis; white-space: nowrap; }
-.dock-tool.is-active { background: rgba(255, 255, 255, 0.85); box-shadow: 0 1px 4px rgba(40, 40, 80, 0.1); color: var(--glass-accent); }
+.dock-tool.is-active { background: var(--glass-accent-soft); box-shadow: 0 1px 4px rgba(60, 50, 30, 0.1); color: var(--glass-accent); }
 .dock-tool.is-active small { font-weight: 600; }
-.dock-primary { display: grid; place-items: center; flex: none; width: 60px; height: 60px; border: 0; border-radius: 999px; background: var(--glass-accent); color: var(--glass-accent-on); box-shadow: inset 1px 1px 1px rgba(255, 255, 255, 0.35), 0 6px 16px oklch(50% 0.12 275 / 0.35); }
+.dock-primary { display: grid; place-items: center; flex: none; width: 60px; height: 60px; border: 0; border-radius: 999px; background: var(--glass-accent); color: var(--glass-accent-on); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 6px 16px oklch(40% 0.05 250 / 0.35); }
 .dock-primary svg { display: block; }
 
 /* ---- 對話框 ---------------------------------------------------------------- */
@@ -183,7 +179,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .help-content h3 { margin: 0 0 4px; font-size: .875rem; font-weight: 600; }
 .help-content p { margin: 0; color: var(--glass-soft); font-size: .8125rem; }
 .example-actions { display: grid; width: 100%; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
-.example-button { display: grid; width: 100%; min-width: 0; gap: 2px; min-height: 62px; padding: 10px 12px; border: 0; border-radius: var(--glass-radius-sm); background: rgba(255, 255, 255, 0.55); box-shadow: inset 1px 1px 1px rgba(255, 255, 255, 0.85); color: var(--glass-ink); cursor: pointer; text-decoration: none; }
+.example-button { display: grid; width: 100%; min-width: 0; gap: 2px; min-height: 62px; padding: 10px 12px; border: 0; border-radius: var(--glass-radius-sm); background: var(--glass-sunken); box-shadow: var(--glass-hairline); color: var(--glass-ink); cursor: pointer; text-decoration: none; }
 .example-button-split { display: block; padding: 0; }
 .example-button-split a { display: grid; gap: 2px; min-height: 44px; padding: 7px 10px; color: inherit; cursor: pointer; text-decoration: none; }
 .example-button-split a + a { border-top: 1px solid var(--line); }
@@ -191,7 +187,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .example-button span { font-size: .8125rem; font-weight: 600; }
 .example-button small { color: var(--glass-muted); font-size: .6875rem; }
 .export-options { display: grid; gap: 9px; }
-.export-option { display: grid; gap: 2px; padding: 12px 14px; border-radius: var(--glass-radius-sm); box-shadow: inset 1px 1px 1px rgba(255, 255, 255, 0.85); text-align: left; }
+.export-option { display: grid; gap: 2px; padding: 12px 14px; border-radius: var(--glass-radius-sm); box-shadow: var(--glass-hairline); text-align: left; }
 .export-option strong { font-size: .8125rem; font-weight: 600; }
 .export-option small { color: var(--glass-muted); font-size: .6875rem; font-weight: 400; }
 .export-option:hover { filter: brightness(0.97); }
@@ -218,25 +214,18 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 
 @media (hover: hover) {
-  .tab-row button:hover { background: rgba(255, 255, 255, 0.7); }
-  .tab-row button[aria-selected="true"]:hover, .confirm-button:hover, .dock-primary:hover { background: var(--glass-accent-strong); }
-  .dock-tool:hover { background: rgba(255, 255, 255, 0.6); }
+  .tab-row button:hover { background: rgba(60, 50, 30, 0.09); }
+  .tab-row button[aria-selected="true"]:hover { background: var(--glass-ink); }
+  .confirm-button:hover, .dock-primary:hover { background: var(--glass-accent-strong); }
+  .dock-tool:hover { background: rgba(60, 50, 30, 0.09); }
 }
 
-/* ---- 輸入焦點：旋轉漸層環貼著欄位本身的圓角，無外暈；聚焦時底色轉白 -------- */
-.field input:not([type="radio"]), .field select, .field textarea, .member-selector-row .field select { border: 1px solid transparent; }
+/* ---- 輸入焦點：旋轉漸層環貼著欄位本身的圓角，無外暈；聚焦時底色轉白 --------
+   欄位常駐 1px 透明邊框（見 .field input 基礎規則），聚焦只換背景，不會位移。 */
 .field input:not([type="radio"]):focus, .field select:focus, .field textarea:focus {
   outline: none;
   background: linear-gradient(#fff, #fff) padding-box, var(--glass-focus-ring) border-box;
   animation: glass-glow-spin 2.6s linear infinite;
-}
-.form-grid > .field input:focus, .form-grid > .field select:focus, .form-grid > .field textarea:focus,
-.decision-panel > .field select:focus, .decision-panel > .field textarea:focus,
-.member-selector-row .field select:focus, .note-field textarea:focus {
-  width: calc(100% + 20px);
-  margin: 0 -10px;
-  padding-inline: 10px;
-  border-radius: 10px;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -248,7 +237,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   @page { size: A4 portrait; margin: 12mm 12mm 11mm; }
   html, body { min-width: 0; background: #fff; }
   body { padding: 0; color: #24282d; font-family: "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif; }
-  .app-header, .app-shell, .action-dock, .sheet-dialog, .skip-link, .glass-scene { display: none !important; }
+  .app-header, .app-shell, .action-dock, .sheet-dialog, .skip-link { display: none !important; }
   .print-report { display: block; }
   .print-page { display: none; break-after: page; }
   .print-page:last-child { break-after: auto; }

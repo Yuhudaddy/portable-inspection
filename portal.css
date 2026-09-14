@@ -1,5 +1,3 @@
-:root { --focus: var(--glass-accent); }
-
 * { box-sizing: border-box; }
 
 html { min-width: 320px; background: var(--glass-page-bg); }
@@ -20,7 +18,7 @@ a { color: inherit; }
 button { font: inherit; }
 
 :focus-visible {
-  outline: 3px solid var(--focus);
+  outline: 3px solid var(--glass-accent);
   outline-offset: 3px;
 }
 
@@ -55,7 +53,7 @@ button { font: inherit; }
   width: 36px;
   height: 36px;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(40, 40, 80, 0.12);
+  box-shadow: 0 2px 8px rgba(60, 50, 30, 0.12);
 }
 
 .header-tag {
@@ -108,8 +106,6 @@ h1 {
 
 .tool-card-active {
   background: var(--glass-card-bg);
-  backdrop-filter: var(--glass-card-blur);
-  -webkit-backdrop-filter: var(--glass-card-blur);
   box-shadow: var(--glass-card-shadow);
 }
 
@@ -117,13 +113,13 @@ h1 {
 .tool-card-active:focus-visible {
   transform: translateY(-3px);
   box-shadow:
-    inset 1px 1px 1px rgba(255, 255, 255, 0.95),
-    0 1px 2px rgba(40, 40, 80, 0.05),
-    0 16px 36px rgba(40, 40, 80, 0.1);
+    var(--glass-hairline),
+    0 1px 2px rgba(60, 50, 30, 0.05),
+    0 16px 36px rgba(60, 50, 30, 0.1);
 }
 
 .tool-card-coming {
-  border: 1.5px dashed oklch(82% 0.02 270);
+  border: 1.5px dashed var(--glass-dash);
   color: var(--glass-faint);
 }
 
@@ -164,7 +160,7 @@ h1 {
 .tool-status {
   padding: 3px 9px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.6);
+  background: var(--glass-sunken);
   font-family: var(--glass-font-num);
   font-size: 0.625rem;
   font-weight: 700;
@@ -213,15 +209,11 @@ h1 {
   font-size: 0.8125rem;
   font-weight: 700;
   text-decoration: none;
-  box-shadow: 0 6px 16px oklch(50% 0.12 275 / 0.3);
+  box-shadow: var(--glass-accent-shadow);
 }
 
 .home-link:hover,
 .home-link:focus-visible { background: var(--glass-accent-strong); }
-
-@media (max-width: 600px) {
-  .portal-shell { width: min(100% - 32px, 960px); }
-}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

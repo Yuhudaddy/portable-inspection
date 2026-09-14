@@ -1,4 +1,4 @@
-/* Steel structure review: glass 霧面樣式，疊加於 glass.css / app.css 之上。 */
+/* Steel structure review: 疊加於 glass.css / app.css 之上的頁面專屬樣式。 */
 .record-switcher-link {
   display: grid;
   min-width: 0;
@@ -8,12 +8,11 @@
   border: 0;
   border-radius: 999px;
   background: transparent;
-  color: oklch(45% 0.03 270);
+  color: var(--glass-soft);
   text-align: center;
   text-decoration: none;
 }
 .record-switcher-link strong { font-size: 0.875rem; font-weight: 500; white-space: nowrap; }
-.record-switcher-link small { display: none; }
 .record-switcher-link:active, .record-switcher button:active { transform: translateY(1px); }
 .steel-shell .record-switcher { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
@@ -26,8 +25,6 @@
   padding: 6px 16px;
   border-radius: var(--glass-radius-lg);
   background: var(--glass-card-bg);
-  backdrop-filter: var(--glass-card-blur);
-  -webkit-backdrop-filter: var(--glass-card-blur);
   box-shadow: var(--glass-card-shadow);
 }
 .compact-measure-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -36,7 +33,7 @@
 .compact-measure-grid > .field:nth-child(3) { border-top: 1px solid var(--line); }
 .steel-meta-grid > .field > span, .steel-measure-grid > .field > span { font-size: 0.6875rem; font-weight: 500; }
 .steel-meta-grid > .field input, .steel-measure-grid > .field input,
-.steel-meta-grid > .field select, .steel-measure-grid > .field select { min-height: 32px; padding: 0; border-radius: 0; background: transparent; font-size: 1rem; }
+.steel-meta-grid > .field select, .steel-measure-grid > .field select { width: calc(100% + 20px); min-height: 32px; margin: 0 -10px; padding: 0 10px; border-radius: 10px; background: transparent; font-size: 1rem; }
 .steel-meta-grid > .field select, .steel-measure-grid > .field select { padding-right: 20px; }
 .steel-meta-grid > .field input[type="date"], .steel-measure-grid > .field input[type="date"] { height: 32px; max-height: 32px; }
 .steel-meta-grid .native-field-display, .steel-measure-grid .native-field-display { height: 32px; padding: 0; font-size: 1rem; }
@@ -48,8 +45,6 @@
   padding: 12px 16px;
   border-radius: var(--glass-radius-lg);
   background: var(--glass-card-bg);
-  backdrop-filter: var(--glass-card-blur);
-  -webkit-backdrop-filter: var(--glass-card-blur);
   box-shadow: var(--glass-card-shadow);
   color: var(--glass-soft);
   font-size: 0.75rem;
@@ -63,8 +58,6 @@
   margin: 0;
   border-radius: var(--glass-radius-lg);
   background: var(--glass-card-bg);
-  backdrop-filter: var(--glass-card-blur);
-  -webkit-backdrop-filter: var(--glass-card-blur);
   box-shadow: var(--glass-card-shadow);
   overflow: hidden;
 }
@@ -79,8 +72,6 @@
   display: block;
   border-radius: var(--glass-radius-lg);
   background: var(--glass-card-bg);
-  backdrop-filter: var(--glass-card-blur);
-  -webkit-backdrop-filter: var(--glass-card-blur);
   box-shadow: var(--glass-card-shadow);
   overflow: hidden;
 }
@@ -105,8 +96,6 @@
   margin-top: 0;
   border-radius: var(--glass-radius-lg);
   background: var(--glass-card-bg);
-  backdrop-filter: var(--glass-card-blur);
-  -webkit-backdrop-filter: var(--glass-card-blur);
   box-shadow: var(--glass-card-shadow);
   overflow: hidden;
 }
@@ -115,17 +104,15 @@
 .steel-check-list > :first-child { border-top: 0; }
 .steel-check-card.is-failed { background: var(--glass-danger-wash); }
 .steel-check-head { display: flex; align-items: baseline; gap: 10px; }
-.steel-check-head > span { font-family: var(--glass-font-num); color: oklch(55% 0.03 270); font-size: 0.75rem; }
+.steel-check-head > span { font-family: var(--glass-font-num); color: var(--glass-faint); font-size: 0.75rem; }
 .steel-check-head strong { font-size: 0.9375rem; font-weight: 600; }
 .steel-check-card p { margin: 3px 0 12px 24px; color: var(--glass-soft); font-size: 0.75rem; line-height: 1.55; }
 .steel-check-fields { display: flex; align-items: center; gap: 8px; margin-left: 0; }
 .steel-check-fields > .field { flex: 1 1 auto; min-width: 0; gap: 0; }
-.steel-check-fields > .field > span,
-.steel-check-fields > .result-field > span:first-child { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.steel-check-fields > .field > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .steel-check-fields > .field input { min-height: 42px; padding: 0 14px; border-radius: 999px; font-size: 0.875rem; }
 .steel-check-fields > .result-field { flex: 0 0 auto; position: relative; }
-.steel-check-card.is-failed .steel-check-fields > .field input,
-.steel-check-card.is-failed .glass-segmented { background: rgba(255, 255, 255, 0.6); }
+.steel-check-card.is-failed .steel-check-fields > .field input { background: #fff; }
 
 .optional-module-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .optional-module-grid article {
@@ -136,13 +123,11 @@
   padding: 16px;
   border-radius: var(--glass-radius-lg);
   background: var(--glass-card-bg);
-  backdrop-filter: var(--glass-card-blur);
-  -webkit-backdrop-filter: var(--glass-card-blur);
   box-shadow: var(--glass-card-shadow);
 }
 .optional-module-grid strong { font-size: 0.9375rem; font-weight: 600; }
 .optional-module-grid p { min-height: 4.4em; margin: 0; color: var(--glass-soft); font-size: 0.75rem; line-height: 1.55; }
-.optional-module-grid button { min-height: 38px; border: 0; border-radius: 999px; background: rgba(255, 255, 255, 0.6); box-shadow: inset 1px 1px 1px rgba(255, 255, 255, 0.9); color: oklch(45% 0.03 270); font-size: 0.8125rem; font-weight: 500; }
+.optional-module-grid button { min-height: 38px; border: 0; border-radius: 999px; background: #fff; box-shadow: var(--glass-hairline); color: var(--glass-soft); font-size: 0.8125rem; font-weight: 500; }
 .optional-module-grid button.is-enabled { background: var(--glass-accent); color: var(--glass-accent-on); font-weight: 600; box-shadow: var(--glass-accent-shadow); }
 .optional-fields {
   display: grid;
@@ -152,25 +137,14 @@
   padding: 6px 16px;
   border-radius: var(--glass-radius-lg);
   background: var(--glass-card-bg);
-  backdrop-filter: var(--glass-card-blur);
-  -webkit-backdrop-filter: var(--glass-card-blur);
   box-shadow: var(--glass-card-shadow);
 }
 .optional-fields[hidden] { display: none; }
 .optional-fields > .field { gap: 2px; padding: 10px 0; }
 .optional-fields > .field + .field { border-top: 1px solid var(--line); }
 .optional-fields > .field > span:first-child { font-size: 0.6875rem; font-weight: 500; }
-.optional-fields > .field textarea { min-height: 72px; padding: 4px 0; border-radius: 0; background: transparent; font-size: 1rem; }
+.optional-fields > .field textarea { width: calc(100% + 20px); min-height: 72px; margin: 0 -10px; padding: 4px 10px; border-radius: 10px; background: transparent; font-size: 1rem; }
 .optional-fields .glass-segmented { justify-self: start; margin-top: 4px; }
-
-.steel-meta-grid > .field input:focus, .steel-measure-grid > .field input:focus,
-.steel-meta-grid > .field select:focus, .steel-measure-grid > .field select:focus,
-.optional-fields > .field textarea:focus {
-  width: calc(100% + 20px);
-  margin: 0 -10px;
-  padding-inline: 10px;
-  border-radius: 10px;
-}
 
 @media (max-width: 639px) {
   .steel-shell .record-switcher { grid-template-columns: repeat(2, minmax(0, 1fr)); border-radius: var(--glass-radius-lg); }

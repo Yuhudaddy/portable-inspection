@@ -6,24 +6,17 @@
     <meta name="description" content="Field construction record PDF tool" />
     <meta name="referrer" content="no-referrer" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; worker-src 'self'" />
-    <meta name="theme-color" content="#f7f7f5" />
-    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#ffffff" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="營造廠查驗" />
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
     <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="stylesheet" href="./glass.css?v=5" />
-    <link rel="stylesheet" href="./app.css?v=50" />
+    <link rel="stylesheet" href="./glass.css" />
+    <link rel="stylesheet" href="./app.css" />
     <title>連續壁營造廠查驗表｜Project Portal</title>
   </head>
   <body data-active-tab="overview" data-print-scope="none">
-    <div class="glass-scene" aria-hidden="true">
-      <span class="glass-blob glass-blob-indigo"></span>
-      <span class="glass-blob glass-blob-mint"></span>
-      <span class="glass-blob glass-blob-peach"></span>
-    </div>
-
     <a class="skip-link" href="#project-tool">跳至專案工具</a>
 
     <header class="app-header">
@@ -40,9 +33,9 @@
       </div>
 
       <nav class="record-switcher" id="record-switcher" aria-label="查驗紀錄類型">
-        <button type="button" data-select-tool="guideWall"><strong>導溝</strong><small>Guide Wall</small></button>
-        <button type="button" data-select-tool="rebarCage"><strong>鋼筋籠</strong><small>Rebar Cage</small></button>
-        <button type="button" data-select-tool="inspection" aria-current="page"><strong>連續壁</strong><small>Hold Points</small></button>
+        <button type="button" data-select-tool="guideWall"><strong>導溝</strong></button>
+        <button type="button" data-select-tool="rebarCage"><strong>鋼筋籠</strong></button>
+        <button type="button" data-select-tool="inspection" aria-current="page"><strong>連續壁</strong></button>
       </nav>
 
       <section class="tool-view" id="tool-inspection" data-tool-view="inspection">
@@ -306,6 +299,6 @@
       <article class="print-page" data-print-tab="rebarCage" id="print-rebar-cage"></article>
     </section>
 
-    <script src="./wall-gc.js?v=3" defer></script>
+    <script src="./wall-gc.js" defer></script>
   </body>
 </html>

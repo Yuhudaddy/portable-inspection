@@ -87,6 +87,24 @@ function resultOptions(selected) {
   return RESULT_VALUES.map(value => `<option value="${esc(value)}" ${value === selected ? "selected" : ""}>${esc(value)}</option>`).join("");
 }
 
+// 三段式結果膠囊：以隱藏 radio + 相鄰 span 呈現（沿用既有 .unit-type 手法）。
+// 未勾選任一段＝原本下拉選單的「待確認」狀態；點選其一會如同 <select> 觸發 change，
+// 既有的委派事件（依 data-* 屬性讀取 event.target.value）不需更動。
+const SEGMENT_ICONS = {
+  pass: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>`,
+  fail: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>`,
+  na: "N/A"
+};
+
+function resultSegmented(name, selected, attrs) {
+  return `<div class="glass-segmented" role="radiogroup" aria-labelledby="${name}-label">${["符合", "不符合", "不適用"]
+    .map(value => {
+      const kind = value === "符合" ? "pass" : value === "不符合" ? "fail" : "na";
+      return `<label><input type="radio" name="${name}" value="${value}" aria-label="${value}" ${value === selected ? "checked" : ""} ${attrs} /><span class="is-${kind}">${SEGMENT_ICONS[kind]}</span></label>`;
+    })
+    .join("")}</div>`;
+}
+
 function formatDate(value) {
   const [year, month, day] = String(value ?? "").split("-");
   return year && month && day ? `${year}/${month}/${day}` : "";
@@ -107,7 +125,9 @@ function syncDateDisplays() {
 function setBoundInputs() {
   $$('[data-bind]').forEach(input => {
     const [group, key] = input.dataset.bind.split(".");
-    if (state[group] && Object.prototype.hasOwnProperty.call(state[group], key)) input.value = state[group][key] ?? "";
+    if (!state[group] || !Object.prototype.hasOwnProperty.call(state[group], key)) return;
+    if (input.type === "radio") input.checked = input.value === state[group][key];
+    else input.value = state[group][key] ?? "";
   });
   syncDateDisplays();
 }
@@ -140,7 +160,7 @@ function renderChecks(group) {
       <p>${esc(check.standard)}</p>
       <div class="steel-check-fields">
         <label class="field"><span>現場紀錄／文件編號</span><input type="text" value="${esc(check.actual)}" data-check-group="${group}" data-check-index="${index}" data-check-field="actual" /></label>
-        <label class="field"><span>複核結果</span><select data-check-group="${group}" data-check-index="${index}" data-check-field="result">${resultOptions(check.result)}</select></label>
+        <div class="field result-field"><span id="steel-${group}-${index}-result-label">複核結果</span>${resultSegmented(`steel-${group}-${index}-result`, check.result, `data-check-group="${group}" data-check-index="${index}" data-check-field="result"`)}</div>
       </div>
     </article>`).join("");
 }
@@ -153,7 +173,7 @@ function renderDelivery() {
     <div><dt>已完成複核</dt><dd>${complete} <small>筆</small></dd></div>
     <div><dt>待確認</dt><dd>${records.length - complete} <small>筆</small></dd></div>`;
   $("#delivery-list").innerHTML = records.length ? records.map((record, index) => `
-    <article class="steel-record-card ${record.result === "不符合" ? "is-failed" : ""}">
+    <article class="steel-record-card ${record.result === "不符合" ? "is-failed" : record.result === "符合" ? "is-passed" : ""}">
       <div>
         <div class="steel-record-title"><strong>${esc(record.type)}｜${esc(record.memberNo)}</strong><span>${esc(record.result)}</span></div>
         <div class="steel-record-meta"><span><b>規格</b> ${esc(display(record.spec))}</span><span><b>數量</b> ${esc(display(record.qty))} 件</span><span><b>文件</b> ${esc(display(record.doc))}</span><span><b>外觀／堆置</b> ${esc(record.appearance)}／${esc(record.storage)}</span></div>
@@ -195,9 +215,9 @@ function openDeliveryDialog(index = null) {
   $("#delivery-spec").value = record.spec;
   $("#delivery-qty").value = record.qty;
   $("#delivery-doc").value = record.doc;
-  $("#delivery-appearance").value = record.appearance;
-  $("#delivery-storage").value = record.storage;
-  $("#delivery-result").value = record.result;
+  $$('input[name="delivery-appearance"]').forEach(radio => { radio.checked = radio.value === record.appearance; });
+  $$('input[name="delivery-storage"]').forEach(radio => { radio.checked = radio.value === record.storage; });
+  $$('input[name="delivery-result"]').forEach(radio => { radio.checked = radio.value === record.result; });
   $("#delivery-dialog-title").textContent = index === null ? "新增進場構件" : "修改進場構件";
   $("#delivery-form [type='submit']").textContent = index === null ? "確認加入" : "確認更新";
   $("#delivery-dialog").showModal();
@@ -364,7 +384,7 @@ function initialize() {
   $("#add-delivery").addEventListener("click", () => openDeliveryDialog());
   $("#delivery-form").addEventListener("submit", event => {
     event.preventDefault();
-    const record = { type: $("#delivery-type").value, memberNo: $("#delivery-member").value.trim(), spec: $("#delivery-spec").value.trim(), qty: $("#delivery-qty").value, doc: $("#delivery-doc").value.trim(), appearance: $("#delivery-appearance").value, storage: $("#delivery-storage").value, result: $("#delivery-result").value };
+    const record = { type: $("#delivery-type").value, memberNo: $("#delivery-member").value.trim(), spec: $("#delivery-spec").value.trim(), qty: $("#delivery-qty").value, doc: $("#delivery-doc").value.trim(), appearance: document.querySelector('input[name="delivery-appearance"]:checked')?.value || "待確認", storage: document.querySelector('input[name="delivery-storage"]:checked')?.value || "待確認", result: document.querySelector('input[name="delivery-result"]:checked')?.value || "待確認" };
     if (editDeliveryIndex === null) state.delivery.records.push(record); else state.delivery.records[editDeliveryIndex] = record;
     $("#delivery-dialog").close(); renderDelivery(); updateIdentity();
   });

@@ -6,37 +6,37 @@
     <meta name="description" content="Field construction record PDF tool" />
     <meta name="referrer" content="no-referrer" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; worker-src 'self'" />
-    <meta name="theme-color" content="#eceff1" />
+    <meta name="theme-color" content="#f7f7f5" />
+    <meta name="color-scheme" content="light" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="施工紀錄" />
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
     <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="stylesheet" href="./app.css?v=46" />
+    <link rel="stylesheet" href="./glass.css?v=5" />
+    <link rel="stylesheet" href="./app.css?v=50" />
     <title>連續壁施工紀錄｜Project Portal</title>
   </head>
   <body data-active-tab="overview" data-print-scope="none">
+    <div class="glass-scene" aria-hidden="true">
+      <span class="glass-blob glass-blob-indigo"></span>
+      <span class="glass-blob glass-blob-mint"></span>
+      <span class="glass-blob glass-blob-peach"></span>
+    </div>
+
     <a class="skip-link" href="#project-tool">跳至專案工具</a>
 
     <header class="app-header">
       <nav class="header-nav" aria-label="主要功能">
-        <a class="header-action home-action" href="./index.html" aria-label="返回工具首頁">←</a>
-        <button class="header-action" id="project-tool-button" type="button" aria-current="page" aria-controls="record-switcher">
-          檢查紀錄
-        </button>
-        <button class="header-action help-action" id="help-button" type="button">
-          使用說明 <span aria-hidden="true">?</span>
-        </button>
+        <a class="glass-pill header-back" href="./index.html" aria-label="返回工具首頁"><svg width="10" height="16" viewBox="0 0 12 20" fill="none" aria-hidden="true"><path d="M10 2L2 10l8 8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>工具</a>
+        <span class="glass-tag header-identity" id="record-identity">尚未指定單元</span>
       </nav>
     </header>
 
     <main class="app-shell" id="project-tool">
       <div class="tool-title">
-        <div>
-          <p>DIAPHRAGM WALL / FIELD RECORD</p>
-          <h1>施工管理檢核表</h1>
-        </div>
-        <span id="record-identity">尚未指定單元</span>
+        <p>DIAPHRAGM WALL / FIELD RECORD</p>
+        <h1>施工管理<span>檢核表</span></h1>
       </div>
 
       <nav class="record-switcher" id="record-switcher" aria-label="施工紀錄類型">
@@ -228,11 +228,13 @@
     </main>
 
     <aside class="action-dock" aria-label="檔案處理工具">
-      <div><span>目前頁面</span><strong id="active-tab-label">工程概要</strong></div>
-      <div class="dock-actions">
-        <button class="clear-button" id="clear-button" type="button">清空</button>
-        <button id="export-button" type="button">檔案</button>
+      <div class="dock-tools">
+        <a class="dock-tool" href="./index.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8v9a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2z"/></svg><small>工具</small></a>
+        <button class="dock-tool is-active" id="project-tool-button" type="button" aria-controls="record-switcher"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><small id="active-tab-label">工程概要</small></button>
+        <button class="dock-tool" id="help-button" type="button"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></svg><small>說明</small></button>
+        <button class="dock-tool" id="clear-button" type="button"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 10v6M14 10v6"/></svg><small>清空</small></button>
       </div>
+      <button class="dock-primary" id="export-button" type="button" aria-label="檔案輸出"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg></button>
     </aside>
 
     <dialog class="sheet-dialog help-dialog" id="help-dialog">
@@ -302,7 +304,11 @@
           <label class="field"><span>設計數量／間距</span><input id="rebar-design-qty" type="text" placeholder="例如：28 支、@200 mm" /></label>
           <label class="field"><span>實際鋼筋號數</span><input id="rebar-actual-no" type="text" /></label>
           <label class="field"><span>實際數量／間距</span><input id="rebar-actual-qty" type="text" /></label>
-          <label class="field span-two"><span>複核結果</span><select id="rebar-result"><option>待確認</option><option>符合</option><option>不符合</option><option>不適用</option></select></label>
+          <div class="field result-field span-two"><span id="rebar-result-label">複核結果</span><div class="glass-segmented" role="radiogroup" aria-labelledby="rebar-result-label" id="rebar-result">
+            <label><input type="radio" name="rebar-result" value="符合" /><span class="is-pass">符合</span></label>
+            <label><input type="radio" name="rebar-result" value="不符合" /><span class="is-fail">不符合</span></label>
+            <label><input type="radio" name="rebar-result" value="不適用" /><span class="is-na">不適用</span></label>
+          </div></div>
         </div>
         <div class="dialog-actions"><button class="secondary-button" type="button" data-close-dialog>取消</button><button class="confirm-button" type="submit">確認更新</button></div>
       </form>
@@ -338,6 +344,6 @@
       <article class="print-page" data-print-tab="rebarCage" id="print-rebar-cage"></article>
     </section>
 
-    <script src="./app.js" defer></script>
+    <script src="./app.js?v=3" defer></script>
   </body>
 </html>

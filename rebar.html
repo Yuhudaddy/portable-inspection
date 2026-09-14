@@ -6,30 +6,37 @@
     <meta name="description" content="RC 鋼筋工程施工查驗與 PDF 輸出工具" />
     <meta name="referrer" content="no-referrer" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; worker-src 'self'" />
-    <meta name="theme-color" content="#eceff1" />
+    <meta name="theme-color" content="#f7f7f5" />
+    <meta name="color-scheme" content="light" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="鋼筋工程查驗" />
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="./template.css?v=31" />
-    <link rel="stylesheet" href="./rebar.css?v=1" />
+    <link rel="stylesheet" href="./glass.css?v=5" />
+    <link rel="stylesheet" href="./template.css?v=35" />
+    <link rel="stylesheet" href="./rebar.css?v=3" />
     <title>鋼筋工程查驗｜Project Portal</title>
   </head>
   <body data-print-scope="none">
+    <div class="glass-scene" aria-hidden="true">
+      <span class="glass-blob glass-blob-indigo"></span>
+      <span class="glass-blob glass-blob-mint"></span>
+      <span class="glass-blob glass-blob-peach"></span>
+    </div>
+
     <a class="skip-link" href="#rebar-tool">跳至鋼筋工程工具</a>
 
     <header class="app-header">
       <nav class="header-nav" aria-label="主要功能">
-        <a class="header-action home-action" href="./index.html" aria-label="返回工具首頁">←</a>
-        <a class="header-action header-link" href="#rebar-tool" aria-current="page">檢查紀錄</a>
-        <button class="header-action help-action" id="help-button" type="button">使用說明 <span aria-hidden="true">?</span></button>
+        <a class="glass-pill header-back" href="./index.html" aria-label="返回工具首頁"><svg width="10" height="16" viewBox="0 0 12 20" fill="none" aria-hidden="true"><path d="M10 2L2 10l8 8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>工具</a>
+        <span class="glass-tag header-identity" id="record-identity">尚未指定構件</span>
       </nav>
     </header>
 
     <main class="app-shell" id="rebar-tool">
       <div class="tool-title">
-        <div><p>RC REBAR / FIELD REVIEW</p><h1>鋼筋工程查驗表</h1></div>
-        <span id="record-identity">尚未指定構件</span>
+        <p>RC REBAR / FIELD REVIEW</p>
+        <h1>鋼筋工程<span>查驗表</span></h1>
       </div>
 
       <nav class="tab-navigation" aria-label="鋼筋工程分頁">
@@ -95,13 +102,21 @@
       </section>
     </main>
 
-    <aside class="action-dock" aria-label="輸出工具"><div><span>目前頁面</span><strong id="active-tab-label">工程概要</strong></div><div class="dock-actions"><button class="clear-button" id="clear-button" type="button">清空</button><button id="export-button" type="button">輸出</button></div></aside>
+    <aside class="action-dock" aria-label="輸出工具">
+      <div class="dock-tools">
+        <a class="dock-tool" href="./index.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8v9a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2z"/></svg><small>工具</small></a>
+        <a class="dock-tool is-active" href="#rebar-tool"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><small id="active-tab-label">工程概要</small></a>
+        <button class="dock-tool" id="help-button" type="button"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></svg><small>說明</small></button>
+        <button class="dock-tool" id="clear-button" type="button"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 10v6M14 10v6"/></svg><small>清空</small></button>
+      </div>
+      <button class="dock-primary" id="export-button" type="button" aria-label="檔案輸出"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg></button>
+    </aside>
 
     <section class="print-report" aria-hidden="true"><article class="print-page" data-print-page="overview"><div id="print-template-overview"></div></article><article class="print-page" data-print-page="material"><div id="print-template-material"></div></article><article class="print-page" data-print-page="placement"><div id="print-template-placement"></div></article><article class="print-page" data-print-page="detail"><div id="print-template-detail"></div></article><article class="print-page" data-print-page="release"><div id="print-template-release"></div></article></section>
 
     <dialog class="sheet-dialog" id="help-dialog"><div class="dialog-header"><div><span>HELP</span><h2>鋼筋工程使用說明</h2></div><button type="button" data-close-dialog aria-label="關閉使用說明">×</button></div><div class="dialog-body help-content"><section><h3>填寫順序</h3><p>先填工程概要，再於「配筋明細」建立多筆柱、牆、梁、板或基礎／地梁。每一列代表一個構件，展開後輸入多組鋼筋號數、支數與間距，最後完成材料、複核及澆置前放行。</p></section><section><h3>批次填寫</h3><p>可一次新增多筆構件、複製同類構件，再只修改編號與位置。鋼筋號數由下拉選單選擇；正常情況填圖說配筋與複核結果，只有異常或抽查時再補實測值與備註。</p></section><section><h3>查驗方式</h3><p>配筋明細是營造廠的批次複核紀錄；專業鋼筋廠商仍應保留完整自主檢查、量測及缺失改善資料。</p></section><section><h3>資料與輸出</h3><p>本工具不儲存或同步資料。完成後使用底部「輸出」，可列印 PDF 或匯出 JSON／Markdown；關閉或重新整理頁面後資料會清空。</p></section><section class="help-examples"><h3>已填妥範例</h3><p>開啟完整 PDF，查看鋼筋工程各頁的實際輸出格式；範例資料不會保存。</p><div class="example-actions"><a class="example-button" href="./examples/rebar-example.pdf" target="_blank" rel="noopener"><span>鋼筋｜完整範例 PDF</span><small>查看全部輸出頁面</small></a></div></section></div></dialog>
     <dialog class="sheet-dialog" id="export-dialog"><div class="dialog-header"><div><span>EXPORT</span><h2>選擇輸出內容</h2></div><button type="button" data-close-dialog aria-label="關閉輸出選單">×</button></div><div class="dialog-body export-options"><button class="export-option" type="button" data-export="current-pdf"><strong>目前頁面 PDF</strong><small>只輸出目前正在查看的分頁</small></button><button class="export-option" type="button" data-export="all-pdf"><strong>完整紀錄 PDF</strong><small>工程概要、材料、配置、接頭與放行全部輸出</small></button><button class="export-option" type="button" data-export="json"><strong>JSON 資料</strong><small>保留全部欄位，適合匯入資料庫</small></button><button class="export-option" type="button" data-export="markdown"><strong>Markdown 摘要</strong><small>適合人工閱讀與歸檔</small></button></div></dialog>
     <dialog class="sheet-dialog" id="clear-dialog"><div class="dialog-header"><div><span>CLEAR RECORD</span><h2>清空全部資料</h2></div><button type="button" data-close-dialog aria-label="關閉">×</button></div><div class="dialog-body clear-confirmation"><p>將清除鋼筋工程表單的所有輸入內容，且無法復原。</p></div><div class="dialog-actions"><button class="secondary-button" type="button" data-close-dialog>取消</button><button class="confirm-button danger-button" id="confirm-clear" type="button">確認清空</button></div></dialog>
-    <script src="./rebar.js" defer></script>
+    <script src="./rebar.js?v=3" defer></script>
   </body>
 </html>

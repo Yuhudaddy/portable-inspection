@@ -6,32 +6,36 @@
     <meta name="description" content="施工管理記錄工具入口" />
     <meta name="referrer" content="no-referrer" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; worker-src 'self'" />
-    <meta name="theme-color" content="#eef0f2" />
+    <meta name="theme-color" content="#f7f7f5" />
+    <meta name="color-scheme" content="light" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="施工記錄工具" />
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
     <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="stylesheet" href="./portal.css?v=30" />
+    <link rel="stylesheet" href="./glass.css?v=5" />
+    <link rel="stylesheet" href="./portal.css?v=32" />
     <title>施工記錄工具｜Project Portal</title>
   </head>
   <body>
+    <div class="glass-scene" aria-hidden="true">
+      <span class="glass-blob glass-blob-indigo"></span>
+      <span class="glass-blob glass-blob-mint"></span>
+      <span class="glass-blob glass-blob-peach"></span>
+    </div>
+
     <a class="skip-link" href="#tool-index">跳至工程工具</a>
 
-    <header class="portal-header">
-      <div class="portal-header-inner">
-        <a class="brand" href="./" aria-label="回到施工記錄工具入口">
-          <img src="./icon.svg" alt="" width="34" height="34" />
-          <span>施工記錄工具</span>
+    <main class="portal-shell" id="tool-index">
+      <header class="portal-header">
+        <a class="brand" href="./" aria-label="施工記錄工具入口">
+          <img src="./icon.svg" alt="" width="36" height="36" />
         </a>
         <span class="header-tag">FIELD RECORDS</span>
-      </div>
-    </header>
+      </header>
 
-    <main class="portal-shell" id="tool-index">
       <section class="portal-intro" aria-labelledby="portal-title">
-        <p class="eyebrow">PROJECT PORTAL / TOOL INDEX</p>
-        <h1 id="portal-title">選擇工程記錄</h1>
+        <h1 id="portal-title">選擇<br />工程記錄</h1>
         <p class="intro-copy">選擇要填寫的工程類別，進入對應的現場記錄工具。</p>
       </section>
 
@@ -66,16 +70,17 @@
             <strong>鋼構</strong>
             <small>Steel Structure｜進場、吊裝、接合與安裝精度複核</small>
           </span>
-          <span class="tool-card-arrow" aria-hidden="true">→</span>
         </a>
 
         <a class="tool-card tool-card-coming" href="./scaffold.html" aria-label="施工架，尚未開放">
-          <span class="tool-index-no">05</span>
+          <span class="tool-card-head">
+            <span class="tool-index-no">05</span>
+            <span class="tool-status">404</span>
+          </span>
           <span class="tool-card-copy">
             <strong>施工架</strong>
             <small>尚未開放</small>
           </span>
-          <span class="tool-status">404</span>
         </a>
 
         <a class="tool-card tool-card-active" href="./diaphragm-wall.html" aria-label="開啟連續壁廠商版施工紀錄">
@@ -87,10 +92,7 @@
         </a>
       </section>
 
-      <footer class="portal-footer">
-        <span>現場填寫・單次輸出・不保存資料</span>
-        <span>Project Portal</span>
-      </footer>
+      <footer class="portal-footer">現場填寫・單次輸出・不保存資料</footer>
     </main>
   </body>
 </html>

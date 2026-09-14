@@ -6,23 +6,27 @@
     <meta name="description" content="找不到此施工記錄工具" />
     <meta name="referrer" content="no-referrer" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; worker-src 'self'" />
-    <meta name="theme-color" content="#eef0f2" />
+    <meta name="theme-color" content="#f7f7f5" />
+    <meta name="color-scheme" content="light" />
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="./portal.css" />
+    <link rel="stylesheet" href="./glass.css?v=5" />
+    <link rel="stylesheet" href="./portal.css?v=32" />
     <title>404｜施工記錄工具</title>
   </head>
   <body>
-    <header class="portal-header">
-      <div class="portal-header-inner">
-        <a class="brand" href="./" aria-label="回到施工記錄工具入口">
-          <img src="./icon.svg" alt="" width="34" height="34" />
-          <span>施工記錄工具</span>
-        </a>
-        <span class="header-tag">FIELD RECORDS</span>
-      </div>
-    </header>
+    <div class="glass-scene" aria-hidden="true">
+      <span class="glass-blob glass-blob-indigo"></span>
+      <span class="glass-blob glass-blob-mint"></span>
+      <span class="glass-blob glass-blob-peach"></span>
+    </div>
 
     <main class="portal-shell error-page">
+      <header class="portal-header">
+        <a class="brand" href="./" aria-label="施工記錄工具入口">
+          <img src="./icon.svg" alt="" width="36" height="36" />
+        </a>
+        <span class="header-tag">FIELD RECORDS</span>
+      </header>
       <p class="error-code">404 / NOT FOUND</p>
       <h1>這項工程工具尚未開放</h1>
       <p class="error-copy">目前只有連續壁施工記錄工具可以使用。請回到入口頁，選擇已開放的工程記錄。</p>

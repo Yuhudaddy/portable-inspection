@@ -6,33 +6,37 @@
     <meta name="description" content="鋼構施工管理複核工具" />
     <meta name="referrer" content="no-referrer" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; worker-src 'self'" />
-    <meta name="theme-color" content="#eceff1" />
+    <meta name="theme-color" content="#f7f7f5" />
+    <meta name="color-scheme" content="light" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="鋼構施工複核" />
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="./app.css?v=41" />
-    <link rel="stylesheet" href="./steel.css?v=1" />
+    <link rel="stylesheet" href="./glass.css?v=5" />
+    <link rel="stylesheet" href="./app.css?v=50" />
+    <link rel="stylesheet" href="./steel.css?v=4" />
     <title>鋼構施工複核｜Project Portal</title>
   </head>
   <body data-print-scope="none" data-active-tab="overview">
+    <div class="glass-scene" aria-hidden="true">
+      <span class="glass-blob glass-blob-indigo"></span>
+      <span class="glass-blob glass-blob-mint"></span>
+      <span class="glass-blob glass-blob-peach"></span>
+    </div>
+
     <a class="skip-link" href="#project-tool">跳至鋼構施工複核</a>
 
     <header class="app-header">
       <nav class="header-nav" aria-label="主要功能">
-        <a class="header-action home-action" href="./index.html" aria-label="返回工具首頁">←</a>
-        <button class="header-action" id="project-tool-button" type="button" aria-current="page" aria-controls="record-switcher">檢查紀錄</button>
-        <button class="header-action help-action" id="help-button" type="button">使用說明 <span aria-hidden="true">?</span></button>
+        <a class="glass-pill header-back" href="./index.html" aria-label="返回工具首頁"><svg width="10" height="16" viewBox="0 0 12 20" fill="none" aria-hidden="true"><path d="M10 2L2 10l8 8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>工具</a>
+        <span class="glass-tag header-identity" id="record-identity">尚未指定構件</span>
       </nav>
     </header>
 
     <main class="app-shell steel-shell" id="project-tool">
       <div class="tool-title">
-        <div>
-          <p>STEEL STRUCTURE / FIELD REVIEW</p>
-          <h1>鋼構施工複核表</h1>
-        </div>
-        <span id="record-identity">尚未指定構件</span>
+        <p>STEEL STRUCTURE / FIELD REVIEW</p>
+        <h1>鋼構施工<span>複核表</span></h1>
       </div>
 
       <nav class="record-switcher" id="record-switcher" aria-label="施工紀錄類型">
@@ -177,15 +181,24 @@
           </div>
           <div id="optional-fields" class="optional-fields" hidden>
             <label class="field"><span>選用項目紀錄</span><textarea data-bind="optional.note" rows="5" placeholder="填寫啟用項目、設計文件及營造廠複核結果"></textarea></label>
-            <label class="field"><span>檢查結果</span><select data-bind="optional.result"><option>待確認</option><option>符合</option><option>不符合</option><option>不適用</option></select></label>
+            <div class="field result-field"><span id="optional-result-label">檢查結果</span><div class="glass-segmented" role="radiogroup" aria-labelledby="optional-result-label">
+              <label><input type="radio" name="optional-result" value="符合" aria-label="符合" data-bind="optional.result" /><span class="is-pass"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></span></label>
+              <label><input type="radio" name="optional-result" value="不符合" aria-label="不符合" data-bind="optional.result" /><span class="is-fail"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></span></label>
+              <label><input type="radio" name="optional-result" value="不適用" aria-label="不適用" data-bind="optional.result" /><span class="is-na">N/A</span></label>
+            </div></div>
           </div>
         </section>
       </section>
     </main>
 
     <aside class="action-dock" aria-label="檔案處理工具">
-      <div><span>目前頁面</span><strong id="active-tab-label">工程概要</strong></div>
-      <div class="dock-actions"><button class="clear-button" id="clear-button" type="button">清空</button><button id="export-button" type="button">輸出</button></div>
+      <div class="dock-tools">
+        <a class="dock-tool" href="./index.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8v9a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2z"/></svg><small>工具</small></a>
+        <button class="dock-tool is-active" id="project-tool-button" type="button" aria-controls="record-switcher"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><small id="active-tab-label">工程概要</small></button>
+        <button class="dock-tool" id="help-button" type="button"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></svg><small>說明</small></button>
+        <button class="dock-tool" id="clear-button" type="button"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 10v6M14 10v6"/></svg><small>清空</small></button>
+      </div>
+      <button class="dock-primary" id="export-button" type="button" aria-label="檔案輸出"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg></button>
     </aside>
 
     <dialog class="sheet-dialog help-dialog" id="help-dialog">
@@ -213,9 +226,21 @@
           <label class="field span-two"><span>規格／材質</span><input id="delivery-spec" type="text" placeholder="例如：BOX-600×600×25／SN490" /></label>
           <label class="field"><span>數量（件）</span><input id="delivery-qty" type="number" min="1" step="1" inputmode="numeric" value="1" required /></label>
           <label class="field"><span>材料證明／文件編號</span><input id="delivery-doc" type="text" /></label>
-          <label class="field"><span>外觀／塗裝</span><select id="delivery-appearance"><option>待確認</option><option>符合</option><option>不符合</option><option>不適用</option></select></label>
-          <label class="field"><span>堆置／防護</span><select id="delivery-storage"><option>待確認</option><option>符合</option><option>不符合</option><option>不適用</option></select></label>
-          <label class="field span-two"><span>複核結果</span><select id="delivery-result"><option>待確認</option><option>符合</option><option>不符合</option><option>不適用</option></select></label>
+          <div class="field result-field"><span id="delivery-appearance-label">外觀／塗裝</span><div class="glass-segmented" role="radiogroup" aria-labelledby="delivery-appearance-label" id="delivery-appearance">
+            <label><input type="radio" name="delivery-appearance" value="符合" /><span class="is-pass">符合</span></label>
+            <label><input type="radio" name="delivery-appearance" value="不符合" /><span class="is-fail">不符合</span></label>
+            <label><input type="radio" name="delivery-appearance" value="不適用" /><span class="is-na">不適用</span></label>
+          </div></div>
+          <div class="field result-field"><span id="delivery-storage-label">堆置／防護</span><div class="glass-segmented" role="radiogroup" aria-labelledby="delivery-storage-label" id="delivery-storage">
+            <label><input type="radio" name="delivery-storage" value="符合" /><span class="is-pass">符合</span></label>
+            <label><input type="radio" name="delivery-storage" value="不符合" /><span class="is-fail">不符合</span></label>
+            <label><input type="radio" name="delivery-storage" value="不適用" /><span class="is-na">不適用</span></label>
+          </div></div>
+          <div class="field result-field span-two"><span id="delivery-result-label">複核結果</span><div class="glass-segmented" role="radiogroup" aria-labelledby="delivery-result-label" id="delivery-result">
+            <label><input type="radio" name="delivery-result" value="符合" /><span class="is-pass">符合</span></label>
+            <label><input type="radio" name="delivery-result" value="不符合" /><span class="is-fail">不符合</span></label>
+            <label><input type="radio" name="delivery-result" value="不適用" /><span class="is-na">不適用</span></label>
+          </div></div>
         </div>
         <div class="dialog-actions"><button class="secondary-button" type="button" data-close-dialog>取消</button><button class="confirm-button" type="submit">確認加入</button></div>
       </form>
@@ -240,6 +265,6 @@
       <article class="print-page" data-print-tab="optional" id="print-optional"></article>
     </section>
 
-    <script src="./steel.js" defer></script>
+    <script src="./steel.js?v=3" defer></script>
   </body>
 </html>

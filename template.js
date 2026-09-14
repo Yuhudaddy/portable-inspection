@@ -115,6 +115,15 @@ const fixed = value => Number.isFinite(value) ? value.toFixed(1) : "—";
 const formatDate = value => { const [y, m, d] = String(value ?? "").split("-"); return y && m && d ? `${y}/${m}/${d}` : ""; };
 
 function statusOptions(selected = "待確認") { return STATUS_OPTIONS.map(item => `<option value="${esc(item)}" ${item === selected ? "selected" : ""}>${item}</option>`).join(""); }
+// 三段式結果膠囊：以隱藏 radio + 相鄰 span 呈現（沿用既有 .unit-type 手法）。
+// 未勾選任一段＝原本下拉選單的「待確認」狀態；點選其一會如同 <select> 觸發 change，
+// 既有的委派事件（依 data-* 屬性讀取 event.target.value）不需更動。
+const SEGMENT_ICONS = {
+  pass: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>`,
+  fail: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>`,
+  na: "N/A"
+};
+function statusSegmented(name, selected, attrs) { return `<div class="glass-segmented" role="radiogroup" aria-labelledby="${name}-label">${["合格", "不合格", "不適用"].map(value => { const kind = value === "合格" ? "pass" : value === "不合格" ? "fail" : "na"; return `<label><input type="radio" name="${name}" value="${value}" aria-label="${value}" ${value === selected ? "checked" : ""} ${attrs} /><span class="is-${kind}">${SEGMENT_ICONS[kind]}</span></label>`; }).join("")}</div>`; }
 
 function ensureMember(member) {
   const all = [...COMMON_CHECKS, ...(TYPE_CHECKS[member.type] || TYPE_CHECKS.其他)];
@@ -198,11 +207,12 @@ function renderMemberSelectors() {
 
 function renderCheckCard(check, index, collection, member) {
   const record = member.checks[check[0]] || { actual: "", result: "待確認" };
+  const name = `check-${collection}-${esc(check[0])}-result`;
   return `<article class="check-card ${record.result === "不合格" ? "is-failed" : record.result === "合格" || record.result === "不適用" ? "is-passed" : "is-pending"}" data-check-card="${collection}" data-check-id="${esc(check[0])}">
     <div><h4>${index + 1}. ${esc(check[1])}</h4><p>${esc(check[2])}</p></div>
     <div class="check-card-fields">
       <label class="field"><span>紀錄／實測</span><input type="text" data-check-actual="${collection}" data-check-collection="${collection}" data-check-id="${esc(check[0])}" value="${esc(record.actual)}" placeholder="${esc(check[3] || "填寫現場結果")}" /></label>
-      <label class="field result-field"><span>結果</span><select data-check-result="${collection}" data-check-id="${esc(check[0])}">${statusOptions(record.result)}</select></label>
+      <div class="field result-field"><span id="${name}-label">結果</span>${statusSegmented(name, record.result, `data-check-result="${collection}" data-check-id="${esc(check[0])}"`)}</div>
     </div>
   </article>`;
 }
@@ -243,7 +253,8 @@ function renderRelease() {
   $("#release-pending").textContent = String(RELEASE_CHECKS.length - completed);
   $("#release-check-list").innerHTML = RELEASE_CHECKS.map(([id, label, standard], index) => {
     const record = state.release.checks[id] || { actual: "", result: "待確認" };
-    return `<article class="check-card ${record.result === "不合格" ? "is-failed" : record.result !== "待確認" ? "is-passed" : "is-pending"}" data-release-card="${id}"><div><h4>${index + 1}. ${label}</h4><p>${standard}</p></div><label class="field"><span>紀錄／說明</span><input type="text" data-release-actual="${id}" value="${esc(record.actual)}" placeholder="填寫確認結果" /></label><label class="field"><span>結果</span><select data-release-result="${id}">${statusOptions(record.result)}</select></label></article>`;
+    const name = `release-${id}-result`;
+    return `<article class="check-card ${record.result === "不合格" ? "is-failed" : record.result !== "待確認" ? "is-passed" : "is-pending"}" data-release-card="${id}"><div><h4>${index + 1}. ${label}</h4><p>${standard}</p></div><label class="field"><span>紀錄／說明</span><input type="text" data-release-actual="${id}" value="${esc(record.actual)}" placeholder="填寫確認結果" /></label><div class="field result-field"><span id="${name}-label">結果</span>${statusSegmented(name, record.result, `data-release-result="${id}"`)}</div></article>`;
   }).join("");
   $$('[data-release-bind]').forEach(input => { input.value = state.release[input.dataset.releaseBind] ?? ""; });
 }

@@ -482,6 +482,24 @@ function resultOptions(selected) {
     .join("");
 }
 
+// 三段式結果膠囊：以隱藏 radio + 相鄰 span 呈現（沿用既有 .unit-type 手法）。
+// 未勾選任一段＝原本下拉選單的「待確認」狀態；點選其一會如同 <select> 觸發 change，
+// 既有的委派事件（依 data-* 屬性讀取 event.target.value）不需更動。
+const SEGMENT_ICONS = {
+  "符合": `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>`,
+  "不符合": `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>`,
+  "不適用": "N/A"
+};
+
+function resultSegmented(name, selected, attrs) {
+  return `<div class="glass-segmented" role="radiogroup" aria-labelledby="${name}-label">${["符合", "不符合", "不適用"]
+    .map(value => {
+      const stateClass = value === "符合" ? "is-pass" : value === "不符合" ? "is-fail" : "is-na";
+      return `<label><input type="radio" name="${name}" value="${value}" aria-label="${value}" ${value === selected ? "checked" : ""} ${attrs} /><span class="${stateClass}">${SEGMENT_ICONS[value]}</span></label>`;
+    })
+    .join("")}</div>`;
+}
+
 function renderCheckCards(type) {
   const domPrefix = { quality: "quality", guideWall: "guide-wall", rebarCage: "rebar-cage" }[type] || type;
   const target = $(`#${domPrefix}-check-list`);
@@ -491,7 +509,7 @@ function renderCheckCards(type) {
       <p>${esc(type === "quality" ? qualityCheckStandard(index, check.standard) : check.standard)}</p>
       <div class="check-card-fields">
         <label class="field"><span>現場紀錄／實測</span><input type="text" value="${esc(check.actual)}" data-check-item="${type}" data-check-index="${index}" data-check-field="actual" /></label>
-        <label class="field result-field"><span>複核結果</span><select data-check-item="${type}" data-check-index="${index}" data-check-field="result">${resultOptions(check.result)}</select></label>
+        <div class="field result-field"><span id="check-${type}-${index}-result-label">複核結果</span>${resultSegmented(`check-${type}-${index}-result`, check.result, `data-check-item="${type}" data-check-index="${index}" data-check-field="result"`)}</div>
       </div>
       ${type === "guideWall" && check.item.includes("鋼筋") ? `<div class="guide-rebar-fields">
         <label class="field"><span>鋼筋號數</span><select data-check-item="${type}" data-check-index="${index}" data-check-field="barNo">${guideRebarSizeOptions(check.barNo)}</select></label>
@@ -510,7 +528,7 @@ function renderCheckCards(type) {
 function renderRebars() {
   const rows = state.rebarCage.rebars;
   $("#rebar-cage-rebar-list").innerHTML = rows.length ? rows.map((rebar, index) => `
-    <article class="rebar-card ${rebar.result === "不符合" ? "is-failed" : ""}">
+    <article class="rebar-card ${rebar.result === "不符合" ? "is-failed" : rebar.result === "符合" ? "is-passed" : ""}">
       <div class="rebar-card-main">
         <div class="rebar-card-title"><span>${String(index + 1).padStart(2, "0")}</span><strong>${esc(rebar.part)}</strong><em>${esc(rebar.result)}</em></div>
         <dl>
@@ -562,7 +580,7 @@ function renderQuality() {
       <p>${esc(check.standard)}</p>
       <div class="quality-card-fields">
         <label class="field"><span>現場紀錄／實測</span><input type="text" value="${esc(check.actual)}" placeholder="${esc(check.placeholder)}" data-quality-item="${index}" data-quality-field="actual" /></label>
-        <label class="field result-field"><span>檢查結果</span><select data-quality-item="${index}" data-quality-field="result">${resultOptions(check.result)}</select></label>
+        <div class="field result-field"><span id="quality-${index}-result-label">檢查結果</span>${resultSegmented(`quality-${index}-result`, check.result, `data-quality-item="${index}" data-quality-field="result"`)}</div>
       </div>
     </article>`).join("");
   const completed = state.quality.checks.filter(check => check.result !== "待確認").length;
@@ -669,7 +687,7 @@ function openRebarDialog(index = null) {
   $("#rebar-design-qty").value = record.designQty;
   $("#rebar-actual-no").value = record.actualNo;
   $("#rebar-actual-qty").value = record.actualQty;
-  $("#rebar-result").value = record.result;
+  $$('input[name="rebar-result"]').forEach(radio => { radio.checked = radio.value === record.result; });
   $("#rebar-dialog-title").textContent = index === null ? "新增配筋項目" : `填寫第 ${index + 1} 項配筋`;
   $("#rebar-form [type='submit']").textContent = index === null ? "確認加入" : "確認更新";
   $("#rebar-dialog").showModal();
@@ -1499,7 +1517,7 @@ function initialize() {
       designQty: $("#rebar-design-qty").value.trim(),
       actualNo: $("#rebar-actual-no").value.trim(),
       actualQty: $("#rebar-actual-qty").value.trim(),
-      result: $("#rebar-result").value
+      result: document.querySelector('input[name="rebar-result"]:checked')?.value || "待確認"
     };
     if (editIndex.rebar === null) state.rebarCage.rebars.push(record);
     else state.rebarCage.rebars[editIndex.rebar] = record;

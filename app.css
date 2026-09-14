@@ -128,7 +128,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   margin: 0 -16px 14px;
   padding: 0 16px 4px;
   overflow-x: auto;
-  scroll-padding-inline: 16px;
   scrollbar-width: none;
   white-space: nowrap;
   -webkit-overflow-scrolling: touch;

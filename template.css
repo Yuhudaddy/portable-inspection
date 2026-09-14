@@ -32,7 +32,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .tool-title h1 span { color: var(--glass-accent); }
 
 /* ---- 分頁：橫向捲動膠囊 ------------------------------------------------- */
-.tab-navigation { display: flex; gap: 6px; margin: 0 -16px 14px; padding: 0 16px 4px; overflow-x: auto; scroll-padding-inline: 16px; scrollbar-width: none; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+.tab-navigation { display: flex; gap: 6px; margin: 0 -16px 14px; padding: 0 16px 4px; overflow-x: auto; scrollbar-width: none; white-space: nowrap; -webkit-overflow-scrolling: touch; }
 .tab-navigation::-webkit-scrollbar { display: none; }
 .tab-row { display: contents; }
 .tab-row button { flex: none; display: inline-flex; align-items: center; justify-content: center; height: 38px; padding: 0 14px; border: 0; border-radius: 999px; background: var(--glass-sunken); box-shadow: var(--glass-hairline); color: var(--glass-soft); font-size: .8125rem; white-space: nowrap; }

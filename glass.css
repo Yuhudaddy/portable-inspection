@@ -7,7 +7,11 @@
 :root {
   color-scheme: light only;
 
-  --glass-page-bg: #fff;
+  /* ---- 頁面背景：方案 B「斜向漸層」，左上白 → 右下淡暖灰，無色相 ------------
+     手動微調就改這三個值：起點色、終點色、角度／白色停留比例。 */
+  --glass-page-bg: #fff;                 /* 漸層起點（頂部保持純白，也是 html 底色） */
+  --glass-page-bg-end: #f0efeb;          /* 漸層終點（右下角的淡暖灰） */
+  --glass-page-gradient: linear-gradient(165deg, var(--glass-page-bg) 0%, var(--glass-page-bg) 26%, var(--glass-page-bg-end) 100%);
 
   /* ---- 文字（暖灰，mockup 1b 原值）---------------------------------------- */
   --glass-ink: oklch(27% 0.02 60);
@@ -81,6 +85,19 @@
 
 @media (prefers-reduced-motion: reduce) {
   :root { --glow-ang: 300deg; }
+}
+
+/* ---- 頁面背景漸層：固定在視窗上、不隨內容捲動（fixed 偽元素比 background-attachment
+   可靠，iOS Safari 也吃）；只在螢幕顯示，列印不受影響。 */
+@media screen {
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: var(--glass-page-gradient);
+    pointer-events: none;
+  }
 }
 
 /* ---- 頂部膠囊：左「‹ 工具」、右單元／構件標籤 -------------------------------- */
@@ -159,37 +176,48 @@
 .is-failed .glass-segmented { background: #fff; }
 
 /* ---- 橫向捲動分頁：可捲動的提示 --------------------------------------------
-   兩側白色漸層遮罩＋右側「›」箭頭，只在該方向還有內容時出現（scroll-driven
-   animation；未捲動時只有右側顯示，捲到底就消失；不支援的瀏覽器則不顯示）。
-   scroll-snap 讓拖動時逐顆停靠，最右側被切到的膠囊本身也是「還有更多」的提示。 */
-.tab-navigation { position: relative; scroll-snap-type: x proximity; }
-.tab-row button { scroll-snap-align: start; }
-.tab-navigation::before,
+   兩側用透明遮罩把膠囊淡出（不是畫白色，任何背景都吃），右側再加一顆白色圓徽章「›」。
+   淡出與徽章只在該方向還有內容時出現（scroll-driven animation；未捲動時只有右側，
+   捲到底就消失；不支援的瀏覽器則不顯示）。scroll-snap 讓拖動時逐顆停靠。 */
+@property --glass-tab-fade-l { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --glass-tab-fade-r { syntax: "<length>"; inherits: false; initial-value: 0px; }
+.tab-navigation { scroll-snap-type: x proximity; }
+/* 停靠留白用 scroll-margin 而不是容器的 scroll-padding：scroll-padding 會一併縮小 sticky 的
+   吸附範圍，徽章就會和遮罩圓洞錯開 16px。 */
+.tab-row button { scroll-snap-align: start; scroll-margin-inline-start: 16px; }
 .tab-navigation::after {
   content: "";
   position: sticky;
+  right: 0; /* sticky 的偏移量是從容器 content box 量起（不含 padding），所以會停在內容右緣 */
   z-index: 1;
   flex: none;
-  align-self: stretch;
-  width: 48px;
+  align-self: flex-start;
+  width: 24px;
+  height: 24px;
+  margin: 7px 0 0 calc(-24px - 6px); /* 24px 寬度 + 6px 的 flex gap，淨佔位 0；7px 讓它在 38px 膠囊中線 */
+  border-radius: 999px;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233a332c' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 6l6 6-6 6'/%3E%3C/svg%3E") center / 14px 14px no-repeat,
+    var(--glass-card-bg);
+  box-shadow: var(--glass-hairline), 0 1px 3px rgba(60, 50, 30, 0.1);
   opacity: 0;
   pointer-events: none;
 }
-.tab-navigation::before {
-  left: 0;
-  margin-right: calc(-48px - 6px); /* 48px 寬度 + 6px 的 flex gap，淨佔位 0 */
-  background: linear-gradient(90deg, var(--glass-page-bg) 25%, transparent);
-}
-.tab-navigation::after {
-  right: 0;
-  margin-left: calc(-48px - 6px);
-  background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233a332c' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 6l6 6-6 6'/%3E%3C/svg%3E") right 6px center / 16px 16px no-repeat,
-    linear-gradient(270deg, var(--glass-page-bg) 40%, transparent);
-}
 @supports (animation-timeline: scroll()) {
-  .tab-navigation::before { animation: glass-tabs-fade-left linear both; animation-timeline: scroll(nearest inline); }
-  .tab-navigation::after { animation: glass-tabs-fade-right linear both; animation-timeline: scroll(nearest inline); }
+  .tab-navigation {
+    /* 第一層：兩側淡出（最外 30% 完全透明，避免邊緣殘影）；
+       第二層：在徽章位置開圓洞讓徽章不被淡出——以 content-box 定位，才會和 sticky 徽章落在同一點 */
+    -webkit-mask:
+      linear-gradient(90deg, transparent calc(var(--glass-tab-fade-l) * 0.3), #000 var(--glass-tab-fade-l), #000 calc(100% - var(--glass-tab-fade-r)), transparent calc(100% - var(--glass-tab-fade-r) * 0.3)),
+      radial-gradient(circle closest-side, #000 98%, transparent) right 0 top 7px / 24px 24px no-repeat content-box border-box;
+    mask:
+      linear-gradient(90deg, transparent calc(var(--glass-tab-fade-l) * 0.3), #000 var(--glass-tab-fade-l), #000 calc(100% - var(--glass-tab-fade-r)), transparent calc(100% - var(--glass-tab-fade-r) * 0.3)),
+      radial-gradient(circle closest-side, #000 98%, transparent) right 0 top 7px / 24px 24px no-repeat content-box border-box;
+    animation: glass-tabs-fade-left linear both, glass-tabs-fade-right linear both;
+    animation-timeline: scroll(self inline);
+  }
+  .tab-navigation::after { animation: glass-tabs-badge linear both; animation-timeline: scroll(nearest inline); }
 }
-@keyframes glass-tabs-fade-left { 0%, 4% { opacity: 0; } 12% { opacity: 1; } 100% { opacity: 1; } }
-@keyframes glass-tabs-fade-right { 0%, 88% { opacity: 1; } 96%, 100% { opacity: 0; } }
+@keyframes glass-tabs-fade-left { 0%, 4% { --glass-tab-fade-l: 0px; } 12%, 100% { --glass-tab-fade-l: 48px; } }
+@keyframes glass-tabs-fade-right { 0%, 88% { --glass-tab-fade-r: 48px; } 96%, 100% { --glass-tab-fade-r: 0px; } }
+@keyframes glass-tabs-badge { 0%, 88% { opacity: 1; } 96%, 100% { opacity: 0; } }

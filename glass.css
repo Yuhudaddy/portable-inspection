@@ -157,3 +157,39 @@
 
 /* 不合格列：整列淡紅底，三段鈕改白底維持對比 */
 .is-failed .glass-segmented { background: #fff; }
+
+/* ---- 橫向捲動分頁：可捲動的提示 --------------------------------------------
+   兩側白色漸層遮罩＋右側「›」箭頭，只在該方向還有內容時出現（scroll-driven
+   animation；未捲動時只有右側顯示，捲到底就消失；不支援的瀏覽器則不顯示）。
+   scroll-snap 讓拖動時逐顆停靠，最右側被切到的膠囊本身也是「還有更多」的提示。 */
+.tab-navigation { position: relative; scroll-snap-type: x proximity; }
+.tab-row button { scroll-snap-align: start; }
+.tab-navigation::before,
+.tab-navigation::after {
+  content: "";
+  position: sticky;
+  z-index: 1;
+  flex: none;
+  align-self: stretch;
+  width: 48px;
+  opacity: 0;
+  pointer-events: none;
+}
+.tab-navigation::before {
+  left: 0;
+  margin-right: calc(-48px - 6px); /* 48px 寬度 + 6px 的 flex gap，淨佔位 0 */
+  background: linear-gradient(90deg, var(--glass-page-bg) 25%, transparent);
+}
+.tab-navigation::after {
+  right: 0;
+  margin-left: calc(-48px - 6px);
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233a332c' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 6l6 6-6 6'/%3E%3C/svg%3E") right 6px center / 16px 16px no-repeat,
+    linear-gradient(270deg, var(--glass-page-bg) 40%, transparent);
+}
+@supports (animation-timeline: scroll()) {
+  .tab-navigation::before { animation: glass-tabs-fade-left linear both; animation-timeline: scroll(nearest inline); }
+  .tab-navigation::after { animation: glass-tabs-fade-right linear both; animation-timeline: scroll(nearest inline); }
+}
+@keyframes glass-tabs-fade-left { 0%, 4% { opacity: 0; } 12% { opacity: 1; } 100% { opacity: 1; } }
+@keyframes glass-tabs-fade-right { 0%, 88% { opacity: 1; } 96%, 100% { opacity: 0; } }

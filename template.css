@@ -23,7 +23,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .header-nav > * { pointer-events: auto; }
 .header-back { color: var(--glass-ink); }
 .header-back svg { display: block; color: var(--glass-icon); }
-.header-identity { max-width: 55%; overflow: hidden; color: var(--glass-ink); text-overflow: ellipsis; }
+.header-identity { max-width: 55%; overflow: hidden; text-overflow: ellipsis; }
 
 .app-shell { width: min(100% - 32px, 880px); margin: 0 auto; padding: 6px 0 28px; scroll-margin-top: calc(var(--header-height) + env(safe-area-inset-top)); }
 .tool-title { padding: 20px 4px 16px; }
@@ -156,8 +156,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 /* ---- 底部分離式玻璃列 ------------------------------------------------------ */
 .action-dock { position: fixed; left: 16px; right: 16px; bottom: max(16px, calc(env(safe-area-inset-bottom) + 8px)); z-index: 200; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.dock-tools { display: flex; align-items: center; gap: 2px; height: 60px; padding: 6px; border-radius: 999px; background: var(--glass-card-bg); box-shadow: var(--glass-bar-shadow); }
-.dock-tool { display: grid; place-items: center; gap: 1px; min-width: 58px; max-width: 88px; height: 48px; padding: 0 6px; border: 0; border-radius: 999px; background: transparent; color: var(--glass-icon); text-decoration: none; }
+.dock-tools { display: flex; flex: 1 1 auto; align-items: center; gap: 2px; min-width: 0; height: 60px; padding: 6px; border-radius: 999px; background: var(--glass-card-bg); box-shadow: var(--glass-bar-shadow); }
+.dock-tool { display: grid; flex: 1 1 0; place-items: center; gap: 1px; min-width: 0; height: 48px; padding: 0 6px; border: 0; border-radius: 999px; background: transparent; color: var(--glass-icon); text-decoration: none; }
 .dock-tool svg { display: block; }
 .dock-tool small { max-width: 100%; overflow: hidden; font-size: .59375rem; text-overflow: ellipsis; white-space: nowrap; }
 .dock-tool.is-active { background: var(--glass-accent-soft); box-shadow: 0 1px 4px rgba(60, 50, 30, 0.1); color: var(--glass-accent); }

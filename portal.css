@@ -101,21 +101,49 @@ h1 {
   border-radius: var(--glass-radius-lg);
   text-align: left;
   text-decoration: none;
-  transition: transform 160ms ease, box-shadow 160ms ease;
+  transition: box-shadow 200ms ease;
 }
 
 .tool-card-active {
+  position: relative;
   background: var(--glass-card-bg);
   box-shadow: var(--glass-card-shadow);
 }
 
+/* 滑鼠靠近：不抬升，卡片周圍浮出一圈石板藍柔光 */
 .tool-card-active:hover,
 .tool-card-active:focus-visible {
-  transform: translateY(-3px);
   box-shadow:
     var(--glass-hairline),
     0 1px 2px rgba(60, 50, 30, 0.05),
-    0 16px 36px rgba(60, 50, 30, 0.1);
+    0 0 0 4px oklch(40% 0.05 250 / 0.08),
+    0 12px 36px oklch(40% 0.05 250 / 0.18);
+}
+
+/* 點擊：一圈邊框從卡片邊緣往外擴散後淡出（portal.js 在按下時掛上 .is-waving 觸發）。
+   平時 opacity 0，所以卡片靜止時沒有外框。 */
+.tool-card-active::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--glass-accent);
+  border-radius: inherit;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.tool-card-active.is-waving::after {
+  animation: portal-shock-out 0.6s cubic-bezier(0.15, 0.7, 0.3, 1);
+}
+
+@keyframes portal-shock-out {
+  from { transform: scale(1); opacity: 0.9; }
+  to { transform: scale(1.12); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tool-card { transition: none; }
+  .tool-card-active.is-waving::after { animation: none; }
 }
 
 .tool-card-coming {

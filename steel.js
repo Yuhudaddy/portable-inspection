@@ -367,7 +367,7 @@ function initialize() {
     }
   });
 
-  $("#project-tool-button").addEventListener("click", () => $("#record-switcher").scrollIntoView({ behavior: "smooth", block: "start" }));
+  $("#project-tool-button").addEventListener("click", () => $("#project-tool").scrollIntoView({ behavior: "smooth", block: "start" }));
   $("#help-button").addEventListener("click", () => $("#help-dialog").showModal());
   $("#clear-button").addEventListener("click", () => $("#clear-dialog").showModal());
   $("#confirm-clear").addEventListener("click", resetState);

@@ -342,19 +342,23 @@ function currentExportLabel(tool = activeTool, tab = activeTab) {
   return TOOL_LABELS[tool];
 }
 
+// 分頁只在自己所屬的工具區塊（[data-tool-view]）內切換；diaphragmWall 以外的工具（鋼筋籠）也有自己的分頁列。
 function showTab(tab, focusPanel = false) {
-  if (!TAB_LABELS[tab]) return;
-  activeTab = tab;
-  document.body.dataset.activeTab = tab;
-  $$('.tab-panel').forEach(panel => { panel.hidden = panel.id !== `panel-${tab}`; });
-  $$('[role="tab"]').forEach(button => {
+  const view = $(`[role="tab"][data-tab="${tab}"]`)?.closest("[data-tool-view]");
+  if (!view) return;
+  [...view.querySelectorAll(".tab-panel")].forEach(panel => { panel.hidden = panel.id !== `panel-${tab}`; });
+  [...view.querySelectorAll('[role="tab"]')].forEach(button => {
     const selected = button.dataset.tab === tab;
     button.setAttribute("aria-selected", String(selected));
     button.tabIndex = selected ? 0 : -1;
   });
-  if (activeTool === "diaphragmWall") {
-    $("#active-tab-label").textContent = TAB_LABELS[tab];
-    $("#export-current-label").textContent = currentExportLabel("diaphragmWall", tab);
+  if (view.dataset.toolView === "diaphragmWall") {
+    activeTab = tab;
+    document.body.dataset.activeTab = tab;
+    if (activeTool === "diaphragmWall") {
+      $("#active-tab-label").textContent = TAB_LABELS[tab];
+      $("#export-current-label").textContent = currentExportLabel("diaphragmWall", tab);
+    }
   }
   if (focusPanel) $(`#panel-${tab}`).focus({ preventScroll: true });
 }
@@ -1435,7 +1439,7 @@ function initialize() {
   $$('[role="tab"]').forEach(button => {
     button.addEventListener("click", () => showTab(button.dataset.tab));
     button.addEventListener("keydown", event => {
-      const tabs = $$('[role="tab"]');
+      const tabs = [...button.closest("[data-tool-view]").querySelectorAll('[role="tab"]')];
       const index = tabs.indexOf(button);
       const direction = ["ArrowRight", "ArrowDown"].includes(event.key) ? 1 : ["ArrowLeft", "ArrowUp"].includes(event.key) ? -1 : 0;
       if (!direction) return;

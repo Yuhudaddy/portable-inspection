@@ -230,7 +230,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
-  .field input:focus, .field select:focus, .field textarea:focus { animation: none; }
+  .field input:focus, .field select:focus, .field textarea:focus { animation-duration: 6s; }
 }
 
 @media print {

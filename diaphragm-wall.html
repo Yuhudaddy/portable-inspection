@@ -191,31 +191,49 @@
       </section>
 
       <section class="tool-view" id="tool-rebar-cage" data-tool-view="rebarCage" hidden>
-        <section class="panel-frame integrated-checklist">
-          <div class="panel-heading">
-            <div><span>鋼筋籠</span><h2>吊放前複核</h2></div>
-            <p>配筋、組裝與吊放條件</p>
+        <nav class="tab-navigation" aria-label="鋼筋籠複核分頁">
+          <div class="tab-row tab-row-three" role="tablist" aria-label="鋼筋籠吊放前複核">
+            <button id="tab-cage-meta" role="tab" type="button" data-tab="cage-meta" aria-controls="panel-cage-meta" aria-selected="true" tabindex="0">基本資料</button>
+            <button id="tab-cage-rebar" role="tab" type="button" data-tab="cage-rebar" aria-controls="panel-cage-rebar" aria-selected="false" tabindex="-1">配筋複核明細</button>
+            <button id="tab-cage-check" role="tab" type="button" data-tab="cage-check" aria-controls="panel-cage-check" aria-selected="false" tabindex="-1">組裝與吊放條件</button>
           </div>
-          <div class="form-grid checklist-meta-grid">
+        </nav>
+
+        <section class="panel-frame integrated-checklist">
+          <section class="tab-panel" id="panel-cage-meta" role="tabpanel" aria-labelledby="tab-cage-meta">
+            <div class="panel-heading">
+              <div><span>鋼筋籠</span><h2>吊放前複核</h2></div>
+              <p>本次複核的基本識別資料</p>
+            </div>
+            <div class="form-grid checklist-meta-grid">
             <label class="field span-two"><span>工程名稱</span><input type="text" data-check-bind="rebarCage.project" /></label>
             <label class="field span-two"><span>複核日期</span><span class="native-field-wrap"><input type="date" data-check-bind="rebarCage.date" /><span class="native-field-display" aria-hidden="true"></span></span></label>
             <label class="field"><span>單元編號</span><input type="text" data-check-bind="rebarCage.unitNo" /></label>
             <label class="field"><span>鋼筋籠編號</span><input type="text" data-check-bind="rebarCage.cageNo" /></label>
             <label class="field"><span>營造廠複核人</span><input type="text" data-check-bind="rebarCage.reviewer" /></label>
-          </div>
+            </div>
           <dl class="check-progress rebar-cage-progress" aria-live="polite">
             <div><dt>配筋明細完成</dt><dd id="rebar-cage-rebar-progress">0 / 9</dd></div>
             <div><dt>吊放條件完成</dt><dd id="rebar-cage-check-progress">0 / 7</dd></div>
           </dl>
-          <section class="record-section" aria-labelledby="rebar-cage-rebar-heading">
-            <div class="record-heading"><div><span>01</span><h3 id="rebar-cage-rebar-heading">配筋複核明細</h3></div><button class="add-button" id="add-rebar" type="button"><span aria-hidden="true">＋</span> 新增</button></div>
+          </section>
+
+          <section class="tab-panel" id="panel-cage-rebar" role="tabpanel" aria-labelledby="tab-cage-rebar" hidden>
+            <div class="panel-heading">
+              <div><span>01</span><h2 id="rebar-cage-rebar-heading">配筋複核明細</h2></div>
+              <button class="add-button" id="add-rebar" type="button"><span aria-hidden="true">＋</span> 新增</button>
+            </div>
             <div class="rebar-card-list" id="rebar-cage-rebar-list"></div>
           </section>
-          <section class="record-section" aria-labelledby="rebar-cage-check-heading">
-            <div class="record-heading"><div><span>02</span><h3 id="rebar-cage-check-heading">組裝與吊放條件</h3></div></div>
+
+          <section class="tab-panel" id="panel-cage-check" role="tabpanel" aria-labelledby="tab-cage-check" hidden>
+            <div class="panel-heading">
+              <div><span>02</span><h2 id="rebar-cage-check-heading">組裝與吊放條件</h2></div>
+              <p>吊放前逐項確認</p>
+            </div>
             <div class="check-card-list" id="rebar-cage-check-list"></div>
+            <label class="field note-field"><span>複核意見／備註</span><textarea data-check-bind="rebarCage.note" rows="3"></textarea></label>
           </section>
-          <label class="field note-field"><span>複核意見／備註</span><textarea data-check-bind="rebarCage.note" rows="3"></textarea></label>
         </section>
       </section>
     </main>

@@ -1,20 +1,4 @@
 /* Steel structure review: 疊加於 glass.css / app.css 之上的頁面專屬樣式。 */
-.record-switcher-link {
-  display: grid;
-  min-width: 0;
-  min-height: 42px;
-  place-items: center;
-  padding: 0 8px;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--glass-soft);
-  text-align: center;
-  text-decoration: none;
-}
-.record-switcher-link strong { font-size: 0.875rem; font-weight: 500; white-space: nowrap; }
-.record-switcher-link:active, .record-switcher button:active { transform: translateY(1px); }
-.steel-shell .record-switcher { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
 /* 進場／柱腳等分頁的基本資料：清單式玻璃卡 */
 .steel-meta-grid, .steel-measure-grid {
@@ -147,8 +131,6 @@
 .optional-fields .glass-segmented { justify-self: start; margin-top: 4px; }
 
 @media (max-width: 639px) {
-  .steel-shell .record-switcher { grid-template-columns: repeat(2, minmax(0, 1fr)); border-radius: var(--glass-radius-lg); }
-  .steel-shell .record-switcher button, .steel-shell .record-switcher-link { border-radius: var(--glass-radius-md); }
   .steel-meta-grid, .steel-measure-grid, .compact-measure-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .steel-meta-grid > .field:nth-child(-n + 3), .steel-measure-grid > .field:nth-child(-n + 3) { border-top: 1px solid var(--line); }
   .steel-meta-grid > .field:nth-child(-n + 2), .steel-measure-grid > .field:nth-child(-n + 2) { border-top: 0; }

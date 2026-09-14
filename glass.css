@@ -68,10 +68,8 @@
   --glass-font: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
   --glass-font-num: "M PLUS 1p", "Noto Sans TC", "PingFang TC", sans-serif;
 
-  /* ---- 輸入焦點：旋轉漸層環（底環常亮 ＋ 一段鮮色光弧繞著跑）------------------ */
+  /* ---- 輸入焦點：旋轉漸層環的底環色（光弧本體見下方 --glass-focus-ring）------------ */
   --glass-focus-base: oklch(40% 0.05 250 / 0.28);
-  --glass-focus-ring: conic-gradient(from var(--glow-ang),
-    var(--glass-focus-base) 0 48%, #2dd4bf 62%, #8b5cf6 80%, #ec4899 94%, var(--glass-focus-base) 100%);
 }
 
 /* 沒有這段宣告，--glow-ang 只是字串、不會補間，環就不會轉。 */
@@ -83,8 +81,11 @@
 
 @keyframes glass-glow-spin { to { --glow-ang: 360deg; } }
 
-@media (prefers-reduced-motion: reduce) {
-  :root { --glow-ang: 300deg; }
+/* 光弧要宣告在欄位本身：var() 是在「宣告處」代入的，若放在 :root，--glow-ang 會被鎖成
+   :root 的 0deg，欄位上的旋轉動畫就帶不動它（環只會靜止不轉）。 */
+input, select, textarea {
+  --glass-focus-ring: conic-gradient(from var(--glow-ang, 0deg),
+    var(--glass-focus-base) 0 48%, #2dd4bf 62%, #8b5cf6 80%, #ec4899 94%, var(--glass-focus-base) 100%);
 }
 
 /* ---- 頁面背景漸層：固定在視窗上、不隨內容捲動（fixed 偽元素比 background-attachment

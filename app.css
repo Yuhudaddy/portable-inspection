@@ -961,7 +961,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   html { scroll-behavior: auto; }
   *, *::before, *::after { scroll-behavior: auto !important; }
   .field input:focus, .field select:focus, .field textarea:focus,
-  .phase-editor select:focus, .quality-standard-field select:focus { animation: none; }
+  .phase-editor select:focus, .quality-standard-field select:focus { animation-duration: 6s; }
 }
 
 @page { size: A4 portrait; margin: 10mm; }

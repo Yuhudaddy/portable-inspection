@@ -75,6 +75,38 @@ Object.entries(CHECK_DEFINITIONS).forEach(([group, definitions]) => {
 let activeTab = "overview";
 let editDeliveryIndex = null;
 
+const DRAFT_STORAGE_KEY = "project-portal.steel.draft";
+const DRAFT_SCHEMA = "project-portal.draft.v1";
+let suppressDraftSave = false;
+
+function saveDraft() {
+  if (suppressDraftSave) return;
+  try {
+    localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify({ schema: DRAFT_SCHEMA, savedAt: new Date().toISOString(), data: state }));
+  } catch (error) {
+    // 暫存失敗不應影響填表或 PDF 輸出。
+  }
+}
+
+function loadDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+    if (!raw) return;
+    const draft = JSON.parse(raw);
+    if (draft?.schema === DRAFT_SCHEMA && draft.data && typeof draft.data === "object") {
+      Object.keys(state).forEach(key => {
+        if (Object.prototype.hasOwnProperty.call(draft.data, key)) state[key] = draft.data[key];
+      });
+    }
+  } catch (error) {
+    // 損壞或被瀏覽器拒絕的暫存資料直接忽略，維持空白表單。
+  }
+}
+
+function clearDraft() {
+  try { localStorage.removeItem(DRAFT_STORAGE_KEY); } catch (error) { /* ignore */ }
+}
+
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
 const esc = value => String(value ?? "")
@@ -188,6 +220,8 @@ function renderAll() {
 }
 
 function resetState() {
+  suppressDraftSave = true;
+  clearDraft();
   state.overview = { project: "", contractor: "", date: "", reviewer: "" };
   state.delivery = { date: "", batch: "", reviewer: "", note: "", records: [] };
   state.anchor = { location: "", date: "", reviewer: "", boltSpec: "", designQty: "", actualQty: "", designElevation: "", actualElevation: "", eccentricity: "", note: "", checks: [] };
@@ -367,6 +401,10 @@ function initialize() {
     }
   });
 
+  document.addEventListener("input", saveDraft);
+  document.addEventListener("change", saveDraft);
+  document.addEventListener("submit", saveDraft);
+
   $("#project-tool-button").addEventListener("click", () => $("#project-tool").scrollIntoView({ behavior: "smooth", block: "start" }));
   $("#help-button").addEventListener("click", () => $("#help-dialog").showModal());
   $("#clear-button").addEventListener("click", () => $("#clear-dialog").showModal());
@@ -391,8 +429,14 @@ function initialize() {
     if (remove) removeDelivery(Number(remove.dataset.deleteDelivery));
   });
 
+  document.addEventListener("click", () => {
+    if (suppressDraftSave) { suppressDraftSave = false; return; }
+    saveDraft();
+  });
+
   window.addEventListener("afterprint", () => { document.body.dataset.printScope = "none"; });
   if (TABS[query.get("tab")]) showTab(query.get("tab"));
 }
 
+loadDraft();
 initialize();

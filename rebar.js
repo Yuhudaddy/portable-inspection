@@ -108,6 +108,34 @@ function createState() { return { overview: { project: "", contractor: "", date:
 let state = createState();
 let activeTab = "overview";
 
+const DRAFT_STORAGE_KEY = "project-portal.rebar.draft";
+const DRAFT_SCHEMA = "project-portal.draft.v1";
+let suppressDraftSave = false;
+
+function saveDraft() {
+  if (suppressDraftSave) return;
+  try {
+    localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify({ schema: DRAFT_SCHEMA, savedAt: new Date().toISOString(), data: state }));
+  } catch (error) {
+    // 暫存失敗不應影響填表或 PDF 輸出。
+  }
+}
+
+function loadDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+    if (!raw) return;
+    const draft = JSON.parse(raw);
+    if (draft?.schema === DRAFT_SCHEMA && draft.data && typeof draft.data === "object") state = draft.data;
+  } catch (error) {
+    // 損壞或被瀏覽器拒絕的暫存資料直接忽略，維持空白表單。
+  }
+}
+
+function clearDraft() {
+  try { localStorage.removeItem(DRAFT_STORAGE_KEY); } catch (error) { /* ignore */ }
+}
+
 function activeMember() { return state.members[state.activeMember] || null; }
 function ensureMember(member) { [...(PLACEMENT_CHECKS[member.type] || []), ...(DETAIL_CHECKS[member.type] || [])].forEach(item => { const target = (PLACEMENT_CHECKS[member.type] || []).includes(item) ? member.checks : member.detailChecks; const id = item[0]; if (!target[id]) target[id] = { actual: "", result: "待確認" }; }); }
 function syncDateDisplay(input) { const displayEl = input.closest(".native-field-wrap")?.querySelector(".native-field-display"); if (!displayEl) return; displayEl.textContent = input.value ? formatDate(input.value) : "尚未選擇日期"; displayEl.classList.toggle("is-empty", !input.value); }
@@ -173,7 +201,7 @@ function renderPrint() {
   $("#print-template-release").innerHTML = `${printHeader("鋼筋澆置前放行", "06")}<section class="print-section"><h2>06｜澆置前放行</h2><table class="print-table"><thead><tr><th>項次</th><th>檢查項目</th><th>判定標準</th><th>紀錄／說明</th><th>結果</th></tr></thead><tbody>${checkRows(RELEASE_CHECKS, id => state.release.checks[id])}</tbody></table></section><section class="print-section"><h2>放行判定</h2><div class="print-summary"><div><span>澆置判定</span><strong>${printValue(state.release.decision)}</strong></div><div><span>備註</span><strong>${printValue(state.release.decisionNote)}</strong></div></div></section>${printFooter()}`;
 }
 function exportPdf(scope) { renderPrint(); document.body.dataset.printScope = scope; const page = activeTab === "overview" || activeTab === "members" ? "overview" : activeTab; $$(".print-page").forEach(item => item.classList.toggle("print-selected", item.dataset.printPage === page)); $("#export-dialog").close(); window.print(); }
-function clearAll() { state = createState(); activeTab = "overview"; renderAll(); setTab("overview"); $("#clear-dialog").close(); }
+function clearAll() { suppressDraftSave = true; clearDraft(); state = createState(); activeTab = "overview"; renderAll(); setTab("overview"); $("#clear-dialog").close(); }
 
 function loadExample() {
   const member = createMember();
@@ -206,6 +234,9 @@ function handleEvent(event) {
 
 document.addEventListener("input", handleEvent);
 document.addEventListener("change", handleEvent);
+document.addEventListener("input", saveDraft);
+document.addEventListener("change", saveDraft);
+document.addEventListener("submit", saveDraft);
 document.addEventListener("click", event => {
   const target = event.target.closest("button, [data-remove-member], [data-remove-bar], [data-add-bar], [data-export], [data-close-dialog]");
   if (!target) return;
@@ -226,7 +257,13 @@ document.addEventListener("click", event => {
   if (target.id === "confirm-clear") clearAll();
 });
 
+document.addEventListener("click", () => {
+  if (suppressDraftSave) { suppressDraftSave = false; return; }
+  saveDraft();
+});
+
 const query = new URLSearchParams(location.search);
+loadDraft();
 if (query.get("example") === "1") loadExample();
 renderAll();
 setTab(TAB_LABELS[query.get("tab")] ? query.get("tab") : "overview");

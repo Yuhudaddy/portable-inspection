@@ -226,6 +226,41 @@ const state = {
   }
 };
 
+const DRAFT_STORAGE_KEY = "project-portal.diaphragmWall.draft";
+const DRAFT_SCHEMA = "project-portal.draft.v1";
+let suppressDraftSave = false;
+
+function saveDraft() {
+  if (suppressDraftSave) return;
+  try {
+    localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify({
+      schema: DRAFT_SCHEMA,
+      savedAt: new Date().toISOString(),
+      data: state
+    }));
+  } catch (error) {
+    // 暫存失敗不應影響填表或 PDF 輸出。
+  }
+}
+
+function loadDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+    if (!raw) return;
+    const draft = JSON.parse(raw);
+    if (draft?.schema !== DRAFT_SCHEMA || !draft.data || typeof draft.data !== "object") return;
+    Object.keys(state).forEach(key => {
+      if (Object.prototype.hasOwnProperty.call(draft.data, key)) state[key] = draft.data[key];
+    });
+  } catch (error) {
+    // 損壞或被瀏覽器拒絕的暫存資料直接忽略，維持空白表單。
+  }
+}
+
+function clearDraft() {
+  try { localStorage.removeItem(DRAFT_STORAGE_KEY); } catch (error) { /* ignore */ }
+}
+
 let activeTab = "overview";
 let activeTool = "diaphragmWall";
 const editIndex = { soil: null, depth: null, truck: null, rebar: null };
@@ -600,6 +635,8 @@ function renderAll() {
 }
 
 function clearAllData() {
+  suppressDraftSave = true;
+  clearDraft();
   state.overview = { project: "", contractor: "", date: "", reviewer: "" };
   state.wall = {
     unitType: "", unitNo: "", sequenceNo: "", designDepth: "", strength: "", thickness: "", length: "",
@@ -1432,6 +1469,10 @@ function initialize() {
     }
   });
 
+  document.addEventListener("input", saveDraft);
+  document.addEventListener("change", saveDraft);
+  document.addEventListener("submit", saveDraft);
+
   $$('[role="tab"]').forEach(button => {
     button.addEventListener("click", () => showTab(button.dataset.tab));
     button.addEventListener("keydown", event => {
@@ -1545,11 +1586,17 @@ function initialize() {
     else if (deleteRebar) removeRebar(Number(deleteRebar.dataset.deleteRebar));
   });
 
+  document.addEventListener("click", () => {
+    if (suppressDraftSave) { suppressDraftSave = false; return; }
+    saveDraft();
+  });
+
   $("#undo-button").addEventListener("click", () => {
     if (undoAction) undoAction();
     clearTimeout(undoTimer);
     undoAction = null;
     $("#undo-toast").hidden = true;
+    saveDraft();
   });
 
   window.addEventListener("afterprint", () => { document.body.dataset.printScope = "none"; });
@@ -1557,4 +1604,5 @@ function initialize() {
   if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./sw.js").catch(() => {});
 }
 
+loadDraft();
 initialize();

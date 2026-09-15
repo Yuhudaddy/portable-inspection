@@ -16,7 +16,7 @@ The site opens at `index.html`, which is the tool index. The Diaphragm Wall entr
 4. Review calculated counts, cumulative volume, estimated rise, measured rise, and differences.
 5. Choose **輸出**, select the current form or the complete record PDF, and share the result to LINE or Files. The Diaphragm Wall tool can also export JSON/Markdown; JSON is the canonical structured file and can be imported back through **輸出 → 匯入施工紀錄** on the same Diaphragm Wall page. Markdown is for reading and archiving only and is not used for form restoration. The template tool has its own separate JSON/Markdown export and is not compatible with the Diaphragm Wall import.
 
-The tool intentionally has no draft storage or server-side sync. Refreshing or closing the page clears the in-memory record; the PDF is the handoff artifact.
+The tool automatically saves a draft in the browser's local storage. Each tool has its own independent draft: all tabs within the Diaphragm Wall, Template, Rebar, or Steel Structure tool are saved together, while drafts are not shared between tools. Refreshing or closing the page restores the draft on the same browser profile. The Clear action removes that tool's draft. The PDF remains the handoff artifact, and JSON export remains available for explicit backup or transfer to another device.
 
 ## Local preview
 
@@ -28,7 +28,7 @@ python3 -m http.server 4173
 
 ## Data handling
 
-The tool keeps entered values only in the current page session. It does not provide local draft storage, a server-side database, user accounts, or a centralized submission workflow.
+The tool keeps draft values in the current browser's local storage. It does not provide a server-side database, user accounts, cross-device synchronization, or a centralized submission workflow. Drafts are browser-profile-specific and are not encrypted; shared devices should be cleared after use.
 
 ## Security boundary
 

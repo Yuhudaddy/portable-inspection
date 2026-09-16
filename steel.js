@@ -82,6 +82,19 @@ const draft = createDraftStore("project-portal.steel.draft", () => state, {
 
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
+
+function validateDialogForm(form) {
+  const valid = form.checkValidity();
+  form.classList.toggle("form-validation-error", !valid);
+  return valid;
+}
+
+function bindDialogUx() {
+  $$('dialog').forEach(dialog => dialog.addEventListener("close", () => {
+    if (dialog.contains(document.activeElement)) document.activeElement.blur();
+    dialog.querySelector("form")?.classList.remove("form-validation-error");
+  }));
+}
 const esc = value => String(value ?? "")
   .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
   .replaceAll('"', "&quot;").replaceAll("'", "&#039;");
@@ -148,7 +161,6 @@ function showTab(tab) {
     button.setAttribute("aria-selected", String(selected));
     button.tabIndex = selected ? 0 : -1;
   });
-  $("#active-tab-label").textContent = TABS[tab];
   $("#export-current-label").textContent = TABS[tab];
 }
 
@@ -351,6 +363,7 @@ function loadExample() {
 }
 
 function initialize() {
+  bindDialogUx();
   const query = new URLSearchParams(location.search);
   if (query.get("example") === "1") loadExample();
   renderAll();
@@ -398,7 +411,6 @@ function initialize() {
   ["input", "change", "submit"].forEach(type => document.addEventListener(type, () => draft.schedule()));
   document.addEventListener("click", event => { if (!event.target.closest("#confirm-clear")) draft.schedule(); });
 
-  $("#project-tool-button").addEventListener("click", () => $("#project-tool").scrollIntoView({ behavior: "smooth", block: "start" }));
   $("#help-button").addEventListener("click", () => $("#help-dialog").showModal());
   $("#clear-button").addEventListener("click", () => $("#clear-dialog").showModal());
   $("#confirm-clear").addEventListener("click", resetState);
@@ -410,6 +422,7 @@ function initialize() {
   $("#add-delivery").addEventListener("click", () => openDeliveryDialog());
   $("#delivery-form").addEventListener("submit", event => {
     event.preventDefault();
+    if (!validateDialogForm(event.currentTarget)) return;
     const record = { type: $("#delivery-type").value, memberNo: $("#delivery-member").value.trim(), spec: $("#delivery-spec").value.trim(), qty: $("#delivery-qty").value, doc: $("#delivery-doc").value.trim(), appearance: document.querySelector('input[name="delivery-appearance"]:checked')?.value || "待確認", storage: document.querySelector('input[name="delivery-storage"]:checked')?.value || "待確認", result: document.querySelector('input[name="delivery-result"]:checked')?.value || "待確認" };
     if (editDeliveryIndex === null) state.delivery.records.push(record); else state.delivery.records[editDeliveryIndex] = record;
     $("#delivery-dialog").close(); renderDelivery(); updateIdentity();

@@ -273,6 +273,19 @@ function syncAllDateTimeDisplays() {
   $$('input[type="date"], input[type="time"]').forEach(syncDateTimeDisplay);
 }
 
+function validateDialogForm(form) {
+  const valid = form.checkValidity();
+  form.classList.toggle("form-validation-error", !valid);
+  return valid;
+}
+
+function bindDialogUx() {
+  $$('dialog').forEach(dialog => dialog.addEventListener("close", () => {
+    if (dialog.contains(document.activeElement)) document.activeElement.blur();
+    dialog.querySelector("form")?.classList.remove("form-validation-error");
+  }));
+}
+
 function designHeight() {
   const depth = number(state.wall.designDepth);
   const elevation = number(state.wall.topElevation);
@@ -370,8 +383,6 @@ function showTool(tool) {
     if (button.dataset.selectTool === tool) button.setAttribute("aria-current", "page");
     else button.removeAttribute("aria-current");
   });
-  // 底部工具列只顯示切換列上的短名稱（導溝／鋼筋籠／連續壁），直接取切換鈕文字，永遠一致。
-  $("#active-tab-label").textContent = $(`[data-select-tool="${tool}"] strong`).textContent;
   updateIdentity();
 }
 
@@ -944,9 +955,19 @@ function setPdfDocumentTitle(scope) {
   window.addEventListener("afterprint", () => { document.title = previousTitle; }, { once: true });
 }
 
+function setPrintPageOrientation(scope) {
+  document.getElementById("print-orientation-override")?.remove();
+  if (scope !== "current" || activeTool !== "diaphragmWall" || activeTab !== "pouring") return;
+  const style = document.createElement("style");
+  style.id = "print-orientation-override";
+  style.textContent = "@page { size: A4 landscape; margin: 10mm; }";
+  document.head.appendChild(style);
+}
+
 async function preparePrint(scope) {
   renderPrint();
   document.body.dataset.printScope = scope;
+  setPrintPageOrientation(scope);
   const requested = activeTool === "diaphragmWall" ? PRINT_TAB_GROUPS[activeTab] : PRINT_TAB_GROUPS[activeTool];
   const current = requested === "overview-wall" ? "quality" : requested;
   $$('.print-page').forEach(page => page.classList.toggle("print-selected", page.dataset.printTab === current));
@@ -1410,6 +1431,7 @@ function handleExport(format) {
 }
 
 function initialize() {
+  bindDialogUx();
   setInitialInputs();
   $("#phase-select").innerHTML = PHASES.map(phase => `<option value="${phase.id}">${esc(phase.label)}</option>`).join("");
   renderPhaseEditor();
@@ -1490,7 +1512,6 @@ function initialize() {
     });
   });
 
-  $("#project-tool-button").addEventListener("click", () => $("#record-switcher").scrollIntoView({ behavior: "smooth", block: "start" }));
   $("#help-button").addEventListener("click", () => $("#help-dialog").showModal());
   $("#clear-button").addEventListener("click", () => $("#clear-dialog").showModal());
   $("#confirm-clear").addEventListener("click", clearAllData);
@@ -1516,6 +1537,7 @@ function initialize() {
 
   $("#soil-form").addEventListener("submit", event => {
     event.preventDefault();
+    if (!validateDialogForm(event.currentTarget)) return;
     const record = { time: $("#soil-time").value };
     if (editIndex.soil === null) state.soil.push(record);
     else state.soil[editIndex.soil] = record;
@@ -1525,6 +1547,7 @@ function initialize() {
 
   $("#depth-form").addEventListener("submit", event => {
     event.preventDefault();
+    if (!validateDialogForm(event.currentTarget)) return;
     const record = { time: $("#depth-time").value, value: $("#depth-value").value };
     if (editIndex.depth === null) state.depth.push(record);
     else state.depth[editIndex.depth] = record;
@@ -1534,6 +1557,7 @@ function initialize() {
 
   $("#truck-form").addEventListener("submit", event => {
     event.preventDefault();
+    if (!validateDialogForm(event.currentTarget)) return;
     const record = {
       truckNo: $("#truck-number").value.trim(),
       unload: $("#truck-unload").value,
@@ -1549,6 +1573,7 @@ function initialize() {
 
   $("#rebar-form").addEventListener("submit", event => {
     event.preventDefault();
+    if (!validateDialogForm(event.currentTarget)) return;
     const record = {
       part: $("#rebar-part").value.trim(),
       designNo: $("#rebar-design-no").value.trim(),
@@ -1596,7 +1621,10 @@ function initialize() {
     $("#undo-toast").hidden = true;
   });
 
-  window.addEventListener("afterprint", () => { document.body.dataset.printScope = "none"; });
+  window.addEventListener("afterprint", () => {
+    document.body.dataset.printScope = "none";
+    document.getElementById("print-orientation-override")?.remove();
+  });
   showTool("diaphragmWall");
   if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./sw.js").catch(() => {});
 }

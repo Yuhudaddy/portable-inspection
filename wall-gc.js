@@ -546,6 +546,19 @@ function syncAllDateTimeDisplays() {
   $$('input[type="date"], input[type="time"]').forEach(syncDateTimeDisplay);
 }
 
+function validateDialogForm(form) {
+  const valid = form.checkValidity();
+  form.classList.toggle("form-validation-error", !valid);
+  return valid;
+}
+
+function bindDialogUx() {
+  $$('dialog').forEach(dialog => dialog.addEventListener("close", () => {
+    if (dialog.contains(document.activeElement)) document.activeElement.blur();
+    dialog.querySelector("form")?.classList.remove("form-validation-error");
+  }));
+}
+
 function designHeight() {
   const depth = number(state.unit.designDepth);
   const elevation = number(state.unit.topElevation);
@@ -641,8 +654,6 @@ function showTool(tool) {
     if (button.dataset.selectTool === tool) button.setAttribute("aria-current", "page");
     else button.removeAttribute("aria-current");
   });
-  // 底部工具列只顯示切換列上的短名稱（導溝／鋼筋籠／連續壁），直接取切換鈕文字，永遠一致。
-  $("#active-tab-label").textContent = $(`[data-select-tool="${tool}"] strong`).textContent;
   updateIdentity();
 }
 
@@ -1433,6 +1444,7 @@ function handleExport(format) {
 }
 
 function initialize() {
+  bindDialogUx();
   setInitialInputs();
   renderAll();
   syncAllDateTimeDisplays();
@@ -1525,7 +1537,6 @@ function initialize() {
   ["input", "change", "submit"].forEach(type => document.addEventListener(type, () => draft.schedule()));
   document.addEventListener("click", event => { if (!event.target.closest("#confirm-clear")) draft.schedule(); });
 
-  $("#project-tool-button").addEventListener("click", () => $("#record-switcher").scrollIntoView({ behavior: "smooth", block: "start" }));
   $("#help-button").addEventListener("click", () => $("#help-dialog").showModal());
   $("#clear-button").addEventListener("click", () => $("#clear-dialog").showModal());
   $("#confirm-clear").addEventListener("click", clearAllData);
@@ -1547,6 +1558,7 @@ function initialize() {
   $("#add-rebar").addEventListener("click", () => openRebarDialog());
   $("#rebar-form").addEventListener("submit", event => {
     event.preventDefault();
+    if (!validateDialogForm(event.currentTarget)) return;
     const record = {
       part: $("#rebar-part").value.trim(),
       designNo: $("#rebar-design-no").value.trim(),

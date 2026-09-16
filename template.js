@@ -271,7 +271,6 @@ function setTab(tab) {
   if (tab === "install") renderInstall();
   if (tab === "measure") renderMeasurements();
   if (tab === "release") renderRelease();
-  $("#active-tab-label").textContent = TAB_LABELS[tab];
   document.body.dataset.activeTab = tab;
 }
 

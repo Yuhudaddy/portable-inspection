@@ -108,33 +108,10 @@ function createState() { return { overview: { project: "", contractor: "", date:
 let state = createState();
 let activeTab = "overview";
 
-const DRAFT_STORAGE_KEY = "project-portal.rebar.draft";
-const DRAFT_SCHEMA = "project-portal.draft.v1";
-let suppressDraftSave = false;
-
-function saveDraft() {
-  if (suppressDraftSave) return;
-  try {
-    localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify({ schema: DRAFT_SCHEMA, savedAt: new Date().toISOString(), data: state }));
-  } catch (error) {
-    // 暫存失敗不應影響填表或 PDF 輸出。
-  }
-}
-
-function loadDraft() {
-  try {
-    const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
-    if (!raw) return;
-    const draft = JSON.parse(raw);
-    if (draft?.schema === DRAFT_SCHEMA && draft.data && typeof draft.data === "object") state = draft.data;
-  } catch (error) {
-    // 損壞或被瀏覽器拒絕的暫存資料直接忽略，維持空白表單。
-  }
-}
-
-function clearDraft() {
-  try { localStorage.removeItem(DRAFT_STORAGE_KEY); } catch (error) { /* ignore */ }
-}
+// 本機草稿（共用 draft.js）：啟動時還原、輸入時去抖寫入、「清空」時刪除；範例模式不讀不寫。
+const draft = createDraftStore("project-portal.rebar.draft", () => state, {
+  enabled: new URLSearchParams(location.search).get("example") !== "1"
+});
 
 function activeMember() { return state.members[state.activeMember] || null; }
 function ensureMember(member) { [...(PLACEMENT_CHECKS[member.type] || []), ...(DETAIL_CHECKS[member.type] || [])].forEach(item => { const target = (PLACEMENT_CHECKS[member.type] || []).includes(item) ? member.checks : member.detailChecks; const id = item[0]; if (!target[id]) target[id] = { actual: "", result: "待確認" }; }); }
@@ -186,7 +163,7 @@ function exportObject() { return { schema: "project-portal.rebar-review.v1", exp
 function fileDownload(filename, content, type) { const blob = new Blob([content], { type }); const url = URL.createObjectURL(blob); const anchor = document.createElement("a"); anchor.href = url; anchor.download = filename; anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
 function markdownExport() { const lines = ["# 鋼筋工程查驗表", "", `- 工程名稱：${display(state.overview.project)}`, `- 施工廠商：${display(state.overview.contractor)}`, `- 檢查日期：${display(state.overview.inspectionDate)}`, `- 檢查樓層／區域：${display(state.overview.floor)}`, "", "## 配筋明細"]; state.members.forEach((member, index) => { lines.push(`\n### ${index + 1}. ${member.type}｜${display(member.id)}｜${display(memberReviewResult(member))}`); lines.push(`- 軸線／位置：${display(member.grid)}；強度：${display(member.strength)}；尺寸：${display(member.width)} × ${display(member.height)} cm；保護層：${display(member.cover)} cm`); lines.push(`- 配筋：${member.bars.map(bar => `${bar.kind} ${display(bar.size)}${bar.count ? ` × ${bar.count}支` : ""}${bar.spacing ? ` @${bar.spacing}cm` : ""}${bar.note ? `（${bar.note}）` : ""}`).join("；")}`); if (member.note) lines.push(`- 備註：${member.note}`); }); lines.push("", "## 材料與施工前"); MATERIAL_CHECKS.forEach(item => lines.push(`- ${item[1]}：${display(state.material[item[0]]?.actual)}（${display(state.material[item[0]]?.result)}）`)); lines.push("", "## 澆置前放行", `- 判定：${state.release.decision}`, `- 備註：${display(state.release.decisionNote)}`); return lines.join("\n"); }
 function printHeader(title, sequence) { const member = activeMember(); const identity = [state.overview.floor, member?.type, member?.id].filter(Boolean).join("｜") || "未指定構件"; return `<header class="print-document-header"><div class="print-header-title"><p>RC REBAR / FIELD REVIEW / ${sequence}</p><h1>${esc(title)}</h1></div><div class="print-header-meta-body"><div class="print-header-project-lines"><div><span>工程名稱：</span><strong>${esc(display(state.overview.project))}</strong></div><div><span>施工日期：</span><strong>${esc(display(state.overview.date))}</strong></div><div><span>施工廠商：</span><strong>${esc(display(state.overview.contractor))}</strong></div><div><span>填表人：</span><strong>${esc(display(state.overview.reviewer))}</strong></div></div></div><div class="print-header-logo-wrap"><img class="print-logo" src="./taisei.png" alt="大成建設標誌" /><strong class="print-header-identity">${esc(identity)}</strong></div></header>`; }
-function printFooter() { return `<footer class="print-footer"><div class="print-footer-note">資料版本：${APP_VERSION}｜輸出時間：${esc(new Date().toLocaleString("zh-TW", { hour12: false }))}<br />本文件為營造廠現場查驗紀錄，正式效力依公司簽核流程辦理。</div><div class="print-signature-grid" aria-label="簽名欄"><div><span>所長</span><span aria-hidden="true"></span></div><div><span>副所長</span><span aria-hidden="true"></span></div><div><span>擔當者</span><span aria-hidden="true"></span></div></div></footer>`; }
+function printFooter() { return `<footer class="print-footer"><div class="print-signature-grid" aria-label="簽名欄"><div><span>所長</span><span aria-hidden="true"></span></div><div><span>副所長</span><span aria-hidden="true"></span></div><div><span>擔當者</span><span aria-hidden="true"></span></div></div></footer>`; }
 function printValue(value) { return esc(display(value)); }
 function checkRows(items, getRecord) { return items.map((item, index) => { const record = getRecord(item[0]) || {}; return `<tr><td>${index + 1}</td><td class="text-left">${printValue(item[1])}</td><td class="text-left">${printValue(item[2])}</td><td class="text-left">${printValue(record.actual)}</td><td>${printValue(record.result)}</td></tr>`; }).join(""); }
 function renderPrint() {
@@ -201,7 +178,7 @@ function renderPrint() {
   $("#print-template-release").innerHTML = `${printHeader("鋼筋澆置前放行", "06")}<section class="print-section"><h2>06｜澆置前放行</h2><table class="print-table"><thead><tr><th>項次</th><th>檢查項目</th><th>判定標準</th><th>紀錄／說明</th><th>結果</th></tr></thead><tbody>${checkRows(RELEASE_CHECKS, id => state.release.checks[id])}</tbody></table></section><section class="print-section"><h2>放行判定</h2><div class="print-summary"><div><span>澆置判定</span><strong>${printValue(state.release.decision)}</strong></div><div><span>備註</span><strong>${printValue(state.release.decisionNote)}</strong></div></div></section>${printFooter()}`;
 }
 function exportPdf(scope) { renderPrint(); document.body.dataset.printScope = scope; const page = activeTab === "overview" || activeTab === "members" ? "overview" : activeTab; $$(".print-page").forEach(item => item.classList.toggle("print-selected", item.dataset.printPage === page)); $("#export-dialog").close(); window.print(); }
-function clearAll() { suppressDraftSave = true; clearDraft(); state = createState(); activeTab = "overview"; renderAll(); setTab("overview"); $("#clear-dialog").close(); }
+function clearAll() { draft.clear(); state = createState(); activeTab = "overview"; renderAll(); setTab("overview"); $("#clear-dialog").close(); }
 
 function loadExample() {
   const member = createMember();
@@ -234,9 +211,9 @@ function handleEvent(event) {
 
 document.addEventListener("input", handleEvent);
 document.addEventListener("change", handleEvent);
-document.addEventListener("input", saveDraft);
-document.addEventListener("change", saveDraft);
-document.addEventListener("submit", saveDraft);
+// 會改到 state 的互動都經過 input／change／click；「確認清空」那一下除外，否則剛刪掉的草稿又會被寫回。
+["input", "change"].forEach(type => document.addEventListener(type, () => draft.schedule()));
+document.addEventListener("click", event => { if (!event.target.closest("#confirm-clear")) draft.schedule(); });
 document.addEventListener("click", event => {
   const target = event.target.closest("button, [data-remove-member], [data-remove-bar], [data-add-bar], [data-export], [data-close-dialog]");
   if (!target) return;
@@ -257,13 +234,8 @@ document.addEventListener("click", event => {
   if (target.id === "confirm-clear") clearAll();
 });
 
-document.addEventListener("click", () => {
-  if (suppressDraftSave) { suppressDraftSave = false; return; }
-  saveDraft();
-});
-
 const query = new URLSearchParams(location.search);
-loadDraft();
+Object.assign(state, draft.load() ?? {});
 if (query.get("example") === "1") loadExample();
 renderAll();
 setTab(TAB_LABELS[query.get("tab")] ? query.get("tab") : "overview");

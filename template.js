@@ -104,33 +104,10 @@ function createState() {
 let state = createState();
 let activeTab = "overview";
 
-const DRAFT_STORAGE_KEY = "project-portal.template.draft";
-const DRAFT_SCHEMA = "project-portal.draft.v1";
-let suppressDraftSave = false;
-
-function saveDraft() {
-  if (suppressDraftSave) return;
-  try {
-    localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify({ schema: DRAFT_SCHEMA, savedAt: new Date().toISOString(), data: state }));
-  } catch (error) {
-    // 暫存失敗不應影響填表或 PDF 輸出。
-  }
-}
-
-function loadDraft() {
-  try {
-    const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
-    if (!raw) return;
-    const draft = JSON.parse(raw);
-    if (draft?.schema === DRAFT_SCHEMA && draft.data && typeof draft.data === "object") state = draft.data;
-  } catch (error) {
-    // 損壞或被瀏覽器拒絕的暫存資料直接忽略，維持空白表單。
-  }
-}
-
-function clearDraft() {
-  try { localStorage.removeItem(DRAFT_STORAGE_KEY); } catch (error) { /* ignore */ }
-}
+// 本機草稿（共用 draft.js）：啟動時還原、輸入時去抖寫入、「清空」時刪除；範例模式不讀不寫。
+const draft = createDraftStore("project-portal.template.draft", () => state, {
+  enabled: new URLSearchParams(location.search).get("example") !== "1"
+});
 
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
@@ -355,7 +332,7 @@ function printHeader(title, sequence) {
   </div></div><div class="print-header-logo-wrap"><img class="print-logo" src="./taisei.png" alt="大成建設標誌" /><strong class="print-header-identity">${esc(identity)}</strong></div></header>`;
 }
 
-function printFooter() { return `<footer class="print-footer"><div class="print-footer-note">資料版本：${APP_VERSION}｜輸出時間：${esc(new Date().toLocaleString("zh-TW", { hour12: false }))}<br />本文件為營造廠現場複核紀錄，正式效力依公司簽核流程辦理。</div><div class="print-signature-grid" aria-label="簽名欄"><div><span>所長</span><span aria-hidden="true"></span></div><div><span>副所長</span><span aria-hidden="true"></span></div><div><span>擔當者</span><span aria-hidden="true"></span></div></div></footer>`; }
+function printFooter() { return `<footer class="print-footer"><div class="print-signature-grid" aria-label="簽名欄"><div><span>所長</span><span aria-hidden="true"></span></div><div><span>副所長</span><span aria-hidden="true"></span></div><div><span>擔當者</span><span aria-hidden="true"></span></div></div></footer>`; }
 function printValue(value) { return esc(display(value)); }
 
 function renderPrint() {
@@ -391,7 +368,7 @@ function exportPdf(scope) {
   window.print();
 }
 
-function clearAll() { suppressDraftSave = true; clearDraft(); state = createState(); activeTab = "overview"; renderAll(); setTab("overview"); $("#clear-dialog").close(); }
+function clearAll() { draft.clear(); state = createState(); activeTab = "overview"; renderAll(); setTab("overview"); $("#clear-dialog").close(); }
 
 function loadExample() {
   const member = createMember();
@@ -427,9 +404,9 @@ function handleEvent(event) {
 
 document.addEventListener("input", handleEvent);
 document.addEventListener("change", handleEvent);
-document.addEventListener("input", saveDraft);
-document.addEventListener("change", saveDraft);
-document.addEventListener("submit", saveDraft);
+// 會改到 state 的互動都經過 input／change／click；「確認清空」那一下除外，否則剛刪掉的草稿又會被寫回。
+["input", "change"].forEach(type => document.addEventListener(type, () => draft.schedule()));
+document.addEventListener("click", event => { if (!event.target.closest("#confirm-clear")) draft.schedule(); });
 document.addEventListener("click", event => {
   const target = event.target.closest("button, [data-remove-member], [data-export], [data-close-dialog]");
   if (!target) return;
@@ -449,13 +426,8 @@ document.addEventListener("click", event => {
   if (target.id === "confirm-clear") clearAll();
 });
 
-document.addEventListener("click", () => {
-  if (suppressDraftSave) { suppressDraftSave = false; return; }
-  saveDraft();
-});
-
 const query = new URLSearchParams(location.search);
-loadDraft();
+Object.assign(state, draft.load() ?? {});
 if (query.get("example") === "1") loadExample();
 renderAll();
 setTab(TAB_LABELS[query.get("tab")] ? query.get("tab") : "overview");

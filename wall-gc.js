@@ -138,7 +138,7 @@ const REBAR_CAGE_CHECKS = [
 ];
 
 const $ = selector => document.querySelector(selector);
-const $$ = selector => [...document.querySelectorAll(selector)];
+const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const number = value => {
   const parsed = Number.parseFloat(value);
   return Number.isFinite(parsed) ? parsed : null;
@@ -515,6 +515,9 @@ const state = {
   }
 };
 
+// 本機草稿（共用 draft.js）：啟動時還原、輸入時去抖寫入、「清空」時刪除。
+const draft = createDraftStore("project-portal.diaphragmWallGc.draft", () => state);
+
 let activeTab = "overview";
 let activeTool = "inspection";
 const editIndex = { rebar: null };
@@ -618,24 +621,19 @@ function currentExportLabel(tool = activeTool, tab = activeTab) {
 function showTab(tab, focusPanel = false) {
   const view = $(`[role="tab"][data-tab="${tab}"]`)?.closest("[data-tool-view]");
   if (!view) return;
-  [...view.querySelectorAll(".tab-panel")].forEach(panel => { panel.hidden = panel.id !== `panel-${tab}`; });
-  [...view.querySelectorAll('[role="tab"]')].forEach(button => {
+  $$(".tab-panel", view).forEach(panel => { panel.hidden = panel.id !== `panel-${tab}`; });
+  $$('[role="tab"]', view).forEach(button => {
     const selected = button.dataset.tab === tab;
     button.setAttribute("aria-selected", String(selected));
     button.tabIndex = selected ? 0 : -1;
   });
-  if (view.dataset.toolView === "inspection") {
-    activeTab = tab;
-    document.body.dataset.activeTab = tab;
-    if (activeTool === "inspection") $("#export-current-label").textContent = currentExportLabel("inspection", tab);
-  }
+  if (view.dataset.toolView === "inspection") activeTab = tab; // 匯出標籤在開啟匯出對話框時才重算
   if (focusPanel) $(`#panel-${tab}`).focus({ preventScroll: true });
 }
 
 function showTool(tool) {
   if (!TOOL_LABELS[tool]) return;
   activeTool = tool;
-  document.body.dataset.activeTool = tool;
   $$('[data-tool-view]').forEach(view => { view.hidden = view.dataset.toolView !== tool; });
   $$('[data-select-tool]').forEach(button => {
     if (button.dataset.selectTool === tool) button.setAttribute("aria-current", "page");
@@ -643,7 +641,6 @@ function showTool(tool) {
   });
   // 底部工具列只顯示切換列上的短名稱（導溝／鋼筋籠／連續壁），直接取切換鈕文字，永遠一致。
   $("#active-tab-label").textContent = $(`[data-select-tool="${tool}"] strong`).textContent;
-  $("#export-current-label").textContent = currentExportLabel(tool, activeTab);
   updateIdentity();
 }
 
@@ -790,6 +787,7 @@ function renderAll() {
 }
 
 function clearAllData() {
+  draft.clear();
   state.overview = { project: "", contractor: "", date: "", reviewer: "", manager: "" };
   state.unit = {
     unitType: "", unitNo: "", sequenceNo: "", slurryType: "", guideTopElevation: "", strength: "",
@@ -867,7 +865,7 @@ function printHeader(title, sequence, project = state.overview.project, recordId
 }
 
 function printFooter() {
-  return `<footer class="print-footer"><div class="print-footer-note">資料版本：${APP_VERSION}｜輸出時間：${esc(new Date().toLocaleString("zh-TW", { hour12: false }))}<br />本文件經現場相關人員簽核後始為正式紀錄。</div><div class="print-signature-grid" aria-label="簽名欄"><div><span>所長</span><span aria-hidden="true"></span></div><div><span>副所長</span><span aria-hidden="true"></span></div><div><span>擔當者</span><span aria-hidden="true"></span></div></div></footer>`;
+  return `<footer class="print-footer"><div class="print-signature-grid" aria-label="簽名欄"><div><span>所長</span><span aria-hidden="true"></span></div><div><span>副所長</span><span aria-hidden="true"></span></div><div><span>擔當者</span><span aria-hidden="true"></span></div></div></footer>`;
 }
 
 // 設計基準以 9 欄橫向長條呈現，讓兩張查驗表都能在頁首保留完整識別資料。
@@ -1375,6 +1373,7 @@ async function importJsonFile(file) {
   try {
     const payload = JSON.parse(await file.text());
     status.textContent = importJsonPayload(payload);
+    draft.schedule(); // file input 的 change 事件在讀檔完成前就冒泡過了，這裡補存匯入後的狀態
   } catch (error) {
     status.textContent = `匯入失敗：${error.message || "JSON 格式無法讀取"}`;
   }
@@ -1472,7 +1471,7 @@ function initialize() {
   $$('[role="tab"]').forEach(button => {
     button.addEventListener("click", () => showTab(button.dataset.tab));
     button.addEventListener("keydown", event => {
-      const tabs = [...button.closest("[data-tool-view]").querySelectorAll('[role="tab"]')];
+      const tabs = $$('[role="tab"]', button.closest("[data-tool-view]"));
       const index = tabs.indexOf(button);
       const direction = ["ArrowRight", "ArrowDown"].includes(event.key) ? 1 : ["ArrowLeft", "ArrowUp"].includes(event.key) ? -1 : 0;
       if (!direction) return;
@@ -1482,6 +1481,10 @@ function initialize() {
       next.focus();
     });
   });
+
+  // 會改到 state 的互動都經過這三種事件；「確認清空」那一下除外，否則剛刪掉的草稿又會被寫回。
+  ["input", "change", "submit"].forEach(type => document.addEventListener(type, () => draft.schedule()));
+  document.addEventListener("click", event => { if (!event.target.closest("#confirm-clear")) draft.schedule(); });
 
   $("#project-tool-button").addEventListener("click", () => $("#record-switcher").scrollIntoView({ behavior: "smooth", block: "start" }));
   $("#help-button").addEventListener("click", () => $("#help-dialog").showModal());
@@ -1538,4 +1541,5 @@ function initialize() {
   if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./sw.js").catch(() => {});
 }
 
+Object.assign(state, draft.load() ?? {});
 initialize();

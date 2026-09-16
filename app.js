@@ -227,7 +227,8 @@ const state = {
 };
 
 // 本機草稿（共用 draft.js）：啟動時還原、輸入時去抖寫入、「清空」時刪除。
-const draft = createDraftStore("project-portal.diaphragmWall.draft", () => state);
+const exampleMode = new URLSearchParams(location.search).get("example") === "1";
+const draft = createDraftStore("project-portal.diaphragmWall.draft", () => state, { enabled: !exampleMode });
 
 let activeTab = "overview";
 let activeTool = "diaphragmWall";
@@ -241,9 +242,10 @@ const number = value => {
   const parsed = Number.parseFloat(value);
   return Number.isFinite(parsed) ? parsed : null;
 };
-const fixed = value => Number.isFinite(value) ? value.toFixed(2) : "—";
+const fixed = value => Number.isFinite(value) ? value.toFixed(2) : "";
 const display = value => String(value ?? "").trim() || "—";
-const guideCheckActual = check => [display(check.actual) === "—" ? "" : display(check.actual), check.barNo ? `號數 ${check.barNo}` : "", check.barSpacing ? `間距 ${check.barSpacing} cm` : ""].filter(Boolean).join("；") || "—";
+const printText = value => String(value ?? "").trim(); // PDF 用：未填就留白，不印「—」
+const guideCheckActual = check => [display(check.actual) === "—" ? "" : display(check.actual), check.barNo ? `號數 ${check.barNo}` : "", check.barSpacing ? `間距 ${check.barSpacing} cm` : ""].filter(Boolean).join("；") || "";
 const esc = value => String(value ?? "")
   .replaceAll("&", "&amp;")
   .replaceAll("<", "&lt;")
@@ -596,6 +598,18 @@ function renderAll() {
   renderChecklists();
 }
 
+function loadExample() {
+  state.overview = { project: "Example Construction Project — North Lot", contractor: "○○營造股份有限公司", date: "2026-08-11", reviewer: "Site Engineer" };
+  Object.assign(state.wall, { unitType: "公單元", unitNo: "21", sequenceNo: "03", designDepth: "-35.80", strength: "350", thickness: "1.00", length: "2.80", topElevation: "-0.50", designVolume: "98.84", actualVolume: "107.46" });
+  state.soil = ["07:40", "08:20", "09:05"].map(time => ({ time }));
+  state.depth = [{ time: "12:10", value: "-35.80" }, { time: "12:35", value: "-35.82" }];
+  state.prework = Object.fromEntries(PHASES.map((phase, index) => [phase.id, { start: `0${8 + index}:00`, end: `0${8 + index}:30` }]));
+  state.trucks = Array.from({ length: 8 }, (_, index) => ({ truckNo: `C${String(index + 1).padStart(2, "0")}`, unload: `${13 + Math.floor(index / 2)}:${index % 2 ? "42" : "20"}`, finish: `${13 + Math.floor(index / 2)}:${index % 2 ? "55" : "33"}`, volume: index === 7 ? "9.46" : "12", measured: (3.9 + index * 4.1).toFixed(2) }));
+  state.guideWall = { date: "2026-08-10", unitNo: "21", reviewer: "Site Engineer", note: "中心線偏差 1.6 cm；順序符合；導溝條件完成複核。", checks: GUIDE_WALL_CHECKS.map(([item, standard], index) => ({ item, standard, actual: index === 0 ? "中心線偏差 1.6 cm" : "已確認", barNo: index === 5 ? "D16" : "", barSpacing: index === 5 ? "19.5" : "", result: "符合" })) };
+  state.rebarCage = { date: "2026-08-10", unitNo: "21", cageNo: "C21-U／C21-L", reviewer: "Site Engineer", note: "配筋圖逐項核對；吊放條件完成。", rebars: REBAR_CAGE_PARTS.map((part, index) => ({ part, designNo: index < 2 ? "D32" : "D16", designQty: index < 2 ? "32支" : "@20 cm", actualNo: index < 2 ? "D32" : "D16", actualQty: index < 2 ? "32支" : "@20 cm", result: "符合" })), checks: REBAR_CAGE_CHECKS.map(([item, standard], index) => ({ item, standard, actual: index === 7 ? "3 組成對安裝；線路已保護至孔口" : "已確認", result: "符合" })) };
+  state.quality = { note: "各項檢查完成，未發現影響施工之缺失。", standards: { ...QUALITY_STANDARD_DEFAULTS }, checks: QUALITY_CHECKS.map(([item, standard, placeholder]) => ({ item, standard, placeholder, actual: "已確認", result: "符合" })) };
+}
+
 function clearAllData() {
   draft.clear();
   state.overview = { project: "", contractor: "", date: "", reviewer: "" };
@@ -721,6 +735,7 @@ function removeRebar(index) {
 }
 
 function printHeader(title, sequence, project = state.overview.project, recordIdentity = null, overviewData = state.overview) {
+  const display = printText;
   const identity = recordIdentity || [state.wall.unitType, state.wall.unitNo].filter(Boolean).join("｜") || "未指定單元";
   const headerData = overviewData || {};
   return `<header class="print-document-header"><div class="print-header-title"><p>DIAPHRAGM WALL FIELD RECORD / ${sequence}</p><h1>${esc(title)}</h1></div><div class="print-header-meta-body"><div class="print-header-project-lines">
@@ -736,6 +751,7 @@ function printFooter() {
 }
 
 function printProjectOverview(data, options = {}) {
+  const display = printText;
   const dateLabel = options.dateLabel || "施工日期";
   const reviewerLabel = options.reviewerLabel || "填表人";
   const fields = [
@@ -750,6 +766,7 @@ function printProjectOverview(data, options = {}) {
 }
 
 function printWallInfo() {
+  const display = printText;
   const height = designHeight();
   const designVolume = number(state.wall.designVolume) ?? calculatedDesignVolume();
   return `<section class="print-section print-wall-info"><h2>壁體資訊</h2><div class="print-meta-grid three">
@@ -761,7 +778,7 @@ function printWallInfo() {
     <div><span>壁厚／單元長度(m)</span><strong>${esc(display(state.wall.thickness))} ／ ${esc(display(state.wall.length))}</strong></div>
     <div><span>澆置頂端高程(GL,m)</span><strong>GL ${number(state.wall.topElevation) !== null && number(state.wall.topElevation) >= 0 ? "+" : ""}${esc(display(state.wall.topElevation))}</strong></div>
     <div><span>設計澆置高度(m)</span><strong>${fixed(height)}</strong></div>
-    <div><span>設計／實際數量(m³)</span><strong>${designVolume === null ? "—" : fixed(designVolume)} ／ ${esc(display(state.wall.actualVolume))}</strong></div>
+    <div><span>設計／實際數量(m³)</span><strong>${designVolume === null ? "" : fixed(designVolume)} ／ ${esc(display(state.wall.actualVolume))}</strong></div>
   </div></section>`;
 }
 
@@ -806,6 +823,7 @@ function pouringChartSvg(rows) {
 }
 
 function renderPrint() {
+  const display = printText;
   const height = designHeight();
   const latestDepth = state.depth.at(-1);
   const latestDepthValue = latestDepth ? number(latestDepth.value) : null;
@@ -854,7 +872,7 @@ function renderPrint() {
   }).join("") : `<tr><td colspan="4" class="print-empty">尚無深度確認</td></tr>`;
   const phaseRows = PHASES.map((phase, index) => {
     const record = state.prework[phase.id];
-    return `<tr><td>${index + 1}</td><td class="text-left">${esc(phase.label)}</td><td class="time-cell">${phase.start ? esc(display(record.start)) : "—"}</td><td class="time-cell">${phase.end ? esc(display(record.end)) : "—"}</td></tr>`;
+    return `<tr><td>${index + 1}</td><td class="text-left">${esc(phase.label)}</td><td class="time-cell">${phase.start ? esc(display(record.start)) : ""}</td><td class="time-cell">${phase.end ? esc(display(record.end)) : ""}</td></tr>`;
   }).join("");
   $("#print-excavation-prework").innerHTML = `${printHeader("開挖與前置紀錄", "04–05")}
     ${printWallInfo()}
@@ -879,7 +897,7 @@ function renderPrint() {
         <div><span>逐車累積量(m³)</span><strong>${fixed(lastTruck?.cumulative ?? 0)}</strong></div>
         <div><span>設計／實際數量(m³)</span><strong>${esc(display(state.wall.designVolume))} ／ ${esc(display(state.wall.actualVolume))}</strong></div>
         <div><span>預估／實測／差異(m)</span><strong>${fixed(lastTruck?.expected ?? null)} ／ ${fixed(lastTruck?.measured ?? null)} ／ ${fixed(lastTruck?.difference ?? null)}</strong></div>
-      </div></section><section class="print-section pouring-table-section"><h2>逐車混凝土澆置紀錄</h2><table class="print-table"><thead><tr><th>車次</th><th>車號</th><th>卸料</th><th>結束</th><th>方量(m³)</th><th>累積(m³)</th><th>預估高度(m)</th><th>實測高度(m)</th><th>差異(m)</th></tr></thead><tbody>${pouringRows}</tbody></table></section></div><section class="print-section pouring-chart-section"><h2>澆置高度曲線</h2>${pouringChartSvg(truckRows)}</section></div>${printFooter()}`;
+      </div></section><section class="print-section pouring-table-section"><h2>逐車混凝土澆置紀錄</h2><table class="print-table"><thead><tr><th>車次</th><th>車號</th><th>卸料</th><th>結束</th><th>方量(m³)</th><th>累積(m³)</th><th>預估高度(m)</th><th>實測高度(m)</th><th>差異(m)</th></tr></thead><tbody>${pouringRows}</tbody></table></section></div><section class="print-section pouring-chart-section"><h2>澆置高度曲線</h2>${pouringChartSvg(truckRows)}</section></div></div>${printFooter()}`;
 
   const guideWallRows = state.guideWall.checks.map((check, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(check.item)}</td><td class="text-left">${esc(check.standard)}</td><td class="text-left">${esc(guideCheckActual(check))}</td><td>${esc(check.result)}</td></tr>`).join("");
   $("#print-guide-wall").innerHTML = `${printHeader("導溝施工複核表", "07", state.overview.project, state.guideWall.unitNo || "未指定單元", { project: state.overview.project, contractor: state.overview.contractor, date: state.guideWall.date, reviewer: state.guideWall.reviewer })}
@@ -926,15 +944,20 @@ function setPdfDocumentTitle(scope) {
   window.addEventListener("afterprint", () => { document.title = previousTitle; }, { once: true });
 }
 
-async function exportPdf(scope) {
+async function preparePrint(scope) {
   renderPrint();
   document.body.dataset.printScope = scope;
   const requested = activeTool === "diaphragmWall" ? PRINT_TAB_GROUPS[activeTab] : PRINT_TAB_GROUPS[activeTool];
   const current = requested === "overview-wall" ? "quality" : requested;
   $$('.print-page').forEach(page => page.classList.toggle("print-selected", page.dataset.printTab === current));
-  $("#export-dialog").close();
   setPdfDocumentTitle(scope);
   await waitForPrintAssets();
+  paginatePrintReport();
+}
+
+async function exportPdf(scope) {
+  $("#export-dialog").close();
+  await preparePrint(scope);
   window.print();
 }
 
@@ -1086,9 +1109,9 @@ function safeFilePart(value, fallback) {
 }
 
 function exportFileName(extension) {
-  const recordId = safeFilePart(state.wall.unitNo || state.guideWall.unitNo || state.rebarCage.unitNo, "record");
+  const recordId = safeFilePart(state.wall.unitNo || state.guideWall.unitNo || state.rebarCage.unitNo, "");
   const date = safeFilePart(state.overview.date || today, today);
-  return `diaphragm-wall-${recordId}-${date}.${extension}`;
+  return `${["diaphragm-wall", recordId, date].filter(Boolean).join("-")}.${extension}`;
 }
 
 function downloadText(content, mimeType, filename) {
@@ -1579,4 +1602,5 @@ function initialize() {
 }
 
 Object.assign(state, draft.load() ?? {});
+if (exampleMode) loadExample();
 initialize();

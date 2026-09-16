@@ -10,7 +10,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Portable Inspection" />
-    <link rel="icon" href="./app-icon.png" type="image/png" />
+    <link rel="icon" href="./app-icon-144.png" type="image/png" sizes="144x144" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="stylesheet" href="./glass.css" />
     <link rel="stylesheet" href="./app.css" />
@@ -220,7 +221,7 @@
 
           <section class="tab-panel" id="panel-cage-rebar" role="tabpanel" aria-labelledby="tab-cage-rebar" hidden>
             <div class="panel-heading">
-              <div><span>01</span><h2 id="rebar-cage-rebar-heading">配筋抽查明細</h2></div>
+              <div><span>01</span><h2>配筋抽查明細</h2></div>
               <button class="add-button" id="add-rebar" type="button"><span aria-hidden="true">＋</span> 新增</button>
             </div>
             <div class="rebar-card-list" id="rebar-cage-rebar-list"></div>
@@ -228,7 +229,7 @@
 
           <section class="tab-panel" id="panel-cage-check" role="tabpanel" aria-labelledby="tab-cage-check" hidden>
             <div class="panel-heading">
-              <div><span>02</span><h2 id="rebar-cage-check-heading">組裝與吊放條件</h2></div>
+              <div><span>02</span><h2>組裝與吊放條件</h2></div>
               <p>吊放前逐項確認</p>
             </div>
             <div class="check-card-list" id="rebar-cage-check-list"></div>
@@ -252,7 +253,7 @@
       <div class="dialog-header"><div><span>HELP</span><h2>使用說明</h2></div><button type="button" data-close-dialog aria-label="關閉使用說明">×</button></div>
       <div class="dialog-body help-content">
         <section><h3>本表定位</h3><p>營造廠二級品管查驗表。逐車出土、泥漿池操作與澆置日誌屬分包商一級品管，以附件檢附。</p></section>
-        <section><h3>填寫與輸出</h3><p>先在「設計基準」填設計參數與標準值，再依成槽放行 → 吊放放行 → 澆置成品 → 監測結論逐點查驗；深度誤差、籠頂偏差、超方率與超打高度自動換算，超標即警示。資料不儲存，重整即清空；底部「檔案」輸出 PDF／JSON／Markdown。</p></section>
+        <section><h3>填寫與輸出</h3><p>先在「設計基準」填設計參數與標準值，再依成槽放行 → 吊放放行 → 澆置成品 → 監測結論逐點查驗；深度誤差、籠頂偏差、超方率與超打高度自動換算，超標即警示。草稿只暫存在這支手機的瀏覽器裡，不會上傳；重新整理會自動還原，「清空」會一併刪除暫存。底部「檔案」輸出 PDF／JSON／Markdown。輸出 PDF 時，請在瀏覽器的列印設定關閉「頁首及頁尾」，才不會印出網址、日期與頁碼。</p></section>
         <section class="help-examples"><h3>已填妥範例輸出</h3><div class="example-actions">
           <a class="example-button" href="./examples/diaphragm-wall-gc-example.pdf" target="_blank" rel="noopener"><span>查驗表</span></a>
           <a class="example-button" href="./examples/gc-guide-wall-example.pdf" target="_blank" rel="noopener"><span>導溝</span></a>
@@ -316,6 +317,8 @@
       <article class="print-page" data-print-tab="rebarCage" id="print-rebar-cage"></article>
     </section>
 
+    <script src="./draft.js" defer></script>
+    <script src="./print-pages.js" defer></script>
     <script src="./wall-gc.js" defer></script>
   </body>
 </html>

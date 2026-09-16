@@ -156,5 +156,4 @@
   .steel-print-table td { height: 6.5mm; padding: 1mm 1.2mm; }
   .steel-print-table th { padding: 1.1mm .9mm; }
   .steel-print-note { min-height: 14mm; padding: 1.8mm; border: .5pt solid #888; font-size: 7pt; white-space: pre-wrap; }
-  .steel-print-page { min-height: 190mm; }
 }

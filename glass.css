@@ -68,8 +68,13 @@
   --glass-font: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
   --glass-font-num: "M PLUS 1p", "Noto Sans TC", "PingFang TC", sans-serif;
 
-  /* ---- 輸入焦點：旋轉漸層環的底環色（光弧本體見下方 --glass-focus-ring）------------ */
+  /* ---- 輸入焦點：旋轉漸層環的底環色（光弧本體見下方 :focus 規則）------------------ */
   --glass-focus-base: oklch(40% 0.05 250 / 0.28);
+
+  /* ---- 橫向分頁列：膠囊間距與右側徽章尺寸（app.css／template.css 的 .tab-navigation
+     與下方的捲動提示共用，兩邊才會對齊）------------------------------------------ */
+  --glass-tab-gap: 6px;
+  --glass-tab-badge: 24px;
 }
 
 /* 沒有這段宣告，--glow-ang 只是字串、不會補間，環就不會轉。 */
@@ -81,11 +86,27 @@
 
 @keyframes glass-glow-spin { to { --glow-ang: 360deg; } }
 
-/* 光弧要宣告在欄位本身：var() 是在「宣告處」代入的，若放在 :root，--glow-ang 會被鎖成
-   :root 的 0deg，欄位上的旋轉動畫就帶不動它（環只會靜止不轉）。 */
-input, select, textarea {
-  --glass-focus-ring: conic-gradient(from var(--glow-ang, 0deg),
-    var(--glass-focus-base) 0 48%, #2dd4bf 62%, #8b5cf6 80%, #ec4899 94%, var(--glass-focus-base) 100%);
+/* ---- 輸入焦點：旋轉漸層環貼著欄位本身的圓角，無外暈；聚焦時底色轉白 ----------
+   欄位常駐 1px 透明邊框（見各頁 .field input 基礎規則），聚焦只換背景，不會位移。
+   光弧直接寫在這條規則裡：var() 是在「宣告處」代入的，若把漸層做成 :root token，
+   角度會被鎖成 :root 的 0deg，欄位上的旋轉動畫就帶不動它（環只會靜止不轉）。 */
+.field :is(input:not([type="radio"]), select, textarea):focus,
+.phase-editor select:focus, .quality-standard-field select:focus {
+  outline: none;
+  background:
+    linear-gradient(#fff, #fff) padding-box,
+    conic-gradient(from var(--glow-ang, 0deg),
+      var(--glass-focus-base) 0 48%, #2dd4bf 62%, #8b5cf6 80%, #ec4899 94%, var(--glass-focus-base) 100%) border-box;
+  animation: glass-glow-spin 2.6s linear infinite;
+}
+
+/* 系統要求減少動態效果：環不轉，光弧固定停在右上。 */
+@media (prefers-reduced-motion: reduce) {
+  .field :is(input:not([type="radio"]), select, textarea):focus,
+  .phase-editor select:focus, .quality-standard-field select:focus {
+    --glow-ang: 300deg;
+    animation: none;
+  }
 }
 
 /* ---- 頁面背景漸層：固定在視窗上、不隨內容捲動（fixed 偽元素比 background-attachment
@@ -193,9 +214,9 @@ input, select, textarea {
   z-index: 1;
   flex: none;
   align-self: flex-start;
-  width: 24px;
-  height: 24px;
-  margin: 7px 0 0 calc(-24px - 6px); /* 24px 寬度 + 6px 的 flex gap，淨佔位 0；7px 讓它在 38px 膠囊中線 */
+  width: var(--glass-tab-badge);
+  height: var(--glass-tab-badge);
+  margin: 7px 0 0 calc(-1 * var(--glass-tab-badge) - var(--glass-tab-gap)); /* 徽章寬度 + flex gap，淨佔位 0；7px 讓它在 38px 膠囊中線 */
   border-radius: 999px;
   background:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233a332c' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 6l6 6-6 6'/%3E%3C/svg%3E") center / 14px 14px no-repeat,
@@ -208,12 +229,9 @@ input, select, textarea {
   .tab-navigation {
     /* 第一層：兩側淡出（最外 30% 完全透明，避免邊緣殘影）；
        第二層：在徽章位置開圓洞讓徽章不被淡出——以 content-box 定位，才會和 sticky 徽章落在同一點 */
-    -webkit-mask:
-      linear-gradient(90deg, transparent calc(var(--glass-tab-fade-l) * 0.3), #000 var(--glass-tab-fade-l), #000 calc(100% - var(--glass-tab-fade-r)), transparent calc(100% - var(--glass-tab-fade-r) * 0.3)),
-      radial-gradient(circle closest-side, #000 98%, transparent) right 0 top 7px / 24px 24px no-repeat content-box border-box;
     mask:
       linear-gradient(90deg, transparent calc(var(--glass-tab-fade-l) * 0.3), #000 var(--glass-tab-fade-l), #000 calc(100% - var(--glass-tab-fade-r)), transparent calc(100% - var(--glass-tab-fade-r) * 0.3)),
-      radial-gradient(circle closest-side, #000 98%, transparent) right 0 top 7px / 24px 24px no-repeat content-box border-box;
+      radial-gradient(circle closest-side, #000 98%, transparent) right 0 top 7px / var(--glass-tab-badge) var(--glass-tab-badge) no-repeat content-box border-box;
     animation: glass-tabs-fade-left linear both, glass-tabs-fade-right linear both;
     animation-timeline: scroll(self inline);
   }
@@ -222,3 +240,6 @@ input, select, textarea {
 @keyframes glass-tabs-fade-left { 0%, 4% { --glass-tab-fade-l: 0px; } 12%, 100% { --glass-tab-fade-l: 48px; } }
 @keyframes glass-tabs-fade-right { 0%, 88% { --glass-tab-fade-r: 48px; } 96%, 100% { --glass-tab-fade-r: 0px; } }
 @keyframes glass-tabs-badge { 0%, 88% { opacity: 1; } 96%, 100% { opacity: 0; } }
+
+/* 列印分頁器（print-pages.js）用來確認列印樣式已生效的旗標 */
+@media print { body { --print-active: 1; } }

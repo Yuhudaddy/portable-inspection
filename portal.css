@@ -116,8 +116,8 @@ h1 {
   box-shadow:
     var(--glass-hairline),
     0 1px 2px rgba(60, 50, 30, 0.05),
-    0 0 0 1.5px oklch(40% 0.05 250 / 0.08),
-    0 12px 36px oklch(40% 0.05 250 / 0.18);
+    0 0 0 1.5px color-mix(in oklch, var(--glass-accent) 8%, transparent),
+    0 12px 36px color-mix(in oklch, var(--glass-accent) 18%, transparent);
 }
 
 /* 點擊：一圈邊框從卡片邊緣往外擴散後淡出（portal.js 在按下時掛上 .is-waving 觸發）。
@@ -139,11 +139,6 @@ h1 {
 @keyframes portal-shock-out {
   from { transform: scale(1); opacity: 0.9; }
   to { transform: scale(1.12); opacity: 0; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .tool-card { transition: none; }
-  .tool-card-active.is-waving::after { animation: none; }
 }
 
 .tool-card-coming {

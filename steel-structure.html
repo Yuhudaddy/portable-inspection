@@ -10,7 +10,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Portable Inspection" />
-    <link rel="icon" href="./app-icon.png" type="image/png" />
+    <link rel="icon" href="./app-icon-144.png" type="image/png" sizes="144x144" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="stylesheet" href="./glass.css" />
     <link rel="stylesheet" href="./app.css" />
     <link rel="stylesheet" href="./steel.css" />
@@ -192,7 +194,7 @@
       <div class="dialog-body help-content">
         <section><h3>營造廠複核方式</h3><p>依工程概要、構件進場、基礎螺栓／柱腳、吊裝／臨時固定、高強度螺栓、現場銲接及安裝精度分頁填寫。每個檢查項目只需記錄現場關鍵值、文件編號或抽查結果，再選擇複核結果。</p></section>
         <section><h3>哪些資料由廠商保存</h3><p>逐支螺栓扭力、銲接電流／電壓、焊材烘乾及完整量測原始資料，應由專業廠商依其自主檢查表保存；營造廠在本工具確認文件存在、抽查結果及缺失是否閉合。</p></section>
-        <section><h3>輸出</h3><p>本工具不儲存或同步資料。完成後請由底部「輸出」產生目前分頁、完整複核紀錄或 JSON；PDF 可直接列印或分享，JSON 適合後續資料庫匯入。</p></section>
+        <section><h3>輸出</h3><p>本工具只把草稿暫存在這支手機的瀏覽器裡，不會上傳或同步；「清空」會一併刪除暫存。完成後請由底部「輸出」產生目前分頁、完整複核紀錄或 JSON；PDF 可直接列印或分享，JSON 適合後續資料庫匯入。輸出 PDF 時，請在瀏覽器的列印設定關閉「頁首及頁尾」，才不會印出網址、日期與頁碼。</p></section>
         <section class="help-examples"><h3>已填妥範例</h3><p>先查看完整 PDF，再用預填頁面查看各分頁內容；範例資料不會保存。</p><div class="example-actions"><a class="example-button" href="./examples/steel-structure-example.pdf" target="_blank" rel="noopener"><span>完整範例 PDF</span><small>含 7 種輸出版型</small></a><a class="example-button" href="./steel-structure.html?example=1&amp;tab=overview" target="_blank" rel="noopener"><span>工程概要</span><small>開啟互動範例</small></a><a class="example-button" href="./steel-structure.html?example=1&amp;tab=delivery" target="_blank" rel="noopener"><span>構件進場</span><small>開啟互動範例</small></a><a class="example-button" href="./steel-structure.html?example=1&amp;tab=anchor" target="_blank" rel="noopener"><span>基礎螺栓／柱腳</span><small>開啟互動範例</small></a><a class="example-button" href="./steel-structure.html?example=1&amp;tab=erection" target="_blank" rel="noopener"><span>吊裝／臨時固定</span><small>開啟互動範例</small></a><a class="example-button" href="./steel-structure.html?example=1&amp;tab=hsb" target="_blank" rel="noopener"><span>高強度螺栓</span><small>開啟互動範例</small></a><a class="example-button" href="./steel-structure.html?example=1&amp;tab=welding" target="_blank" rel="noopener"><span>現場銲接</span><small>開啟互動範例</small></a><a class="example-button" href="./steel-structure.html?example=1&amp;tab=accuracy" target="_blank" rel="noopener"><span>安裝精度</span><small>開啟互動範例</small></a></div></section>
       </div>
     </dialog>
@@ -251,6 +253,8 @@
       <article class="print-page" data-print-tab="optional" id="print-optional"></article>
     </section>
 
+    <script src="./draft.js" defer></script>
+    <script src="./print-pages.js" defer></script>
     <script src="./steel.js" defer></script>
   </body>
 </html>

@@ -86,6 +86,7 @@ const esc = value => String(value ?? "")
   .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
   .replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 const display = value => String(value ?? "").trim() || "—";
+const printText = value => String(value ?? "").trim(); // PDF 用：未填就留白，不印「—」
 
 // 三段式結果膠囊：以隱藏 radio + 相鄰 span 呈現（沿用既有 .unit-type 手法）。
 // 未勾選任一段＝原本下拉選單的「待確認」狀態；點選其一會如同 <select> 觸發 change，
@@ -230,6 +231,7 @@ function removeDelivery(index) {
 }
 
 function printHeader(title, sequence, identity = "尚未指定構件") {
+  const display = printText;
   const project = state.overview;
   const id = identity || "尚未指定構件";
   return `<header class="print-document-header"><div class="print-header-title"><p>STEEL STRUCTURE FIELD REVIEW / ${sequence}</p><h1>${esc(title)}</h1></div><div class="print-header-meta-body"><div class="print-header-project-lines"><div><span>工程名稱：</span><strong>${esc(display(project.project))}</strong></div><div><span>施工日期：</span><strong>${esc(display(project.date))}</strong></div><div><span>施工廠商：</span><strong>${esc(display(project.contractor))}</strong></div><div><span>填表人：</span><strong>${esc(display(project.reviewer))}</strong></div></div></div><div class="print-header-logo-wrap"><img class="print-logo" src="./taisei.png" alt="大成建設標誌" /><strong class="print-header-identity">${esc(id)}</strong></div></header>`;
@@ -240,15 +242,18 @@ function printFooter() {
 }
 
 function printMeta(fields) {
+  const display = printText;
   return `<div class="steel-print-meta">${fields.map(([label, value]) => `<div><span>${esc(label)}</span><strong>${esc(display(value))}</strong></div>`).join("")}</div>`;
 }
 
 function printChecks(group) {
+  const display = printText;
   const rows = state[group].checks.map((check, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(check.item)}</td><td class="text-left">${esc(check.standard)}</td><td class="text-left">${esc(display(check.actual))}</td><td>${esc(check.result)}</td></tr>`).join("");
   return `<table class="print-table steel-print-table"><thead><tr><th>項次</th><th>檢查項目</th><th>判定標準</th><th>現場紀錄／文件編號</th><th>結果</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
 function renderPrint() {
+  const display = printText;
   const id = state.accuracy.memberNo || state.anchor.location || state.hsb.location || state.welding.location || "尚未指定構件";
   $("#print-overview").innerHTML = `${printHeader("鋼構施工複核表", "01", id)}<section class="print-section"><h2>工程概要</h2>${printMeta([["工程名稱", state.overview.project], ["施工廠商", state.overview.contractor], ["施工日期", state.overview.date], ["填表人", state.overview.reviewer]])}</section><section class="print-section"><h2>營造廠複核範圍</h2><div class="steel-print-note">確認設計、進場、安裝、關鍵檢測證據與放行條件；專業廠商的逐支螺栓及逐道銲接製程紀錄，請以文件編號或抽查結果確認。</div></section>${printFooter()}`;
 
@@ -309,12 +314,17 @@ function setPdfDocumentTitle(scope) {
   window.addEventListener("afterprint", () => { document.title = previousTitle; }, { once: true });
 }
 
-function exportPdf(scope) {
+function preparePrint(scope) {
   renderPrint();
   document.body.dataset.printScope = scope;
   $$('.print-page').forEach(page => page.classList.toggle("print-selected", page.dataset.printTab === activeTab));
-  $("#export-dialog").close();
   setPdfDocumentTitle(scope);
+  paginatePrintReport();
+}
+
+function exportPdf(scope) {
+  $("#export-dialog").close();
+  preparePrint(scope);
   window.print();
 }
 
@@ -414,6 +424,7 @@ function initialize() {
 
   window.addEventListener("afterprint", () => { document.body.dataset.printScope = "none"; });
   if (TABS[query.get("tab")]) showTab(query.get("tab"));
+  if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./sw.js").catch(() => {});
 }
 
 Object.assign(state, draft.load() ?? {});

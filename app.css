@@ -976,6 +976,13 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .print-page[data-print-tab="overview-wall"] { display: none !important; }
   .print-page[data-print-tab="pouring"] { page: pouring-landscape; min-height: 190mm; }
   .print-page:last-child { break-after: auto; }
+  /* ---- 列印分頁器（print-pages.js）需要的固定尺寸 ---- */
+  .print-page { width: 190mm; }
+  .print-page[data-print-orientation="landscape"] { width: 277mm; }
+  .print-page > * { flex: 0 0 auto; }
+  body[data-print-scope] .print-page[data-measuring] { min-height: 0 !important; height: auto !important; overflow: visible !important; }
+  body[data-print-scope] .print-page[data-paginated] { height: 277mm; min-height: 0; overflow: hidden; }
+  body[data-print-scope] .print-page[data-paginated][data-print-orientation="landscape"] { height: 190mm; }
   body[data-print-scope="all"] .print-page,
   body[data-print-scope="current"] .print-page.print-selected { position: relative; display: flex; flex-direction: column; min-height: 277mm; padding-bottom: 0; }
   body[data-print-scope="all"] .print-page[data-print-tab="pouring"],
@@ -1005,9 +1012,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .print-header-logo-wrap { min-width: 0; display: flex; flex-direction: column; align-items: center; justify-self: end; align-self: center; transform: translateY(1.5mm); }
   .print-header-identity { display: block; margin-top: 1mm; color: #555; font-size: 6.5pt; text-align: center; white-space: nowrap; }
   .print-logo { flex: 0 0 10mm; width: 10mm; height: 10mm; object-fit: contain; filter: grayscale(1); }
-  @media print and (orientation: landscape) {
-    .print-document-header { grid-template-columns: 95mm 90mm minmax(18mm, 1fr); }
-  }
+  .print-page[data-print-orientation="landscape"] .print-document-header { grid-template-columns: 95mm 90mm minmax(18mm, 1fr); }
   .print-header-meta strong { font-size: 8.5pt; text-align: right; }
   .print-meta-grid { display: grid; grid-template-columns: repeat(2, 1fr); margin-top: 4mm; border: 0.5pt solid #888; }
   .print-meta-grid.three { grid-template-columns: repeat(3, 1fr); }
@@ -1046,7 +1051,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .print-signature-grid > div > span:first-child { display: flex; align-items: center; justify-content: center; border-bottom: 0.5pt solid #777; font-weight: 600; }
   .print-signature-grid > div > span:last-child { display: block; }
   .print-page { break-inside: auto; }
-  .print-section, .print-table tr, .print-footer { break-inside: avoid; }
+  .print-table tr, .print-footer { break-inside: avoid; }
   .pouring-wall-full { width: 100%; }
   .pouring-wall-full .print-meta-grid.three { grid-template-columns: repeat(9, minmax(0, 1fr)); }
   .pouring-wall-full .print-meta-grid > div { min-height: 8mm; padding: .8mm .8mm; }

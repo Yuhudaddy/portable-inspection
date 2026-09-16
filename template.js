@@ -113,8 +113,9 @@ const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
 const esc = value => String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 const display = value => String(value ?? "").trim() || "—";
+const printText = value => String(value ?? "").trim(); // PDF 用：未填就留白，不印「—」
 const num = value => { const n = Number.parseFloat(value); return Number.isFinite(n) ? n : null; };
-const fixed = value => Number.isFinite(value) ? value.toFixed(1) : "—";
+const fixed = value => Number.isFinite(value) ? value.toFixed(1) : "";
 const formatDate = value => { const [y, m, d] = String(value ?? "").split("-"); return y && m && d ? `${y}/${m}/${d}` : ""; };
 
 // 三段式結果膠囊：以隱藏 radio + 相鄰 span 呈現（沿用既有 .unit-type 手法）。
@@ -322,6 +323,7 @@ function markdownExport() {
 }
 
 function printHeader(title, sequence) {
+  const display = printText;
   const member = activeMember();
   const identity = [state.overview.floor, member?.type, member?.id].filter(Boolean).join("｜") || "未指定構件";
   return `<header class="print-document-header"><div class="print-header-title"><p>RC FORMWORK / FIELD REVIEW / ${sequence}</p><h1>${esc(title)}</h1></div><div class="print-header-meta-body"><div class="print-header-project-lines">
@@ -333,7 +335,7 @@ function printHeader(title, sequence) {
 }
 
 function printFooter() { return `<footer class="print-footer"><div class="print-signature-grid" aria-label="簽名欄"><div><span>所長</span><span aria-hidden="true"></span></div><div><span>副所長</span><span aria-hidden="true"></span></div><div><span>擔當者</span><span aria-hidden="true"></span></div></div></footer>`; }
-function printValue(value) { return esc(display(value)); }
+function printValue(value) { return esc(printText(value)); }
 
 function renderPrint() {
   const overviewMeta = [["工程名稱", state.overview.project], ["施工廠商", state.overview.contractor], ["施工日期", state.overview.date], ["檢查日期", state.overview.inspectionDate], ["填表人", state.overview.reviewer], ["檢查樓層", state.overview.floor], ["施工區域／軸線", state.overview.area], ["施工圖／版次", state.overview.drawing], ["檢查階段", state.overview.stage]];
@@ -347,7 +349,7 @@ function renderPrint() {
     return checks.map((check, index) => { const record = member.checks[check[0]]; return `<tr><td>${memberIndex + 1}.${index + 1}</td><td class="text-left">${printValue(member.type)}｜${printValue(member.id)}</td><td class="text-left">${printValue(check[1])}</td><td class="text-left">${printValue(check[2])}</td><td class="text-left">${printValue(record?.actual)}</td><td>${printValue(record?.result)}</td></tr>`; });
   }).join("");
   const measureRows = state.members.flatMap((member, memberIndex) => (TYPE_MEASURES[member.type] || TYPE_MEASURES.其他).map(id => {
-    const rec = member.measures[id] || { design: "", actual: "" }; const tolerance = toleranceFor(member, id, rec.design); const diff = num(rec.design) !== null && num(rec.actual) !== null ? num(rec.actual) - num(rec.design) : null; const result = diff === null ? "待量測" : diff >= tolerance.lower && diff <= tolerance.upper ? "合格" : "不合格"; return `<tr><td>${memberIndex + 1}</td><td class="text-left">${printValue(member.type)}｜${printValue(member.id)}</td><td class="text-left">${MEASURE_LABELS[id][0]}</td><td>${printValue(rec.design)}</td><td>${printValue(rec.actual)}</td><td>${diff === null ? "—" : fixed(diff)}</td><td>${tolerance.label}</td><td>${result}</td></tr>`;
+    const rec = member.measures[id] || { design: "", actual: "" }; const tolerance = toleranceFor(member, id, rec.design); const diff = num(rec.design) !== null && num(rec.actual) !== null ? num(rec.actual) - num(rec.design) : null; const result = diff === null ? "待量測" : diff >= tolerance.lower && diff <= tolerance.upper ? "合格" : "不合格"; return `<tr><td>${memberIndex + 1}</td><td class="text-left">${printValue(member.type)}｜${printValue(member.id)}</td><td class="text-left">${MEASURE_LABELS[id][0]}</td><td>${printValue(rec.design)}</td><td>${printValue(rec.actual)}</td><td>${diff === null ? "" : fixed(diff)}</td><td>${tolerance.label}</td><td>${result}</td></tr>`;
   })).join("");
   $("#print-template-checks").innerHTML = `${printHeader("模板安裝與尺寸複核", "03–04")}
     <section class="print-section"><h2>03｜模板安裝複核</h2><table class="print-table"><thead><tr><th>構件</th><th>類型／編號</th><th>複核項目</th><th>判定標準</th><th>現場紀錄／實測</th><th>結果</th></tr></thead><tbody>${installRows || `<tr><td colspan="6">尚無構件資料</td></tr>`}</tbody></table></section>
@@ -359,19 +361,28 @@ function renderPrint() {
     <section class="print-section"><h2>放行判定</h2><div class="print-summary"><div><span>澆置判定</span><strong>${printValue(state.release.decision)}</strong></div><div><span>混凝土澆置日期</span><strong>${printValue(state.release.pourDate)}</strong></div><div><span>拆模日期</span><strong>${printValue(state.release.stripDate)}</strong></div><div><span>拆模時間條件</span><strong>${printValue(state.release.stripCondition)}</strong></div></div><div class="print-note">放行備註：${printValue(state.release.decisionNote)}\n\n再撐／回撐：${printValue(state.release.reshoring)}\n拆模後外觀及缺失：${printValue(state.release.postNote)}</div></section>${printFooter()}`;
 }
 
-function exportPdf(scope) {
-  renderPrint();
-  document.body.dataset.printScope = scope;
-  const page = activeTab === "overview" || activeTab === "members" ? "overview" : activeTab === "install" || activeTab === "measure" ? "checks" : "release";
-  $$(".print-page").forEach(item => item.classList.toggle("print-selected", item.dataset.printPage === page));
-  $("#export-dialog").close();
+function setPdfDocumentTitle(scope) {
   const member = activeMember();
-  const parts = ["模板工程複核表", member?.id || member?.type, scope === "all" ? "完整檢核紀錄" : TAB_LABELS[activeTab], state.overview.date || today]
+  const parts = ["模板工程複核表", member?.id, scope === "all" ? "完整檢核紀錄" : TAB_LABELS[activeTab], state.overview.date || today]
     .filter(Boolean)
     .map(value => String(value).trim().replace(/[\\/:*?"<>|\s]+/g, "-").replace(/-+/g, "-"));
   const previousTitle = document.title;
   document.title = parts.join("_");
   window.addEventListener("afterprint", () => { document.title = previousTitle; }, { once: true });
+}
+
+function preparePrint(scope) {
+  renderPrint();
+  document.body.dataset.printScope = scope;
+  const page = activeTab === "overview" || activeTab === "members" ? "overview" : activeTab === "install" || activeTab === "measure" ? "checks" : "release";
+  $$(".print-page").forEach(item => item.classList.toggle("print-selected", item.dataset.printPage === page));
+  setPdfDocumentTitle(scope);
+  paginatePrintReport();
+}
+
+function exportPdf(scope) {
+  $("#export-dialog").close();
+  preparePrint(scope);
   window.print();
 }
 
@@ -438,3 +449,5 @@ Object.assign(state, draft.load() ?? {});
 if (query.get("example") === "1") loadExample();
 renderAll();
 setTab(TAB_LABELS[query.get("tab")] ? query.get("tab") : "overview");
+
+if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./sw.js").catch(() => {});

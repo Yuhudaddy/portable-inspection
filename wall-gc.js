@@ -143,10 +143,11 @@ const number = value => {
   const parsed = Number.parseFloat(value);
   return Number.isFinite(parsed) ? parsed : null;
 };
-const fixed = value => Number.isFinite(value) ? value.toFixed(2) : "—";
-const signed = value => Number.isFinite(value) ? `${value >= 0 ? "+" : ""}${value.toFixed(2)}` : "—";
+const fixed = value => Number.isFinite(value) ? value.toFixed(2) : "";
+const signed = value => Number.isFinite(value) ? `${value >= 0 ? "+" : ""}${value.toFixed(2)}` : "";
 const display = value => String(value ?? "").trim() || "—";
-const guideCheckActual = check => [display(check.actual) === "—" ? "" : display(check.actual), check.barNo ? `號數 ${check.barNo}` : "", check.barSpacing ? `間距 ${check.barSpacing} cm` : ""].filter(Boolean).join("；") || "—";
+const printText = value => String(value ?? "").trim(); // PDF 用：未填就留白，不印「—」
+const guideCheckActual = check => [display(check.actual) === "—" ? "" : display(check.actual), check.barNo ? `號數 ${check.barNo}` : "", check.barSpacing ? `間距 ${check.barSpacing} cm` : ""].filter(Boolean).join("；") || "";
 const esc = value => String(value ?? "")
   .replaceAll("&", "&amp;")
   .replaceAll("<", "&lt;")
@@ -516,7 +517,8 @@ const state = {
 };
 
 // 本機草稿（共用 draft.js）：啟動時還原、輸入時去抖寫入、「清空」時刪除。
-const draft = createDraftStore("project-portal.diaphragmWallGc.draft", () => state);
+const exampleMode = new URLSearchParams(location.search).get("example") === "1";
+const draft = createDraftStore("project-portal.diaphragmWallGc.draft", () => state, { enabled: !exampleMode });
 
 let activeTab = "overview";
 let activeTool = "inspection";
@@ -786,6 +788,15 @@ function renderAll() {
   renderAttachmentNote();
 }
 
+function loadExample() {
+  state.overview = { project: "Example Construction Project — North Lot", contractor: "○○營造股份有限公司", date: "2026-08-11", reviewer: "Site Engineer", manager: "QA Manager" };
+  Object.assign(state.unit, { unitType: "公母單元", unitNo: "21", sequenceNo: "03", slurryType: "皂土系", guideTopElevation: "0.15", strength: "350", thickness: "1.00", length: "2.80", designDepth: "-35.80", topElevation: "-0.50", designVolume: "98.84" });
+  state.holds = Object.fromEntries(HOLD_POINTS.map((hold, holdIndex) => [hold.id, hold.items.map((definition, index) => ({ actual: holdIndex === 2 && index === 8 ? "107.46 m³；超方約 8.72%" : holdIndex === 0 && index === 0 ? "12 mm" : holdIndex === 2 && index === 0 ? "17.5 cm" : "已確認", result: "符合" }))]));
+  state.conclusion = { verdict: "合格放行", note: "各停檢點均完成查驗，相關專業分包商紀錄列入附件保存。" };
+  state.guideWall = { date: "2026-08-10", unitNo: "21", note: "中心線偏差 1.6 cm；導溝施工條件符合。", checks: GUIDE_WALL_CHECKS.map(([item, standard], index) => ({ item, standard, actual: index === 0 ? "中心線偏差 1.6 cm" : "已確認", barNo: index === 5 ? "D16" : "", barSpacing: index === 5 ? "19.5" : "", result: "符合" })) };
+  state.rebarCage = { date: "2026-08-10", unitNo: "21", cageNo: "C21-U／C21-L", drawingNo: "S-21 Rev.C", note: "配筋圖逐項核對；吊放條件完成。", rebars: REBAR_CAGE_PARTS.map((part, index) => ({ part, designNo: index < 2 ? "D32" : "D16", designQty: index < 2 ? "32支" : "@20 cm", actualNo: index < 2 ? "D32" : "D16", actualQty: index < 2 ? "32支" : "@20 cm", result: "符合" })), checks: REBAR_CAGE_CHECKS.map(([item, standard], index) => ({ item, standard, actual: index === 7 ? "3 組成對安裝；線路已保護至孔口" : "已確認", result: "符合" })) };
+}
+
 function clearAllData() {
   draft.clear();
   state.overview = { project: "", contractor: "", date: "", reviewer: "", manager: "" };
@@ -852,6 +863,7 @@ function removeRebar(index) {
 }
 
 function printHeader(title, sequence, project = state.overview.project, recordIdentity = null, overviewData = state.overview, labels = {}) {
+  const display = printText;
   const identity = recordIdentity || [state.unit.unitType, state.unit.unitNo].filter(Boolean).join("｜") || "未指定單元";
   const headerData = overviewData || {};
   const dateLabel = labels.date || "查驗日期";
@@ -870,6 +882,7 @@ function printFooter() {
 
 // 設計基準以 9 欄橫向長條呈現，讓兩張查驗表都能在頁首保留完整識別資料。
 function printUnitInfo() {
+  const display = printText;
   const height = designHeight();
   const designVolume = calculatedDesignVolume();
   const topElevation = number(state.unit.topElevation);
@@ -879,15 +892,16 @@ function printUnitInfo() {
     <div><span>樁／壁編號</span><strong>${esc(display(state.unit.unitNo))}</strong></div>
     <div><span>順序編號</span><strong>${esc(display(state.unit.sequenceNo))}</strong></div>
     <div><span>穩定液種類</span><strong>${esc(display(state.unit.slurryType))}</strong></div>
-    <div><span>導溝頂基準(GL,m)</span><strong>${guideTop === null ? "—" : `GL ${signed(guideTop)}`}</strong></div>
+    <div><span>導溝頂基準(GL,m)</span><strong>${guideTop === null ? "" : `GL ${signed(guideTop)}`}</strong></div>
     <div><span>設計壁厚／長度(m)</span><strong>${esc(display(state.unit.thickness))} ／ ${esc(display(state.unit.length))}</strong></div>
     <div><span>設計深度(GL,m)</span><strong>GL ${esc(display(state.unit.designDepth))}</strong></div>
-    <div><span>壁頂設計高程(GL,m)</span><strong>${topElevation === null ? "—" : `GL ${signed(topElevation)}`}</strong></div>
-    <div><span>設計強度／數量</span><strong>${esc(display(state.unit.strength))} ／ ${designVolume === null ? "—" : fixed(designVolume)} m³</strong></div>
+    <div><span>壁頂設計高程(GL,m)</span><strong>${topElevation === null ? "" : `GL ${signed(topElevation)}`}</strong></div>
+    <div><span>設計強度／數量</span><strong>${esc(display(state.unit.strength))} ／ ${designVolume === null ? "" : fixed(designVolume)} m³</strong></div>
   </div></section><p class="pouring-chart-note">設計澆置高度 ${fixed(height)} m＝壁頂設計高程與設計深度之差；設計數量＝設計澆置高度 × 設計壁厚 × 單元長度。</p></div>`;
 }
 
 function printHoldSection(holdId) {
+  const display = printText;
   const hold = HOLD_BY_ID[holdId];
   const rows = hold.items.map((definition, index) => {
     const record = state.holds[holdId][index];
@@ -907,6 +921,7 @@ function printHoldSection(holdId) {
 }
 
 function printConclusion() {
+  const display = printText;
   const verdicts = ["合格放行", "限期改善後複驗", "異常追蹤處理"];
   const marks = verdicts.map(value => `${state.conclusion.verdict === value ? "■" : "□"} ${value}`).join("　　");
   return `<section class="print-section compact-print-section"><h2>查驗結論與簽認</h2><div class="print-meta-grid three compact-meta">
@@ -919,6 +934,7 @@ function printConclusion() {
 }
 
 function renderPrint() {
+  const display = printText;
   $("#print-inspection-a").innerHTML = `${printHeader("連續壁營造廠查驗表", "01")}
     ${printUnitInfo()}
     ${printHoldSection("hold1")}
@@ -934,7 +950,7 @@ function renderPrint() {
   $("#print-guide-wall").innerHTML = `${printHeader("導溝施工複核表", "03", state.overview.project, state.guideWall.unitNo || "未指定單元", { project: state.overview.project, contractor: state.overview.contractor, date: state.guideWall.date, reviewer: state.overview.reviewer }, { date: "複核日期", reviewer: "營造廠複核人" })}
     <section class="print-section"><h2>導溝資料</h2><div class="print-meta-grid three">
       <div><span>單元編號</span><strong>${esc(display(state.guideWall.unitNo))}</strong></div>
-      <div><span>導溝頂基準高程</span><strong>${number(state.unit.guideTopElevation) === null ? "—" : `GL ${signed(number(state.unit.guideTopElevation))} m`}</strong></div>
+      <div><span>導溝頂基準高程</span><strong>${number(state.unit.guideTopElevation) === null ? "" : `GL ${signed(number(state.unit.guideTopElevation))} m`}</strong></div>
       <div><span>複核意見</span><strong>${esc(display(state.guideWall.note))}</strong></div>
     </div></section>
     <section class="print-section"><h2>導溝複核項目</h2><table class="print-table checklist-print-table"><thead><tr><th>項次</th><th>複核項目</th><th>確認基準</th><th>現場紀錄／實測</th><th>結果</th></tr></thead><tbody>${guideWallRows}</tbody></table></section>${printFooter()}`;
@@ -977,14 +993,19 @@ function setPdfDocumentTitle(scope) {
   window.addEventListener("afterprint", () => { document.title = previousTitle; }, { once: true });
 }
 
-async function exportPdf(scope) {
+async function preparePrint(scope) {
   renderPrint();
   document.body.dataset.printScope = scope;
   const current = activeTool === "inspection" ? PRINT_TAB_GROUPS[activeTab] : PRINT_TAB_GROUPS[activeTool];
   $$('.print-page').forEach(page => page.classList.toggle("print-selected", page.dataset.printTab === current));
-  $("#export-dialog").close();
   setPdfDocumentTitle(scope);
   await waitForPrintAssets();
+  paginatePrintReport();
+}
+
+async function exportPdf(scope) {
+  $("#export-dialog").close();
+  await preparePrint(scope);
   window.print();
 }
 
@@ -1112,9 +1133,9 @@ function safeFilePart(value, fallback) {
 }
 
 function exportFileName(extension) {
-  const recordId = safeFilePart(state.unit.unitNo || state.guideWall.unitNo || state.rebarCage.unitNo, "record");
+  const recordId = safeFilePart(state.unit.unitNo || state.guideWall.unitNo || state.rebarCage.unitNo, "");
   const date = safeFilePart(state.overview.date || today, today);
-  return `diaphragm-wall-gc-${recordId}-${date}.${extension}`;
+  return `${["diaphragm-wall-gc", recordId, date].filter(Boolean).join("-")}.${extension}`;
 }
 
 function downloadText(content, mimeType, filename) {
@@ -1560,4 +1581,5 @@ function initialize() {
 }
 
 Object.assign(state, draft.load() ?? {});
+if (exampleMode) loadExample();
 initialize();

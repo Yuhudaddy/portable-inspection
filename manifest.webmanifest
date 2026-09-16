@@ -1,6 +1,6 @@
 {
-  "name": "Project Portal",
-  "short_name": "Project Portal",
+  "name": "Portable Inspection",
+  "short_name": "Portable Inspection",
   "description": "A local field record entry prototype.",
   "start_url": "./index.html",
   "scope": "./",

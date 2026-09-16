@@ -965,13 +965,13 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .print-page { width: 190mm; }
   .print-page > * { flex: 0 0 auto; }
   body[data-print-scope] .print-page[data-measuring] { min-height: 0 !important; height: auto !important; overflow: visible !important; }
-  body[data-print-scope] .print-page[data-paginated] { height: 277mm; min-height: 0; overflow: hidden; }
+  body[data-print-scope] .print-page[data-paginated] { height: var(--print-page-height, 277mm); min-height: 0; overflow: hidden; }
   body[data-print-scope="all"] .print-page,
-  body[data-print-scope="current"] .print-page.print-selected { position: relative; display: flex; flex-direction: column; min-height: 277mm; padding-bottom: 0; }
-  /* ---- 橫向配置印在直向紙上：內容盒維持 277×190mm，逆時針轉 90° 放進 190×277mm 的頁面，
-     內容頂邊靠紙的左側（裝訂邊），把紙順時針轉 90° 就是原本的橫向版面；簽名欄落在橫向的右下角。
-     量測時（data-measuring）不旋轉、高度放開，分頁器量到的才是真實內容高度。 ---- */
-  .print-rotated { display: flex; flex-direction: column; width: 277mm; height: 190mm; transform: rotate(-90deg) translateX(-277mm); transform-origin: top left; }
+  body[data-print-scope="current"] .print-page.print-selected { position: relative; display: flex; flex-direction: column; min-height: var(--print-page-height, 277mm); padding-bottom: 0; }
+  /* ---- 橫向配置印在直向紙上：內容盒維持「可用頁高 × 190mm」的橫向配置（Chrome 277mm、iOS 263mm），
+     逆時針轉 90° 放進直向頁面，內容頂邊靠紙的左側（裝訂邊），把紙順時針轉 90° 就是原本的橫向版面；
+     簽名欄落在橫向的右下角。量測時（data-measuring）不旋轉、高度放開，分頁器量到的才是真實內容高度。 ---- */
+  .print-rotated { display: flex; flex-direction: column; width: var(--print-page-height, 277mm); height: 190mm; transform: rotate(-90deg) translateX(calc(-1 * var(--print-page-height, 277mm))); transform-origin: top left; }
   .print-rotated > * { flex: 0 0 auto; }
   body[data-print-scope] .print-page[data-measuring] .print-rotated { height: auto; transform: none; }
   .print-document-header {

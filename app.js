@@ -917,14 +917,6 @@ function renderPrint() {
     <section class="print-section compact-print-section"><h2>組裝與吊放條件</h2><table class="print-table rebar-cage-check-print-table"><thead><tr><th>項次</th><th>複核項目</th><th>確認基準</th><th>現場紀錄／實測</th><th>結果</th></tr></thead><tbody>${rebarCageRows}</tbody></table></section>${printFooter()}`;
 }
 
-function waitForPrintAssets() {
-  const images = $$(".print-report img");
-  return Promise.all(images.map(image => image.complete ? Promise.resolve() : new Promise(resolve => {
-    image.addEventListener("load", resolve, { once: true });
-    image.addEventListener("error", resolve, { once: true });
-  })));
-}
-
 function setPdfDocumentTitle(scope) {
   const toolName = TOOL_LABELS[activeTool] || "施工檢核紀錄";
   const recordId = activeTool === "diaphragmWall"
@@ -942,20 +934,20 @@ function setPdfDocumentTitle(scope) {
   window.addEventListener("afterprint", () => { document.title = previousTitle; }, { once: true });
 }
 
-async function preparePrint(scope) {
+function preparePrint(scope) {
   renderPrint();
   document.body.dataset.printScope = scope;
   const requested = activeTool === "diaphragmWall" ? PRINT_TAB_GROUPS[activeTab] : PRINT_TAB_GROUPS[activeTool];
   const current = requested === "overview-wall" ? "quality" : requested;
   $$('.print-page').forEach(page => page.classList.toggle("print-selected", page.dataset.printTab === current));
   setPdfDocumentTitle(scope);
-  await waitForPrintAssets();
   paginatePrintReport();
 }
 
-async function exportPdf(scope) {
+// window.print() 必須留在點擊事件的同步流程裡：中間只要 await 過，Safari 就會當成「自動列印」擋下來。
+function exportPdf(scope) {
   $("#export-dialog").close();
-  await preparePrint(scope);
+  preparePrint(scope);
   window.print();
 }
 

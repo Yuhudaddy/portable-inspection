@@ -5,10 +5,20 @@
 // 紙張一律直向。標了 data-print-orientation="landscape" 的頁（澆置紀錄）內容仍以 277×190mm
 // 的橫向配置排版，放進 .print-rotated 包裹層後由 CSS 逆時針轉 90° 印在直向紙上——iOS 的列印
 // 流程不吃 @page size / 具名頁，這是唯一在所有裝置上都一致的做法。
+//
+// 可用頁高：A4 直向扣掉 @page 上下各 10mm 是 277mm；iOS 列印會在頁面下方保留自己的頁尾（網址、頁碼），
+// 可用高度少 10mm 以上，固定 277mm 的頁盒會被擠出一條到下一頁，所以 iOS 用 263mm。
+// 這個值同時給 CSS（--print-page-height）與這裡的分頁量測用。
 (function () {
   const PX_PER_MM = 96 / 25.4;
-  const PAGE_HEIGHT_MM = { portrait: 277, landscape: 190 };
+  const IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const PAGE_HEIGHT_MM = { portrait: IOS ? 263 : 277, landscape: 190 };
   const TOLERANCE_PX = 2;
+  document.documentElement.style.setProperty("--print-page-height", `${PAGE_HEIGHT_MM.portrait}mm`);
+
+  // 列印表頭的 logo 先抓進快取，輸出時就不用等圖片載入（window.print() 前不能有 await）
+  const logo = new Image();
+  logo.src = "./taisei.png";
 
   function withPrintStyles(fn) {
     const scrollY = window.scrollY;

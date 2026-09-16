@@ -46,16 +46,18 @@
   // 每一頁都要重複的固定元素：文件表頭與範例列
   function isFixed(el) { return el.matches(".print-document-header, .print-example-bar"); }
 
+  // 整條橫列就是連結：手機上整張 A4 縮到螢幕寬，只有一顆小膠囊會點不到；
+  // 內容靠右，左側留空避開 iOS PDF 檢視器蓋在左上角的頁碼。
   function makeExampleBar() {
-    const bar = document.createElement("div");
+    const bar = document.createElement("a");
     bar.className = "print-example-bar";
+    // 產生範例 PDF 的腳本會把正式站台網址放進 data-example-base，讓 PDF 裡的連結指回線上頁面
+    bar.href = (document.documentElement.dataset.exampleBase || "./") + (location.pathname.split("/").pop() || "index.html");
     const tag = document.createElement("span");
     tag.textContent = "範例輸出 SAMPLE";
-    const link = document.createElement("a");
-    // 產生範例 PDF 的腳本會把正式站台網址放進 data-example-base，讓 PDF 裡的連結指回線上頁面
-    link.href = (document.documentElement.dataset.exampleBase || "./") + (location.pathname.split("/").pop() || "index.html");
-    link.textContent = "‹ 上一頁";
-    bar.append(tag, link);
+    const button = document.createElement("strong");
+    button.textContent = "‹ 上一頁";
+    bar.append(tag, button);
     return bar;
   }
 

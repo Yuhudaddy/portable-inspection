@@ -255,7 +255,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .print-summary > div { padding: 1.5mm 2mm; border-right: .5pt solid #888; border-bottom: .5pt solid #888; }
   .print-note { min-height: 16mm; padding: 2mm; border: .5pt solid #888; font-size: 7pt; white-space: pre-wrap; }
   .print-footer { margin-top: 3mm; color: #666; font-size: 6pt; text-align: right; }
-  .print-page, .print-section, .print-table tr { break-inside: avoid; }
+  .print-section, .print-table tr { break-inside: avoid; }
   .print-table .status-failed { color: #8b3434; font-weight: 700; }
 }
 

@@ -123,12 +123,6 @@ def note(text):
 
 def footer(canvas, doc):
     canvas.saveState()
-    canvas.setStrokeColor(LINE)
-    canvas.setLineWidth(.7)
-    canvas.line(18*mm, 15*mm, PAGE_W-18*mm, 15*mm)
-    canvas.setFont("NotoTC", 6.5)
-    canvas.setFillColor(SOFT)
-    canvas.drawString(18*mm, 11.5*mm, "範例資料｜本文件僅供介面與輸出格式參考")
     x = PAGE_W - 18*mm - 63*mm
     y = 7*mm
     canvas.rect(x, y, 63*mm, 8*mm, stroke=1, fill=0)

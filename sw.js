@@ -1,5 +1,6 @@
-const CACHE_NAME = "portable-inspection-v80";
-const APP_SHELL = ["./index.html", "./404.html", "./glass.css", "./portal.css", "./portal.js", "./draft.js", "./print-pages.js", "./dialog-forms.js", "./diaphragm-wall.html", "./diaphragm-wall-gc.html", "./wall-gc.js", "./app.css", "./app.js", "./template.html", "./template.css", "./template.js", "./rebar.html", "./rebar.css", "./rebar.js", "./steel-structure.html", "./steel.css", "./steel.js", "./record.html", "./checklists.html", "./manifest.webmanifest", "./app-icon-144.png", "./apple-touch-icon.png", "./icon-192.png", "./icon-512.png", "./icon-maskable-512.png", "./taisei.png", "./examples/diaphragm-wall-example.pdf", "./examples/guide-wall-example.pdf", "./examples/rebar-cage-example.pdf", "./examples/diaphragm-wall-gc-example.pdf", "./examples/gc-guide-wall-example.pdf", "./examples/gc-rebar-cage-example.pdf", "./examples/template-example.pdf", "./examples/rebar-example.pdf", "./examples/steel-structure-example.pdf"];
+const CACHE_NAME = "portable-inspection-v81";
+// 範例 PDF（共約 8MB）不放進 shell：每次升版都要整批重抓，手機上安裝又慢又容易失敗；範例本來就需要連線。
+const APP_SHELL = ["./index.html", "./404.html", "./glass.css", "./portal.css", "./portal.js", "./draft.js", "./print-pages.js", "./dialog-forms.js", "./diaphragm-wall.html", "./diaphragm-wall-gc.html", "./wall-gc.js", "./app.css", "./app.js", "./template.html", "./template.css", "./template.js", "./rebar.html", "./rebar.css", "./rebar.js", "./steel-structure.html", "./steel.css", "./steel.js", "./record.html", "./checklists.html", "./manifest.webmanifest", "./app-icon-144.png", "./apple-touch-icon.png", "./icon-192.png", "./icon-512.png", "./icon-maskable-512.png", "./taisei.png"];
 
 self.addEventListener("install", event => {
   event.waitUntil(
@@ -19,7 +20,11 @@ self.addEventListener("activate", event => {
 
 self.addEventListener("fetch", event => {
   if (event.request.method !== "GET") return;
-  if (new URL(event.request.url).pathname.endsWith("/sw.js")) return;
+  const path = new URL(event.request.url).pathname;
+  if (path.endsWith("/sw.js")) return;
+  // PDF 交給瀏覽器自己抓：經 Service Worker 轉手的 PDF 在 iOS 的 PDF 檢視器上開不穩，
+  // 而且 cache.put 會等整份 PDF 存完才回應；範例也不需要離線。
+  if (path.endsWith(".pdf")) return;
   if (event.request.mode === "navigate") {
     event.respondWith(
       fetch(event.request)

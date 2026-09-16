@@ -74,6 +74,13 @@
   .bar-entry-head span { flex-basis: 100%; order: 3; }
 }
 
+@media (pointer: coarse) {
+  .app-shell :is(input:not([type="radio"]):not([type="checkbox"]), select, textarea),
+  .sheet-dialog :is(input:not([type="radio"]):not([type="checkbox"]), select, textarea) {
+    font-size: 16px !important;
+  }
+}
+
 @media print {
   .print-table th { font-size: 6.5pt; }
   .print-table td { font-size: 7.5pt; }

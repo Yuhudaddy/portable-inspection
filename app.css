@@ -960,7 +960,11 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .add-button { min-height: 40px; }
   /* iOS Safari 會在聚焦小於 16px 的輸入欄時自動放大整頁。觸控裝置維持 1rem，
      日期／時間欄的實際文字是透明的，改由 .native-field-display 以小字繪製，不受影響。 */
-  .field input, .field select, .field textarea, .phase-editor select { font-size: 1rem; }
+  .app-shell :is(input:not([type="radio"]):not([type="checkbox"]), select, textarea),
+  .steel-shell :is(input:not([type="radio"]):not([type="checkbox"]), select, textarea),
+  .sheet-dialog :is(input:not([type="radio"]):not([type="checkbox"]), select, textarea) {
+    font-size: 16px !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

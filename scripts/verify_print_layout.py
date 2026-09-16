@@ -18,15 +18,29 @@ FILL = {
     "steel-structure.html": "for(let i=0;i<70;i++) state.delivery.records.push({type:'柱',memberNo:'C-'+i,spec:'H400x400',qty:'1',doc:'MTC-'+i,appearance:'良好',storage:'良好',result:'合格'}); state.delivery.note=Array(50).fill('進場備註測試文字，用來把內容撐長。').join('\\n');",
 }
 
+MM = 25.4 / 72
+SIGN_CELL = 12 / MM  # 標籤列下方還有 12mm 的簽名格
+
+
+def signature_line(page):
+    """回傳「擔當者」那一行的 (bbox, 是否為旋轉文字)。橫向頁的內容逆時針轉了 90°，文字方向會是 (0, -1)。"""
+    for block in page.get_text("dict")["blocks"]:
+        for line in block.get("lines", []):
+            if "擔當者" in "".join(span["text"] for span in line["spans"]):
+                return fitz.Rect(line["bbox"]), abs(line["dir"][0]) < 0.5
+    return None, False
+
+
 def check(pdf_path):
     failures = []
     for index, page in enumerate(fitz.open(pdf_path)):
-        hit = page.search_for("擔當者")
-        if not hit:
+        rect, rotated = signature_line(page)
+        if rect is None:
             continue
-        bottom_mm = (page.rect.height - (hit[0].y1 + 12 / 25.4 * 72)) / 72 * 25.4
-        if bottom_mm > 16:
-            failures.append(f"    p{index + 1}: 簽名欄底距頁底 {bottom_mm:.1f}mm")
+        # 直向頁：簽名格底邊距頁底；旋轉頁：橫向的「下」是直向紙的右邊，改量距右緣
+        gap_mm = ((page.rect.width - (rect.x1 + SIGN_CELL)) if rotated else (page.rect.height - (rect.y1 + SIGN_CELL))) * MM
+        if gap_mm > 16:
+            failures.append(f"    p{index + 1}: 簽名欄{'（旋轉頁）距右緣' if rotated else '底距頁底'} {gap_mm:.1f}mm")
     return failures
 
 server = subprocess.Popen([sys.executable, "-m", "http.server", str(PORT)], cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

@@ -546,19 +546,6 @@ function syncAllDateTimeDisplays() {
   $$('input[type="date"], input[type="time"]').forEach(syncDateTimeDisplay);
 }
 
-function validateDialogForm(form) {
-  const valid = form.checkValidity();
-  form.classList.toggle("form-validation-error", !valid);
-  return valid;
-}
-
-function bindDialogUx() {
-  $$('dialog').forEach(dialog => dialog.addEventListener("close", () => {
-    if (dialog.contains(document.activeElement)) document.activeElement.blur();
-    dialog.querySelector("form")?.classList.remove("form-validation-error");
-  }));
-}
-
 function designHeight() {
   const depth = number(state.unit.designDepth);
   const elevation = number(state.unit.topElevation);
@@ -1444,7 +1431,6 @@ function handleExport(format) {
 }
 
 function initialize() {
-  bindDialogUx();
   setInitialInputs();
   renderAll();
   syncAllDateTimeDisplays();

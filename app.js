@@ -273,19 +273,6 @@ function syncAllDateTimeDisplays() {
   $$('input[type="date"], input[type="time"]').forEach(syncDateTimeDisplay);
 }
 
-function validateDialogForm(form) {
-  const valid = form.checkValidity();
-  form.classList.toggle("form-validation-error", !valid);
-  return valid;
-}
-
-function bindDialogUx() {
-  $$('dialog').forEach(dialog => dialog.addEventListener("close", () => {
-    if (dialog.contains(document.activeElement)) document.activeElement.blur();
-    dialog.querySelector("form")?.classList.remove("form-validation-error");
-  }));
-}
-
 function designHeight() {
   const depth = number(state.wall.designDepth);
   const elevation = number(state.wall.topElevation);
@@ -955,19 +942,9 @@ function setPdfDocumentTitle(scope) {
   window.addEventListener("afterprint", () => { document.title = previousTitle; }, { once: true });
 }
 
-function setPrintPageOrientation(scope) {
-  document.getElementById("print-orientation-override")?.remove();
-  if (scope !== "current" || activeTool !== "diaphragmWall" || activeTab !== "pouring") return;
-  const style = document.createElement("style");
-  style.id = "print-orientation-override";
-  style.textContent = "@page { size: A4 landscape; margin: 10mm; }";
-  document.head.appendChild(style);
-}
-
 async function preparePrint(scope) {
   renderPrint();
   document.body.dataset.printScope = scope;
-  setPrintPageOrientation(scope);
   const requested = activeTool === "diaphragmWall" ? PRINT_TAB_GROUPS[activeTab] : PRINT_TAB_GROUPS[activeTool];
   const current = requested === "overview-wall" ? "quality" : requested;
   $$('.print-page').forEach(page => page.classList.toggle("print-selected", page.dataset.printTab === current));
@@ -1431,7 +1408,6 @@ function handleExport(format) {
 }
 
 function initialize() {
-  bindDialogUx();
   setInitialInputs();
   $("#phase-select").innerHTML = PHASES.map(phase => `<option value="${phase.id}">${esc(phase.label)}</option>`).join("");
   renderPhaseEditor();
@@ -1621,10 +1597,7 @@ function initialize() {
     $("#undo-toast").hidden = true;
   });
 
-  window.addEventListener("afterprint", () => {
-    document.body.dataset.printScope = "none";
-    document.getElementById("print-orientation-override")?.remove();
-  });
+  window.addEventListener("afterprint", () => { document.body.dataset.printScope = "none"; });
   showTool("diaphragmWall");
   if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./sw.js").catch(() => {});
 }

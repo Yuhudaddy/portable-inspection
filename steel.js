@@ -83,18 +83,6 @@ const draft = createDraftStore("project-portal.steel.draft", () => state, {
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
 
-function validateDialogForm(form) {
-  const valid = form.checkValidity();
-  form.classList.toggle("form-validation-error", !valid);
-  return valid;
-}
-
-function bindDialogUx() {
-  $$('dialog').forEach(dialog => dialog.addEventListener("close", () => {
-    if (dialog.contains(document.activeElement)) document.activeElement.blur();
-    dialog.querySelector("form")?.classList.remove("form-validation-error");
-  }));
-}
 const esc = value => String(value ?? "")
   .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
   .replaceAll('"', "&quot;").replaceAll("'", "&#039;");
@@ -154,7 +142,6 @@ function updateIdentity() {
 function showTab(tab) {
   if (!TABS[tab]) return;
   activeTab = tab;
-  document.body.dataset.activeTab = tab;
   $$('.tab-panel').forEach(panel => { panel.hidden = panel.id !== `panel-${tab}`; });
   $$('[role="tab"]').forEach(button => {
     const selected = button.dataset.tab === tab;
@@ -363,7 +350,6 @@ function loadExample() {
 }
 
 function initialize() {
-  bindDialogUx();
   const query = new URLSearchParams(location.search);
   if (query.get("example") === "1") loadExample();
   renderAll();

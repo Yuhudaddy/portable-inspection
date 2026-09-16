@@ -29,7 +29,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .tool-title { padding: 20px 4px 16px; }
 .tool-title p { margin: 0 0 6px; font-family: var(--glass-font-num); color: var(--glass-muted); font-size: .65625rem; font-weight: 700; letter-spacing: .14em; }
 .tool-title h1 { margin: 0; color: #000; font-size: 1.625rem; font-weight: 700; line-height: 1.15; }
-.tool-title h1 span { color: #000; }
 
 /* ---- 分頁：橫向捲動膠囊 ------------------------------------------------- */
 .tab-navigation { display: flex; gap: var(--glass-tab-gap); margin: 0 -16px 14px; padding: 0 16px 4px; overflow-x: auto; scrollbar-width: none; white-space: nowrap; -webkit-overflow-scrolling: touch; }
@@ -62,8 +61,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .form-grid > .field select { padding-right: 20px; }
 .field textarea { min-height: 76px; resize: vertical; }
 .field input::placeholder, .field textarea::placeholder { color: var(--glass-placeholder); }
-.field :is(input, select, textarea):invalid { box-shadow: none; }
-.form-validation-error .field :is(input, select, textarea):invalid { box-shadow: inset 0 0 0 1.5px var(--glass-danger); }
 .field input[type="date"] { display: block; width: 100%; max-width: 100%; min-width: 0; height: 44px; max-height: 44px; padding: 0; overflow: hidden; color: transparent; -webkit-text-fill-color: transparent; -webkit-text-size-adjust: 100%; }
 .form-grid > .field input[type="date"] { height: 32px; max-height: 32px; }
 .field input[type="date"]::-webkit-date-and-time-value { min-width: 0; text-align: left; }
@@ -162,14 +159,11 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .dock-tool { display: grid; flex: 1 1 0; place-items: center; gap: 1px; min-width: 0; height: 48px; padding: 0 6px; border: 0; border-radius: 999px; background: transparent; color: var(--glass-icon); text-decoration: none; }
 .dock-tool svg { display: block; }
 .dock-tool small { max-width: 100%; overflow: hidden; font-size: .59375rem; text-overflow: ellipsis; white-space: nowrap; }
-.dock-tool.is-active { background: var(--glass-accent-soft); box-shadow: 0 1px 4px rgba(60, 50, 30, 0.1); color: var(--glass-accent); }
-.dock-tool.is-active small { font-weight: 600; }
 .dock-primary { display: grid; place-items: center; flex: none; width: 60px; height: 60px; border: 0; border-radius: 999px; background: var(--glass-accent); color: var(--glass-accent-on); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 6px 16px oklch(40% 0.05 250 / 0.35); }
 .dock-primary svg { display: block; }
 
 /* ---- 對話框 ---------------------------------------------------------------- */
 .sheet-dialog { width: min(100% - 24px, 620px); max-height: min(82dvh, 720px); padding: 0; border: 0; border-radius: var(--glass-radius-lg); background: color-mix(in oklch, var(--glass-page-bg) 88%, white); color: var(--glass-ink); box-shadow: var(--glass-card-shadow); }
-.sheet-dialog .field :is(input:not([type="radio"]), select, textarea) { font-size: 16px; }
 .sheet-dialog::backdrop { background: rgba(20, 20, 40, 0.4); backdrop-filter: blur(4px); }
 .dialog-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--line); }
 .dialog-header span { display: block; font-family: var(--glass-font-num); color: var(--glass-accent); font-size: .625rem; font-weight: 800; letter-spacing: .14em; }
@@ -214,13 +208,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .member-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 12px; }
   .member-card:nth-child(2) .member-card-header { padding-top: 4px; }
   .action-dock { left: max(16px, calc((100vw - 880px) / 2)); right: max(16px, calc((100vw - 880px) / 2)); }
-}
-
-@media (pointer: coarse) {
-  .app-shell :is(input:not([type="radio"]):not([type="checkbox"]), select, textarea),
-  .sheet-dialog :is(input:not([type="radio"]):not([type="checkbox"]), select, textarea) {
-    font-size: 16px !important;
-  }
 }
 
 @media (hover: hover) {

@@ -141,13 +141,6 @@
   .optional-module-grid p { min-height: 0; }
 }
 
-@media (pointer: coarse) {
-  .steel-shell :is(input:not([type="radio"]):not([type="checkbox"]), select, textarea),
-  .sheet-dialog :is(input:not([type="radio"]):not([type="checkbox"]), select, textarea) {
-    font-size: 16px !important;
-  }
-}
-
 @media print {
   .steel-shell { display: none !important; }
   .print-page-empty { display: none !important; }

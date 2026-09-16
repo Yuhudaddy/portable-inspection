@@ -271,7 +271,6 @@ function setTab(tab) {
   if (tab === "install") renderInstall();
   if (tab === "measure") renderMeasurements();
   if (tab === "release") renderRelease();
-  document.body.dataset.activeTab = tab;
 }
 
 function setMemberField(index, key, value) {

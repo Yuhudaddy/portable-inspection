@@ -909,6 +909,23 @@ function waitForPrintAssets() {
   })));
 }
 
+function setPdfDocumentTitle(scope) {
+  const toolName = TOOL_LABELS[activeTool] || "施工檢核紀錄";
+  const recordId = activeTool === "diaphragmWall"
+    ? state.wall.unitNo
+    : activeTool === "guideWall"
+      ? state.guideWall.unitNo
+      : state.rebarCage.unitNo || state.rebarCage.cageNo;
+  const pageName = currentExportLabel(activeTool, activeTab);
+  const date = state.overview.date || today;
+  const parts = [toolName, recordId, scope === "all" ? "完整檢核紀錄" : pageName, date]
+    .filter(Boolean)
+    .map(value => safeFilePart(value, ""));
+  const previousTitle = document.title;
+  document.title = parts.join("_");
+  window.addEventListener("afterprint", () => { document.title = previousTitle; }, { once: true });
+}
+
 async function exportPdf(scope) {
   renderPrint();
   document.body.dataset.printScope = scope;
@@ -916,6 +933,7 @@ async function exportPdf(scope) {
   const current = requested === "overview-wall" ? "quality" : requested;
   $$('.print-page').forEach(page => page.classList.toggle("print-selected", page.dataset.printTab === current));
   $("#export-dialog").close();
+  setPdfDocumentTitle(scope);
   await waitForPrintAssets();
   window.print();
 }

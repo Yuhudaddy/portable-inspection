@@ -365,6 +365,13 @@ function exportPdf(scope) {
   const page = activeTab === "overview" || activeTab === "members" ? "overview" : activeTab === "install" || activeTab === "measure" ? "checks" : "release";
   $$(".print-page").forEach(item => item.classList.toggle("print-selected", item.dataset.printPage === page));
   $("#export-dialog").close();
+  const member = activeMember();
+  const parts = ["模板工程複核表", member?.id || member?.type, scope === "all" ? "完整檢核紀錄" : TAB_LABELS[activeTab], state.overview.date || today]
+    .filter(Boolean)
+    .map(value => String(value).trim().replace(/[\\/:*?"<>|\s]+/g, "-").replace(/-+/g, "-"));
+  const previousTitle = document.title;
+  document.title = parts.join("_");
+  window.addEventListener("afterprint", () => { document.title = previousTitle; }, { once: true });
   window.print();
 }
 

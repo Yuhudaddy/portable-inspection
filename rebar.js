@@ -177,7 +177,17 @@ function renderPrint() {
   $("#print-template-detail").innerHTML = `${printHeader("接頭／保護層查驗", "05")}<section class="print-section"><h2>05｜接頭／保護層</h2><table class="print-table"><thead><tr><th>項次</th><th>構件</th><th>檢查項目</th><th>判定標準</th><th>紀錄／實測</th><th>結果</th></tr></thead><tbody>${detailRows}</tbody></table></section>${printFooter()}`;
   $("#print-template-release").innerHTML = `${printHeader("鋼筋澆置前放行", "06")}<section class="print-section"><h2>06｜澆置前放行</h2><table class="print-table"><thead><tr><th>項次</th><th>檢查項目</th><th>判定標準</th><th>紀錄／說明</th><th>結果</th></tr></thead><tbody>${checkRows(RELEASE_CHECKS, id => state.release.checks[id])}</tbody></table></section><section class="print-section"><h2>放行判定</h2><div class="print-summary"><div><span>澆置判定</span><strong>${printValue(state.release.decision)}</strong></div><div><span>備註</span><strong>${printValue(state.release.decisionNote)}</strong></div></div></section>${printFooter()}`;
 }
-function exportPdf(scope) { renderPrint(); document.body.dataset.printScope = scope; const page = activeTab === "overview" || activeTab === "members" ? "overview" : activeTab; $$(".print-page").forEach(item => item.classList.toggle("print-selected", item.dataset.printPage === page)); $("#export-dialog").close(); window.print(); }
+function setPdfDocumentTitle(scope) {
+  const member = activeMember();
+  const parts = ["鋼筋工程查驗表", member?.id || member?.type, scope === "all" ? "完整檢核紀錄" : TAB_LABELS[activeTab], state.overview.date || today]
+    .filter(Boolean)
+    .map(value => String(value).trim().replace(/[\\/:*?"<>|\s]+/g, "-").replace(/-+/g, "-"));
+  const previousTitle = document.title;
+  document.title = parts.join("_");
+  window.addEventListener("afterprint", () => { document.title = previousTitle; }, { once: true });
+}
+
+function exportPdf(scope) { renderPrint(); document.body.dataset.printScope = scope; const page = activeTab === "overview" || activeTab === "members" ? "overview" : activeTab; $$(".print-page").forEach(item => item.classList.toggle("print-selected", item.dataset.printPage === page)); $("#export-dialog").close(); setPdfDocumentTitle(scope); window.print(); }
 function clearAll() { draft.clear(); state = createState(); activeTab = "overview"; renderAll(); setTab("overview"); $("#clear-dialog").close(); }
 
 function loadExample() {

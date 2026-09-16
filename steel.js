@@ -299,11 +299,22 @@ function downloadText(content, mimeType, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+function setPdfDocumentTitle(scope) {
+  const identity = state.accuracy.memberNo || state.anchor.location || state.hsb.location || state.welding.location || state.delivery.batch;
+  const parts = ["鋼構施工複核表", identity, scope === "all" ? "完整檢核紀錄" : TABS[activeTab], state.overview.date || today]
+    .filter(Boolean)
+    .map(value => String(value).trim().replace(/[\\/:*?"<>|\s]+/g, "-").replace(/-+/g, "-"));
+  const previousTitle = document.title;
+  document.title = parts.join("_");
+  window.addEventListener("afterprint", () => { document.title = previousTitle; }, { once: true });
+}
+
 function exportPdf(scope) {
   renderPrint();
   document.body.dataset.printScope = scope;
   $$('.print-page').forEach(page => page.classList.toggle("print-selected", page.dataset.printTab === activeTab));
   $("#export-dialog").close();
+  setPdfDocumentTitle(scope);
   window.print();
 }
 

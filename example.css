@@ -1,0 +1,81 @@
+/* =========================================================================
+   範例輸出檢視頁：一頁一張圖往下排，左上角懸浮液態玻璃「←」回上一頁。
+   ========================================================================= */
+* { box-sizing: border-box; }
+html { background: var(--glass-page-bg-end); }
+body {
+  min-width: 320px;
+  margin: 0;
+  padding: calc(env(safe-area-inset-top) + 70px) 12px calc(env(safe-area-inset-bottom) + 28px);
+  background: transparent;
+  color: var(--glass-ink);
+  font-family: var(--glass-font);
+}
+
+/* ---- 懸浮導覽：固定在螢幕左上（避開瀏海／狀態列），不佔版面 ---------------------- */
+.example-nav {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 12px);
+  right: 12px;
+  left: 12px;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+}
+.example-nav > * { pointer-events: auto; }
+
+/* 液態玻璃：半透明白底 + 背景模糊提亮 + 內緣高光 + 柔和落影 */
+.example-back,
+.example-pdf {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.55);
+  -webkit-backdrop-filter: blur(18px) saturate(170%);
+  backdrop-filter: blur(18px) saturate(170%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.75),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 1px 2px rgba(60, 50, 30, 0.06),
+    0 8px 24px rgba(60, 50, 30, 0.14);
+  color: var(--glass-ink);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+.example-back { width: 44px; }
+.example-back svg { display: block; margin-left: -2px; }
+.example-pdf { padding: 0 16px; }
+.example-back:active, .example-pdf:active { transform: scale(0.94); background: rgba(255, 255, 255, 0.8); }
+
+/* ---- 頁面圖片 ---------------------------------------------------------------- */
+.example-pages { display: grid; gap: 14px; width: min(100%, 880px); margin: 0 auto; }
+.example-page {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: var(--glass-card-shadow);
+}
+.example-status { margin: 40px 0; color: var(--glass-muted); font-size: 0.875rem; text-align: center; }
+
+@media (prefers-reduced-motion: reduce) {
+  .example-back, .example-pdf { transition: none; }
+}
+
+/* ---- 列印：每張圖就是一頁 A4，導覽不印 ------------------------------------------- */
+@page { size: A4 portrait; margin: 0; }
+@media print {
+  html, body { padding: 0; background: #fff; }
+  .example-nav, .example-status { display: none !important; }
+  .example-pages { display: block; width: 100%; }
+  .example-page { width: 100%; border-radius: 0; box-shadow: none; break-after: page; }
+  .example-page:last-child { break-after: auto; }
+}

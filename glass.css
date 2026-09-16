@@ -253,11 +253,4 @@
 @media print {
   /* 列印分頁器（print-pages.js）用來確認列印樣式已生效的旗標 */
   body { --print-active: 1; }
-
-  /* ---- 範例模式每頁頂端的「範例輸出 ‹ 上一頁」列（print-pages.js 只在 ?example=1 時產生）----
-     主畫面 Web App 開啟範例 PDF 時沒有瀏覽器介面可以回頭，靠 PDF 裡的這個連結回到工具頁；
-     印在紙上就是一行淡灰的「範例輸出」標籤。 */
-  .print-example-bar { display: flex; align-items: center; justify-content: flex-end; gap: 4mm; min-height: 9mm; margin: 0 0 2.5mm; padding: 0 1.5mm 0 4mm; border-radius: 2.5mm; background: #f1f1f1; font-family: "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif; text-decoration: none; }
-  .print-example-bar span { color: #8a8a8a; font-size: 6.5pt; font-weight: 600; letter-spacing: .14em; }
-  .print-example-bar strong { display: inline-flex; align-items: center; min-height: 6.5mm; padding: 0 4mm; border-radius: 3.5mm; background: #3a3a3a; color: #fff; font-size: 8pt; font-weight: 600; }
 }

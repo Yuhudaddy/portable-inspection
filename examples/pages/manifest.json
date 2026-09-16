@@ -1,0 +1,65 @@
+{
+  "diaphragm-wall-example": {
+    "title": "連續壁施工紀錄",
+    "back": "diaphragm-wall.html",
+    "pages": 6,
+    "width": 952,
+    "height": 1348
+  },
+  "guide-wall-example": {
+    "title": "導溝施工複核",
+    "back": "diaphragm-wall.html",
+    "pages": 1,
+    "width": 952,
+    "height": 1348
+  },
+  "rebar-cage-example": {
+    "title": "鋼筋籠吊放前複核",
+    "back": "diaphragm-wall.html",
+    "pages": 1,
+    "width": 952,
+    "height": 1348
+  },
+  "diaphragm-wall-gc-example": {
+    "title": "連續壁營造廠查驗",
+    "back": "diaphragm-wall-gc.html",
+    "pages": 4,
+    "width": 952,
+    "height": 1348
+  },
+  "gc-guide-wall-example": {
+    "title": "導溝施工複核",
+    "back": "diaphragm-wall-gc.html",
+    "pages": 1,
+    "width": 952,
+    "height": 1348
+  },
+  "gc-rebar-cage-example": {
+    "title": "鋼筋籠吊放前複核",
+    "back": "diaphragm-wall-gc.html",
+    "pages": 1,
+    "width": 952,
+    "height": 1348
+  },
+  "template-example": {
+    "title": "模板工程複核表",
+    "back": "template.html",
+    "pages": 4,
+    "width": 952,
+    "height": 1348
+  },
+  "rebar-example": {
+    "title": "鋼筋工程查驗表",
+    "back": "rebar.html",
+    "pages": 5,
+    "width": 952,
+    "height": 1348
+  },
+  "steel-structure-example": {
+    "title": "鋼構施工複核表",
+    "back": "steel-structure.html",
+    "pages": 8,
+    "width": 952,
+    "height": 1348
+  }
+}

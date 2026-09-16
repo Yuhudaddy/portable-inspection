@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="referrer" content="no-referrer" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; worker-src 'self'; manifest-src 'self'" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Portable Inspection" />
+    <link rel="icon" href="./app-icon-144.png" type="image/png" sizes="144x144" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="stylesheet" href="./glass.css" />
+    <link rel="stylesheet" href="./example.css" />
+    <title>範例輸出｜Portable Inspection</title>
+  </head>
+  <body>
+    <!-- 範例輸出：把範例 PDF 逐頁轉成圖片放在自己的頁面裡顯示，才能在主畫面 Web App 上疊「←」回上一頁。
+         直接開 PDF 會交給系統檢視器，沒有任何介面可以回頭。 -->
+    <nav class="example-nav" aria-label="範例導覽">
+      <a class="example-back" id="example-back" href="./index.html" aria-label="回上一頁"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></a>
+      <a class="example-pdf" id="example-pdf" href="./examples/" hidden>PDF</a>
+    </nav>
+    <main class="example-pages" id="example-pages" aria-live="polite">
+      <p class="example-status" id="example-status">載入範例中…</p>
+    </main>
+    <script src="./example.js" defer></script>
+  </body>
+</html>

@@ -5,14 +5,10 @@
 // 紙張一律直向。標了 data-print-orientation="landscape" 的頁（澆置紀錄）內容仍以 277×190mm
 // 的橫向配置排版，放進 .print-rotated 包裹層後由 CSS 逆時針轉 90° 印在直向紙上——iOS 的列印
 // 流程不吃 @page size / 具名頁，這是唯一在所有裝置上都一致的做法。
-//
-// 範例模式（?example=1）每頁頂端多一列「範例輸出 ‹ 上一頁」：主畫面 Web App 開啟範例 PDF 時
-// 沒有瀏覽器介面可以回頭，靠 PDF 裡的這個連結回到工具頁；正式輸出不會有這一列。
 (function () {
   const PX_PER_MM = 96 / 25.4;
   const PAGE_HEIGHT_MM = { portrait: 277, landscape: 190 };
   const TOLERANCE_PX = 2;
-  const exampleMode = new URLSearchParams(location.search).get("example") === "1";
 
   function withPrintStyles(fn) {
     const scrollY = window.scrollY;
@@ -43,23 +39,8 @@
   }
 
   const overflowing = (page, limit) => page.getBoundingClientRect().height > limit;
-  // 每一頁都要重複的固定元素：文件表頭與範例列
-  function isFixed(el) { return el.matches(".print-document-header, .print-example-bar"); }
-
-  // 整條橫列就是連結：手機上整張 A4 縮到螢幕寬，只有一顆小膠囊會點不到；
-  // 內容靠右，左側留空避開 iOS PDF 檢視器蓋在左上角的頁碼。
-  function makeExampleBar() {
-    const bar = document.createElement("a");
-    bar.className = "print-example-bar";
-    // 產生範例 PDF 的腳本會把正式站台網址放進 data-example-base，讓 PDF 裡的連結指回線上頁面
-    bar.href = (document.documentElement.dataset.exampleBase || "./") + (location.pathname.split("/").pop() || "index.html");
-    const tag = document.createElement("span");
-    tag.textContent = "範例輸出 SAMPLE";
-    const button = document.createElement("strong");
-    button.textContent = "‹ 上一頁";
-    bar.append(tag, button);
-    return bar;
-  }
+  // 每一頁都要重複的固定元素：文件表頭
+  function isFixed(el) { return el.matches(".print-document-header"); }
 
   function splitBlock(block, current, limit, nextPage) {
     const tables = block.querySelectorAll("table.print-table");
@@ -119,7 +100,6 @@
   function paginatePage(source) {
     const limit = limitFor(source);
     const sourceHost = hostOf(source);
-    if (exampleMode && !sourceHost.querySelector(":scope > .print-example-bar")) sourceHost.prepend(makeExampleBar());
     const fixed = [...sourceHost.children].filter(isFixed);
     const footer = sourceHost.querySelector(":scope > .print-footer");
     const blocks = [...sourceHost.children].filter(el => !fixed.includes(el) && el !== footer);

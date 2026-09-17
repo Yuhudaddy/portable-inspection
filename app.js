@@ -813,9 +813,14 @@ function pouringChartSvg(rows) {
   const maxVolume = Math.max(designVolume ?? 0, lastVolume, 1);
   const maxMeasured = actualRows.reduce((max, row) => Math.max(max, row.measured), 0);
   const maxHeight = Math.max(designHeightValue ?? 0, maxMeasured, 1);
+  // 刻度間距依量體選 5／10／20／50／100，讓刻度數維持在 8～16 格；方量大（例如 400 m³）時
+  // 若固定 10 一格，X 軸會擠出 40 個標籤疊在一起。
+  const niceStep = value => [5, 10, 20, 50, 100].find(step => value / step <= 16) ?? 200;
   const niceMax = (value, step) => Math.max(step, Math.ceil(value / step) * step);
-  const xMax = niceMax(maxVolume, maxVolume <= 40 ? 5 : 10);
-  const yMax = niceMax(maxHeight, maxHeight <= 40 ? 5 : 10);
+  const xStep = niceStep(maxVolume);
+  const yStep = niceStep(maxHeight);
+  const xMax = niceMax(maxVolume, xStep);
+  const yMax = niceMax(maxHeight, yStep);
   // Keep the horizontal scale unchanged while giving the Y axis more visual
   // room.  This makes the height curve easier to read without stretching the
   // surrounding page/container to the bottom of the sheet.
@@ -826,8 +831,6 @@ function pouringChartSvg(rows) {
   const x = value => margin.left + (value / xMax) * plotWidth;
   const y = value => margin.top + plotHeight - (value / yMax) * plotHeight;
   const ticks = (max, step) => { const result = []; for (let value = 0; value <= max + 0.0001; value += step) result.push(Number(value.toFixed(2))); return result; };
-  const xStep = xMax <= 40 ? 5 : 10;
-  const yStep = yMax <= 40 ? 5 : 10;
   const grid = [...ticks(xMax, xStep).map(value => `<line x1="${x(value)}" y1="${margin.top}" x2="${x(value)}" y2="${margin.top + plotHeight}" />`), ...ticks(yMax, yStep).map(value => `<line x1="${margin.left}" y1="${y(value)}" x2="${margin.left + plotWidth}" y2="${y(value)}" />`)].join("");
   const xLabels = ticks(xMax, xStep).map(value => `<text x="${x(value)}" y="${height - 30}" text-anchor="middle">${value}</text>`).join("");
   const yLabels = ticks(yMax, yStep).map(value => `<text x="${margin.left - 8}" y="${y(value) + 3}" text-anchor="end">${value}</text>`).join("");

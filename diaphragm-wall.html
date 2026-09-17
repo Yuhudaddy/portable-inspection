@@ -36,7 +36,8 @@
       <section class="form-grid shared-info-grid" aria-labelledby="shared-info-heading">
         <div class="shared-info-head span-two"><span id="shared-info-heading">工程資訊</span><small>導溝、鋼筋籠、連續壁三表共用</small></div>
         <label class="field span-two"><span>工程名稱</span><input type="text" data-bind="overview.project" autocomplete="organization" /></label>
-        <label class="field span-two"><span>施工廠商</span><input type="text" data-bind="overview.contractor" autocomplete="organization" /></label>
+        <label class="field"><span>施工廠商</span><input type="text" data-bind="overview.contractor" autocomplete="organization" /></label>
+        <label class="field"><span>填表人</span><input type="text" data-bind="overview.reviewer" autocomplete="name" /></label>
       </section>
 
       <nav class="record-switcher" id="record-switcher" aria-label="施工紀錄類型">
@@ -47,9 +48,8 @@
 
       <section class="tool-view" id="tool-diaphragmWall" data-tool-view="diaphragmWall">
       <nav class="tab-navigation" aria-label="施工紀錄分頁">
-        <div class="tab-row tab-row-three" role="tablist" aria-label="基本資料">
-          <button id="tab-overview" role="tab" type="button" data-tab="overview" aria-controls="panel-overview" aria-selected="true" tabindex="0">工程概要</button>
-          <button id="tab-wall" role="tab" type="button" data-tab="wall" aria-controls="panel-wall" aria-selected="false" tabindex="-1">壁體資訊</button>
+        <div class="tab-row tab-row-two" role="tablist" aria-label="基本資料">
+          <button id="tab-wall" role="tab" type="button" data-tab="wall" aria-controls="panel-wall" aria-selected="true" tabindex="0">壁體資訊</button>
           <button id="tab-quality" role="tab" type="button" data-tab="quality" aria-controls="panel-quality" aria-selected="false" tabindex="-1">品質自檢</button>
         </div>
         <div class="tab-row tab-row-three" role="tablist" aria-label="施工紀錄">
@@ -60,18 +60,7 @@
       </nav>
 
       <section class="panel-frame">
-        <section class="tab-panel" id="panel-overview" role="tabpanel" aria-labelledby="tab-overview">
-          <div class="panel-heading">
-            <div><span>01</span><h2>工程概要</h2></div>
-            <p>本次施工的基本識別資料</p>
-          </div>
-          <div class="form-grid overview-grid">
-            <label class="field span-two"><span>施工日期</span><span class="native-field-wrap"><input type="date" data-bind="overview.date" /><span class="native-field-display" aria-hidden="true"></span></span></label>
-            <label class="field span-two"><span>填表人</span><input type="text" data-bind="overview.reviewer" autocomplete="name" /></label>
-          </div>
-        </section>
-
-        <section class="tab-panel" id="panel-wall" role="tabpanel" aria-labelledby="tab-wall" hidden>
+        <section class="tab-panel" id="panel-wall" role="tabpanel" aria-labelledby="tab-wall">
           <div class="panel-heading">
             <div><span>02</span><h2>壁體資訊</h2></div>
             <p>設計基準與完工數量</p>
@@ -120,6 +109,10 @@
             <div><span>04</span><h2>開挖紀錄</h2></div>
             <p>出土次數與深度確認</p>
           </div>
+          <div class="form-grid checklist-meta-grid record-date-grid">
+            <label class="field"><span>開挖日期（起）</span><span class="native-field-wrap"><input type="date" data-bind="dates.excavationStart" /><span class="native-field-display" aria-hidden="true"></span></span></label>
+            <label class="field"><span>成槽完成（迄，同日可留空）</span><span class="native-field-wrap"><input type="date" data-bind="dates.excavationEnd" /><span class="native-field-display" aria-hidden="true"></span></span></label>
+          </div>
           <dl class="control-board excavation-board">
             <div><dt>出土次數</dt><dd id="soil-count">0 <small>次</small></dd></div>
             <div><dt>深度確認</dt><dd id="depth-count">0 <small>次</small></dd></div>
@@ -141,7 +134,7 @@
         <section class="tab-panel" id="panel-prework" role="tabpanel" aria-labelledby="tab-prework" hidden>
           <div class="panel-heading">
             <div><span>05</span><h2>前置紀錄</h2></div>
-            <p>選擇工序後填寫起迄時間</p>
+            <p>選擇工序後填寫日期與起迄時間</p>
           </div>
           <div class="phase-editor">
             <label class="field"><span>前置作業項目</span><select id="phase-select" aria-label="選擇前置作業"></select></label>
@@ -155,6 +148,9 @@
           <div class="panel-heading">
             <div><span>06</span><h2>澆置紀錄</h2></div>
             <p>逐車方量與實測高度比對</p>
+          </div>
+          <div class="form-grid checklist-meta-grid record-date-grid">
+            <label class="field span-two"><span>澆置日期（跨午夜的時間會以 24 時以後接續顯示）</span><span class="native-field-wrap"><input type="date" data-bind="dates.pouring" /><span class="native-field-display" aria-hidden="true"></span></span></label>
           </div>
           <dl class="control-board pouring-board">
             <div><dt>車次</dt><dd id="truck-count">0 <small>車</small></dd></div>

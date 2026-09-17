@@ -100,6 +100,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 .shared-info-head small { color: var(--glass-faint); font-size: 0.6875rem; font-weight: 500; }
 
+/* 紀錄分頁頂端的日期卡（開挖起迄、澆置日期），和下方主控板隔開 */
+.record-date-grid { margin-bottom: 10px; }
+
 /* ---- 工具切換（導溝／鋼筋籠／連續壁）-------------------------------------- */
 .record-switcher {
   display: grid;
@@ -1022,6 +1025,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     font-family: "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
   }
   .print-table .time-cell { font-variant-numeric: tabular-nums; letter-spacing: 0; }
+  .print-table-note { margin: 1.2mm 0 0; color: #555; font-size: 6pt; line-height: 1.4; }
+  .prework-print-table th:nth-child(1) { width: 8%; }
+  .prework-print-table th:nth-child(3), .prework-print-table th:nth-child(4), .prework-print-table th:nth-child(5) { width: 18%; }
   .print-table th { padding: 1.4mm 1mm; background: #f2f3f4; border: 0.5pt solid #999; font-size: 6.5pt; line-height: 1.25; }
   .print-table td { height: 7mm; padding: 1.2mm 1.4mm; border: 0.5pt solid #aaa; font-size: 7.5pt; text-align: center; vertical-align: middle; }
   .print-table td.text-left { text-align: left; }

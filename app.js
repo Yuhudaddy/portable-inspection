@@ -1,7 +1,6 @@
 const APP_VERSION = "1.4";
 
 const TAB_LABELS = {
-  overview: "工程概要",
   wall: "壁體資訊",
   quality: "品質自檢",
   excavation: "開挖紀錄",
@@ -16,7 +15,6 @@ const TOOL_LABELS = {
 };
 
 const PRINT_TAB_GROUPS = {
-  overview: "overview-wall",
   wall: "overview-wall",
   quality: "quality",
   excavation: "excavation-prework",
@@ -192,7 +190,9 @@ const localDate = new Date();
 const today = `${localDate.getFullYear()}-${String(localDate.getMonth() + 1).padStart(2, "0")}-${String(localDate.getDate()).padStart(2, "0")}`;
 
 const state = {
-  overview: { project: "", contractor: "", date: today, reviewer: "" },
+  overview: { project: "", contractor: "", reviewer: "" },
+  // 各紀錄分頁自己的日期：成槽常跨日所以有起迄；前置作業的日期存在各工序（state.prework[id].date）
+  dates: { excavationStart: today, excavationEnd: "", pouring: today },
   wall: {
     unitType: "",
     unitNo: "",
@@ -207,7 +207,7 @@ const state = {
   },
   soil: [],
   depth: [],
-  prework: Object.fromEntries(PHASES.map(phase => [phase.id, { start: "", end: "" }])),
+  prework: Object.fromEntries(PHASES.map(phase => [phase.id, { date: today, start: "", end: "" }])),
   trucks: [],
   // 工程名稱／施工廠商由 overview 統一持有，導溝與鋼筋籠共用；複核人（營造廠）與填表人（廠商）是不同人，各自保留。
   guideWall: {
@@ -230,7 +230,7 @@ const state = {
 const exampleMode = new URLSearchParams(location.search).get("example") === "1";
 const draft = createDraftStore("project-portal.diaphragmWall.draft", () => state, { enabled: !exampleMode });
 
-let activeTab = "overview";
+let activeTab = "wall";
 let activeTool = "diaphragmWall";
 const editIndex = { soil: null, depth: null, truck: null, rebar: null };
 let undoTimer;
@@ -294,12 +294,25 @@ function timeToMinutes(value) {
   return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : null;
 }
 
-// 澆置時間＝結束時間 − 出廠時間（分鐘），用來確認混凝土有沒有在限制時間內澆完；跨午夜補一天。
-function pourMinutes(dispatch, finish) {
-  const start = timeToMinutes(dispatch);
-  const end = timeToMinutes(finish);
-  if (start === null || end === null) return null;
-  return (end - start + 1440) % 1440;
+// 30 時制：輸入仍是一般 HH:MM，顯示與列印時，比「基準時間」早的就視為跨日，寫成 24:xx～29:xx
+// （23:50 → 00:20 顯示為 23:50 → 24:20），一張表就看得出灌到隔天。
+const clock30 = minutes => minutes === null ? "" : `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+function minutesAfter(value, base) {
+  const minutes = timeToMinutes(value);
+  if (minutes === null) return null;
+  if (base === null || base === undefined) return minutes;
+  let absolute = minutes + Math.floor(base / 1440) * 1440;
+  while (absolute < base) absolute += 1440;
+  return absolute;
+}
+// 一串依序發生的時間（出土、深度確認）：每個都以前一個為基準
+function sequence30(times) {
+  let previous = null;
+  return times.map(value => {
+    const absolute = minutesAfter(value, previous);
+    if (absolute !== null) previous = absolute;
+    return clock30(absolute);
+  });
 }
 
 function calculatedTrucks() {
@@ -307,6 +320,9 @@ function calculatedTrucks() {
   const height = designHeight();
   let cumulative = 0;
   let slumpTests = 0;
+  // 30 時制的基準：出廠時間以上一車出廠為準（車次只會越來越晚），卸料以本車出廠、結束以本車卸料為準
+  let previousDispatch = null;
+  let previousUnload = null;
   return state.trucks.map((truck, index) => {
     const volume = number(truck.volume) ?? 0;
     const measured = number(truck.measured);
@@ -316,7 +332,15 @@ function calculatedTrucks() {
     // 有填坍度的車次就是做了一組試體，依序編「試1、試2…」，列印與畫面都以「（試1）18」呈現
     const slumpNo = String(truck.slump ?? "").trim() ? ++slumpTests : null;
     const slumpLabel = slumpNo === null ? "" : `（試${slumpNo}）${truck.slump}`;
-    return { ...truck, index, volume, cumulative, measured, expected, difference, minutes: pourMinutes(truck.dispatch, truck.finish), slumpNo, slumpLabel };
+    const dispatchAt = minutesAfter(truck.dispatch, previousDispatch);
+    const unloadAt = minutesAfter(truck.unload, dispatchAt ?? previousUnload);
+    const finishAt = minutesAfter(truck.finish, unloadAt);
+    if (dispatchAt !== null) previousDispatch = dispatchAt;
+    if (unloadAt !== null) previousUnload = unloadAt;
+    // 澆置時間＝結束 − 出廠（分鐘），確認混凝土是否在限制時間內澆完
+    const minutes = dispatchAt !== null && finishAt !== null ? finishAt - dispatchAt : null;
+    return { ...truck, index, volume, cumulative, measured, expected, difference, minutes, slumpNo, slumpLabel,
+      dispatch30: clock30(dispatchAt), unload30: clock30(unloadAt), finish30: clock30(finishAt) };
   });
 }
 
@@ -406,10 +430,12 @@ function renderExcavation() {
   $("#depth-difference").innerHTML = `${fixed(difference)} <small>m</small>`;
   $("#depth-difference-cell").classList.toggle("is-warning", difference !== null && difference < 0);
 
+  const soilTimes = sequence30(state.soil.map(record => record.time));
+  const depthTimes = sequence30(state.depth.map(record => record.time));
   $("#soil-list").innerHTML = state.soil.length ? state.soil.map((record, index) => `
     <article class="record-item">
       <div class="record-item-main">
-        <div class="record-item-title"><strong>第 ${index + 1} 次出土</strong><span>${esc(record.time)}</span></div>
+        <div class="record-item-title"><strong>第 ${index + 1} 次出土</strong><span>${esc(soilTimes[index])}</span></div>
       </div>
       <div class="record-item-actions">
         <button type="button" data-edit-soil="${index}">修改</button>
@@ -423,7 +449,7 @@ function renderExcavation() {
     return `
       <article class="record-item">
         <div class="record-item-main">
-          <div class="record-item-title"><strong>深度 ${fixed(value)} m</strong><span>${esc(record.time)}</span></div>
+          <div class="record-item-title"><strong>深度 ${fixed(value)} m</strong><span>${esc(depthTimes[index])}</span></div>
           <div class="record-item-meta"><span>第 ${index + 1} 次確認</span><span class="${diff !== null && diff < 0 ? "warning-text" : ""}">與設計差異 ${fixed(diff)} m</span></div>
         </div>
         <div class="record-item-actions">
@@ -434,18 +460,26 @@ function renderExcavation() {
   }).join("") : emptyState("尚無深度確認，請按＋新增。");
 }
 
+function phaseTimes(phase) {
+  const record = state.prework[phase.id];
+  const startAt = phase.start ? timeToMinutes(record.start) : null;
+  const endAt = phase.end ? minutesAfter(record.end, startAt) : null;
+  return { start: clock30(startAt), end: clock30(endAt) };
+}
+
 function phaseTimeText(phase) {
   const record = state.prework[phase.id];
+  const times = phaseTimes(phase);
   const values = [];
-  if (phase.start) values.push(`開始 ${record.start || "—"}`);
-  if (phase.end) values.push(`完成 ${record.end || "—"}`);
-  return values.join(" ／ ");
+  if (phase.start) values.push(`開始 ${times.start || "—"}`);
+  if (phase.end) values.push(`完成 ${times.end || "—"}`);
+  return `${record.date ? `${record.date.slice(5).replace("-", "/")}　` : ""}${values.join(" ／ ")}`;
 }
 
 function renderPhaseEditor() {
   const phase = PHASES.find(item => item.id === $("#phase-select").value) || PHASES[0];
   const record = state.prework[phase.id];
-  const fields = [];
+  const fields = [`<label class="field"><span>作業日期</span><span class="native-field-wrap"><input type="date" data-phase-input="date" value="${esc(record.date ?? "")}" /><span class="native-field-display" aria-hidden="true"></span></span></label>`];
   if (phase.start) fields.push(`<label class="field"><span>${esc(phase.start)}</span><span class="native-field-wrap"><input type="time" data-phase-input="start" value="${esc(record.start)}" /><span class="native-field-display" aria-hidden="true"></span></span></label>`);
   if (phase.end) fields.push(`<label class="field"><span>${esc(phase.end)}</span><span class="native-field-wrap"><input type="time" data-phase-input="end" value="${esc(record.end)}" /><span class="native-field-display" aria-hidden="true"></span></span></label>`);
   $("#phase-time-fields").innerHTML = fields.join("");
@@ -455,7 +489,7 @@ function renderPhaseEditor() {
 function renderPrework() {
   $("#phase-summary").innerHTML = PHASES.map(phase => {
     const record = state.prework[phase.id];
-    const complete = (!phase.start || record.start) && (!phase.end || record.end);
+    const complete = record.date && (!phase.start || record.start) && (!phase.end || record.end);
     return `<div class="phase-row"><strong>${esc(phase.label)}</strong><span class="${complete ? "" : "pending"}">${esc(phaseTimeText(phase))}</span></div>`;
   }).join("");
 }
@@ -473,7 +507,7 @@ function renderPouring() {
   $("#truck-list").innerHTML = rows.length ? rows.map(row => `
     <article class="record-item">
       <div class="record-item-main">
-        <div class="record-item-title"><strong>第 ${row.index + 1} 車｜${esc(row.truckNo)}</strong><span>${esc(row.dispatch || "—")} 出廠｜${esc(row.unload)}–${esc(row.finish)}</span></div>
+        <div class="record-item-title"><strong>第 ${row.index + 1} 車｜${esc(row.truckNo)}</strong><span>${esc(row.dispatch30 || "—")} 出廠｜${esc(row.unload30)}–${esc(row.finish30)}</span></div>
         <div class="record-item-meta">
           <span>本車 ${fixed(row.volume)} m³</span>
           <span>累積 ${fixed(row.cumulative)} m³</span>
@@ -616,11 +650,12 @@ function renderAll() {
 }
 
 function loadExample() {
-  state.overview = { project: "Example Construction Project — North Lot", contractor: "○○營造股份有限公司", date: "2026-08-11", reviewer: "Site Engineer" };
+  state.overview = { project: "Example Construction Project — North Lot", contractor: "○○營造股份有限公司", reviewer: "Site Engineer" };
+  state.dates = { excavationStart: "2026-08-10", excavationEnd: "2026-08-11", pouring: "2026-08-11" };
   Object.assign(state.wall, { unitType: "公單元", unitNo: "21", sequenceNo: "03", designDepth: "-35.80", strength: "350", thickness: "1.00", length: "2.80", topElevation: "-0.50", designVolume: "98.84", actualVolume: "107.46" });
   state.soil = ["07:40", "08:20", "09:05"].map(time => ({ time }));
   state.depth = [{ time: "12:10", value: "-35.80" }, { time: "12:35", value: "-35.82" }];
-  state.prework = Object.fromEntries(PHASES.map((phase, index) => [phase.id, { start: `0${8 + index}:00`, end: `0${8 + index}:30` }]));
+  state.prework = Object.fromEntries(PHASES.map((phase, index) => [phase.id, { date: "2026-08-11", start: `0${8 + index}:00`, end: `0${8 + index}:30` }]));
   state.trucks = Array.from({ length: 8 }, (_, index) => ({ truckNo: `C${String(index + 1).padStart(2, "0")}`, dispatch: `${12 + Math.floor(index / 2)}:${index % 2 ? "50" : "28"}`, unload: `${13 + Math.floor(index / 2)}:${index % 2 ? "42" : "20"}`, finish: `${13 + Math.floor(index / 2)}:${index % 2 ? "55" : "33"}`, volume: index === 7 ? "9.46" : "12", measured: (3.9 + index * 4.1).toFixed(2), slump: index === 0 ? "18" : "" }));
   state.guideWall = { date: "2026-08-10", unitNo: "21", reviewer: "Site Engineer", note: "中心線偏差 1.6 cm；順序符合；導溝條件完成複核。", checks: GUIDE_WALL_CHECKS.map(([item, standard], index) => ({ item, standard, actual: index === 0 ? "中心線偏差 1.6 cm" : "已確認", barNo: index === 5 ? "D16" : "", barSpacing: index === 5 ? "19.5" : "", result: "符合" })) };
   state.rebarCage = { date: "2026-08-10", unitNo: "21", cageNo: "C21-U／C21-L", reviewer: "Site Engineer", note: "配筋圖逐項核對；吊放條件完成。", rebars: REBAR_CAGE_PARTS.map((part, index) => ({ part, designNo: index < 2 ? "D32" : "D16", designQty: index < 2 ? "32支" : "@20 cm", actualNo: index < 2 ? "D32" : "D16", actualQty: index < 2 ? "32支" : "@20 cm", result: "符合" })), checks: REBAR_CAGE_CHECKS.map(([item, standard], index) => ({ item, standard, actual: index === 7 ? "3 組成對安裝；線路已保護至孔口" : "已確認", result: "符合" })) };
@@ -629,14 +664,15 @@ function loadExample() {
 
 function clearAllData() {
   draft.clear();
-  state.overview = { project: "", contractor: "", date: "", reviewer: "" };
+  state.overview = { project: "", contractor: "", reviewer: "" };
+  state.dates = { excavationStart: "", excavationEnd: "", pouring: "" };
   state.wall = {
     unitType: "", unitNo: "", sequenceNo: "", designDepth: "", strength: "", thickness: "", length: "",
     topElevation: "", designVolume: "", actualVolume: ""
   };
   state.soil = [];
   state.depth = [];
-  state.prework = Object.fromEntries(PHASES.map(phase => [phase.id, { start: "", end: "" }]));
+  state.prework = Object.fromEntries(PHASES.map(phase => [phase.id, { date: "", start: "", end: "" }]));
   state.trucks = [];
   state.guideWall = {
     date: "", unitNo: "", reviewer: "", note: "",
@@ -757,15 +793,33 @@ function removeRebar(index) {
   });
 }
 
-function printHeader(title, sequence, project = state.overview.project, recordIdentity = null, overviewData = state.overview) {
+// 施工期間：所有紀錄日期的最早～最晚（總表與檔名用）
+function recordDates() {
+  return [state.dates.excavationStart, state.dates.excavationEnd, ...PHASES.map(phase => state.prework[phase.id].date), state.dates.pouring].filter(Boolean).sort();
+}
+function dateRangeText(start, end) {
+  if (!start && !end) return "";
+  if (!start || !end || start === end) return start || end;
+  return `${start} ～ ${end}`;
+}
+function constructionPeriodText() {
+  const dates = recordDates();
+  return dateRangeText(dates[0], dates.at(-1));
+}
+
+// 每張列印頁的表頭日期都用該頁自己的日期：總表印施工期間、開挖頁印開挖日期、澆置頁印澆置日期
+function printHeader(title, sequence, project = state.overview.project, recordIdentity = null, overviewData = state.overview, labels = {}) {
   const display = printText;
   const identity = recordIdentity || [state.wall.unitType, state.wall.unitNo].filter(Boolean).join("｜") || "未指定單元";
   const headerData = overviewData || {};
+  const dateLabel = labels.date || "施工期間";
+  const dateValue = headerData.date ?? constructionPeriodText();
+  const reviewerLabel = labels.reviewer || "填表人";
   return `<header class="print-document-header"><div class="print-header-title"><p>DIAPHRAGM WALL FIELD RECORD / ${sequence}</p><h1>${esc(title)}</h1></div><div class="print-header-meta-body"><div class="print-header-project-lines">
     <div><span>工程名稱：</span><strong>${esc(display(headerData.project || project))}</strong></div>
-    <div><span>施工日期：</span><strong>${esc(display(headerData.date))}</strong></div>
-    <div><span>施工廠商：</span><strong>${esc(display(headerData.contractor))}</strong></div>
-    <div><span>填表人：</span><strong>${esc(display(headerData.reviewer))}</strong></div>
+    <div><span>${esc(dateLabel)}：</span><strong>${esc(display(dateValue))}</strong></div>
+    <div><span>施工廠商：</span><strong>${esc(display(headerData.contractor ?? state.overview.contractor))}</strong></div>
+    <div><span>${esc(reviewerLabel)}：</span><strong>${esc(display(headerData.reviewer ?? state.overview.reviewer))}</strong></div>
   </div></div><div class="print-header-logo-wrap"><img class="print-logo" src="./taisei.png" alt="大成建設標誌" /><strong class="print-header-identity">${esc(identity)}</strong></div></header>`;
 }
 
@@ -858,10 +912,10 @@ function renderPrint() {
   const lastTruck = truckRows.at(-1);
 
   $("#print-overview-wall").innerHTML = `${printHeader("連續壁施工紀錄", "01–02")}
-    <section class="print-section"><h2>01｜工程概要<span class="print-heading-meta">填表人：${esc(display(state.overview.reviewer))}</span></h2><div class="print-meta-grid three">
+    <section class="print-section"><h2>01｜工程資訊<span class="print-heading-meta">填表人：${esc(display(state.overview.reviewer))}</span></h2><div class="print-meta-grid three">
       <div><span>工程名稱</span><strong>${esc(display(state.overview.project))}</strong></div>
       <div><span>施工廠商</span><strong>${esc(display(state.overview.contractor))}</strong></div>
-      <div><span>施工日期</span><strong>${esc(display(state.overview.date))}</strong></div>
+      <div><span>施工期間</span><strong>${esc(display(constructionPeriodText()))}</strong></div>
     </div></section>
     <section class="print-section"><h2>02｜壁體資訊</h2><div class="print-meta-grid three">
       <div><span>單元類型</span><strong>${esc(display(state.wall.unitType))}</strong></div>
@@ -890,19 +944,23 @@ function renderPrint() {
     <section class="print-section compact-print-section"><h2>品質自檢項目</h2><table class="print-table quality-print-table"><thead><tr><th>項次</th><th>檢查項目</th><th>檢查標準</th><th>現場紀錄／實測</th><th>結果</th></tr></thead><tbody>${qualityRows}</tbody></table></section>
     <section class="print-section quality-note-section"><h2>缺失及改善結果</h2><div class="print-note">${esc(display(state.quality.note))}</div></section>${printFooter()}`;
 
-  const soilRows = state.soil.length ? state.soil.map((record, index) => `<tr><td>${index + 1}</td><td class="time-cell">${esc(record.time)}</td></tr>`).join("") : `<tr><td colspan="2" class="print-empty">尚無出土紀錄</td></tr>`;
+  const soilTimes = sequence30(state.soil.map(record => record.time));
+  const depthTimes = sequence30(state.depth.map(record => record.time));
+  const soilRows = state.soil.length ? state.soil.map((record, index) => `<tr><td>${index + 1}</td><td class="time-cell">${esc(soilTimes[index])}</td></tr>`).join("") : `<tr><td colspan="2" class="print-empty">尚無出土紀錄</td></tr>`;
   const depthRows = state.depth.length ? state.depth.map((record, index) => {
     const value = number(record.value);
     const diff = value !== null && number(state.wall.designDepth) !== null ? value - number(state.wall.designDepth) : null;
-    return `<tr><td>${index + 1}</td><td class="time-cell">${esc(record.time)}</td><td>${fixed(value)}</td><td>${fixed(diff)}</td></tr>`;
+    return `<tr><td>${index + 1}</td><td class="time-cell">${esc(depthTimes[index])}</td><td>${fixed(value)}</td><td>${fixed(diff)}</td></tr>`;
   }).join("") : `<tr><td colspan="4" class="print-empty">尚無深度確認</td></tr>`;
   const phaseRows = PHASES.map((phase, index) => {
     const record = state.prework[phase.id];
-    return `<tr><td>${index + 1}</td><td class="text-left">${esc(phase.label)}</td><td class="time-cell">${phase.start ? esc(display(record.start)) : ""}</td><td class="time-cell">${phase.end ? esc(display(record.end)) : ""}</td></tr>`;
+    const times = phaseTimes(phase);
+    return `<tr><td>${index + 1}</td><td class="text-left">${esc(phase.label)}</td><td class="time-cell">${esc(display(record.date))}</td><td class="time-cell">${phase.start ? esc(times.start) : ""}</td><td class="time-cell">${phase.end ? esc(times.end) : ""}</td></tr>`;
   }).join("");
-  $("#print-excavation-prework").innerHTML = `${printHeader("開挖與前置紀錄", "04–05")}
+  const excavationDate = dateRangeText(state.dates.excavationStart, state.dates.excavationEnd);
+  $("#print-excavation-prework").innerHTML = `${printHeader("開挖與前置紀錄", "04–05", state.overview.project, null, { date: excavationDate }, { date: "開挖日期" })}
     ${printWallInfo()}
-    <section class="print-section"><h2>04｜開挖紀錄</h2><div class="print-summary">
+    <section class="print-section"><h2>04｜開挖紀錄<span class="print-heading-meta">開挖日期：${esc(display(excavationDate))}</span></h2><div class="print-summary">
       <div><span>出土次數</span><strong>${state.soil.length} 次</strong></div>
       <div><span>深度確認</span><strong>${state.depth.length} 次</strong></div>
       <div><span>最新深度</span><strong>${fixed(latestDepthValue)} m</strong></div>
@@ -910,12 +968,13 @@ function renderPrint() {
     </div></section>
     <section class="print-section"><h2>出土紀錄</h2><table class="print-table"><thead><tr><th>次數</th><th>出土時間</th></tr></thead><tbody>${soilRows}</tbody></table></section>
     <section class="print-section"><h2>深度確認</h2><table class="print-table"><thead><tr><th>次數</th><th>確認時間</th><th>深度（m）</th><th>與設計差異（m）</th></tr></thead><tbody>${depthRows}</tbody></table></section>
-    <section class="print-section"><h2>05｜前置紀錄時間紀錄</h2><table class="print-table"><thead><tr><th>項次</th><th>作業項目</th><th>開始時間</th><th>完成時間</th></tr></thead><tbody>${phaseRows}</tbody></table></section>${printFooter()}`;
+    <section class="print-section"><h2>05｜前置紀錄時間紀錄</h2><table class="print-table prework-print-table"><thead><tr><th>項次</th><th>作業項目</th><th>作業日期</th><th>開始時間</th><th>完成時間</th></tr></thead><tbody>${phaseRows}</tbody></table></section>
+    <p class="print-table-note">跨午夜的時間以 24 時以後接續表示（例：24:20＝翌日 00:20）。</p>${printFooter()}`;
 
   const pouringRows = truckRows.length ? truckRows.map(row => `<tr>
-    <td>${row.index + 1}</td><td>${esc(row.truckNo)}</td><td class="time-cell">${esc(display(row.dispatch))}</td><td class="time-cell">${esc(row.unload)}</td><td class="time-cell">${esc(row.finish)}</td><td>${esc(row.slumpLabel)}</td><td>${fixed(row.volume)}</td><td>${fixed(row.cumulative)}</td><td>${fixed(row.expected)}</td><td>${fixed(row.measured)}</td><td>${row.minutes === null ? "—" : row.minutes}</td>
+    <td>${row.index + 1}</td><td>${esc(row.truckNo)}</td><td class="time-cell">${esc(row.dispatch30)}</td><td class="time-cell">${esc(row.unload30)}</td><td class="time-cell">${esc(row.finish30)}</td><td>${esc(row.slumpLabel)}</td><td>${fixed(row.volume)}</td><td>${fixed(row.cumulative)}</td><td>${fixed(row.expected)}</td><td>${fixed(row.measured)}</td><td>${row.minutes === null ? "—" : row.minutes}</td>
   </tr>`).join("") : `<tr><td colspan="11" class="print-empty">尚無澆置紀錄</td></tr>`;
-  $("#print-pouring").innerHTML = `${printHeader("澆置紀錄", "06")}
+  $("#print-pouring").innerHTML = `${printHeader("澆置紀錄", "06", state.overview.project, null, { date: state.dates.pouring }, { date: "澆置日期" })}
     <div class="pouring-layout">
       <div class="pouring-wall-full">${printWallInfo()}</div>
       <div class="pouring-main-layout"><div class="pouring-table-column"><section class="print-section"><h2>澆置主控摘要</h2><div class="print-summary">
@@ -923,10 +982,10 @@ function renderPrint() {
         <div><span>逐車累積量(m³)</span><strong>${fixed(lastTruck?.cumulative ?? 0)}</strong></div>
         <div><span>設計／實際數量(m³)</span><strong>${esc(display(state.wall.designVolume))} ／ ${esc(display(state.wall.actualVolume))}</strong></div>
         <div><span>預估／實測／差異(m)</span><strong>${fixed(lastTruck?.expected ?? null)} ／ ${fixed(lastTruck?.measured ?? null)} ／ ${fixed(lastTruck?.difference ?? null)}</strong></div>
-      </div></section><section class="print-section pouring-table-section"><h2>逐車混凝土澆置紀錄</h2><table class="print-table"><thead><tr><th>車次</th><th>車號</th><th>出廠</th><th>卸料</th><th>結束</th><th>坍度(cm)</th><th>方量(m³)</th><th>累積(m³)</th><th>預估高(m)</th><th>實際高(m)</th><th>澆置時間(分)</th></tr></thead><tbody>${pouringRows}</tbody></table></section></div><section class="print-section pouring-chart-section"><h2>澆置高度曲線</h2>${pouringChartSvg(truckRows)}</section></div></div>${printFooter()}`;
+      </div></section><section class="print-section pouring-table-section"><h2>逐車混凝土澆置紀錄</h2><table class="print-table"><thead><tr><th>車次</th><th>車號</th><th>出廠</th><th>卸料</th><th>結束</th><th>坍度(cm)</th><th>方量(m³)</th><th>累積(m³)</th><th>預估高(m)</th><th>實際高(m)</th><th>澆置時間(分)</th></tr></thead><tbody>${pouringRows}</tbody></table><p class="print-table-note">跨午夜的時間以 24 時以後接續表示（例：25:30＝翌日 01:30）；澆置時間＝結束 − 出廠。</p></section></div><section class="print-section pouring-chart-section"><h2>澆置高度曲線</h2>${pouringChartSvg(truckRows)}</section></div></div>${printFooter()}`;
 
   const guideWallRows = state.guideWall.checks.map((check, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(check.item)}</td><td class="text-left">${esc(check.standard)}</td><td class="text-left">${esc(guideCheckActual(check))}</td><td>${esc(check.result)}</td></tr>`).join("");
-  $("#print-guide-wall").innerHTML = `${printHeader("導溝施工複核表", "07", state.overview.project, state.guideWall.unitNo || "未指定單元", { project: state.overview.project, contractor: state.overview.contractor, date: state.guideWall.date, reviewer: state.guideWall.reviewer })}
+  $("#print-guide-wall").innerHTML = `${printHeader("導溝施工複核表", "07", state.overview.project, state.guideWall.unitNo || "未指定單元", { project: state.overview.project, contractor: state.overview.contractor, date: state.guideWall.date, reviewer: state.guideWall.reviewer }, { date: "複核日期", reviewer: "營造廠複核人" })}
     <section class="print-section"><h2>導溝資料</h2><div class="print-meta-grid three">
       <div><span>單元編號</span><strong>${esc(display(state.guideWall.unitNo))}</strong></div>
       <div><span>複核意見</span><strong>${esc(display(state.guideWall.note))}</strong></div>
@@ -935,7 +994,7 @@ function renderPrint() {
 
   const rebarRows = state.rebarCage.rebars.length ? state.rebarCage.rebars.map((rebar, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(rebar.part)}</td><td>${esc(display(rebar.designNo))}</td><td>${esc(display(rebar.designQty))}</td><td>${esc(display(rebar.actualNo))}</td><td>${esc(display(rebar.actualQty))}</td><td>${esc(rebar.result)}</td></tr>`).join("") : `<tr><td colspan="7" class="print-empty">尚無配筋項目</td></tr>`;
   const rebarCageRows = state.rebarCage.checks.map((check, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(check.item)}</td><td class="text-left">${esc(check.standard)}</td><td class="text-left">${esc(display(check.actual))}</td><td>${esc(check.result)}</td></tr>`).join("");
-  $("#print-rebar-cage").innerHTML = `${printHeader("鋼筋籠吊放前複核表", "08", state.overview.project, [state.rebarCage.unitNo, state.rebarCage.cageNo].filter(Boolean).join("｜") || "未指定鋼筋籠", { project: state.overview.project, contractor: state.overview.contractor, date: state.rebarCage.date, reviewer: state.rebarCage.reviewer })}
+  $("#print-rebar-cage").innerHTML = `${printHeader("鋼筋籠吊放前複核表", "08", state.overview.project, [state.rebarCage.unitNo, state.rebarCage.cageNo].filter(Boolean).join("｜") || "未指定鋼筋籠", { project: state.overview.project, contractor: state.overview.contractor, date: state.rebarCage.date, reviewer: state.rebarCage.reviewer }, { date: "複核日期", reviewer: "營造廠複核人" })}
     <section class="print-section"><h2>鋼筋籠資料</h2><div class="print-meta-grid three compact-meta">
       <div><span>單元編號</span><strong>${esc(display(state.rebarCage.unitNo))}</strong></div>
       <div><span>鋼筋籠編號</span><strong>${esc(display(state.rebarCage.cageNo))}</strong></div>
@@ -953,7 +1012,9 @@ function setPdfDocumentTitle(scope) {
       ? state.guideWall.unitNo
       : state.rebarCage.unitNo || state.rebarCage.cageNo;
   const pageName = currentExportLabel(activeTool, activeTab);
-  const date = state.overview.date || today;
+  const group = PRINT_TAB_GROUPS[activeTab];
+  const pageDate = activeTool !== "diaphragmWall" ? null : scope === "all" ? recordDates().at(-1) : group === "pouring" ? state.dates.pouring : group === "excavation-prework" ? state.dates.excavationStart : recordDates().at(-1);
+  const date = pageDate || (activeTool === "guideWall" ? state.guideWall.date : activeTool === "rebarCage" ? state.rebarCage.date : "") || today;
   const parts = [toolName, recordId, scope === "all" ? "完整檢核紀錄" : pageName, date]
     .filter(Boolean)
     .map(value => safeFilePart(value, ""));
@@ -993,11 +1054,14 @@ function exportData() {
   const height = designHeight();
   const designVolume = calculatedDesignVolume();
   const depthDesign = toNumberOrNull(state.wall.designDepth);
+  const soilTimes = sequence30(state.soil.map(record => record.time));
+  const depthTimes = sequence30(state.depth.map(record => record.time));
   const depthChecks = state.depth.map((record, index) => {
     const depth = toNumberOrNull(record.value);
     return {
       sequence: index + 1,
       confirmation_time: record.time || null,
+      confirmation_time_30h: depthTimes[index] || null,
       depth_m: depth,
       design_difference_m: depth !== null && depthDesign !== null ? depth - depthDesign : null
     };
@@ -1008,6 +1072,9 @@ function exportData() {
     dispatch_time: row.dispatch || null,
     unload_time: row.unload || null,
     finish_time: row.finish || null,
+    dispatch_time_30h: row.dispatch30 || null,
+    unload_time_30h: row.unload30 || null,
+    finish_time_30h: row.finish30 || null,
     pour_minutes: row.minutes,
     slump_test_no: row.slumpNo,
     slump_cm: toNumberOrNull(row.slump),
@@ -1025,7 +1092,7 @@ function exportData() {
 
   return {
     app_version: APP_VERSION,
-    schema_version: "1.1",
+    schema_version: "1.2",
     record_type: "diaphragm_wall_field_record",
     exported_at: new Date().toISOString(),
     export_context: {
@@ -1036,7 +1103,8 @@ function exportData() {
     project: {
       name: state.overview.project || null,
       contractor: state.overview.contractor || null,
-      construction_date: state.overview.date || null,
+      construction_date: state.dates.pouring || recordDates().at(-1) || null, // 相容舊欄位：以澆置日期代表
+      construction_period: { start: recordDates()[0] || null, end: recordDates().at(-1) || null },
       form_filler: state.overview.reviewer || null
     },
     wall_unit: {
@@ -1053,16 +1121,21 @@ function exportData() {
       actual_volume_m3: toNumberOrNull(state.wall.actualVolume)
     },
     excavation: {
-      soil_records: state.soil.map((record, index) => ({ sequence: index + 1, time: record.time || null })),
+      start_date: state.dates.excavationStart || null,
+      end_date: state.dates.excavationEnd || null,
+      soil_records: state.soil.map((record, index) => ({ sequence: index + 1, time: record.time || null, time_30h: soilTimes[index] || null })),
       depth_confirmations: depthChecks
     },
     prework: PHASES.map(phase => ({
       phase_id: phase.id,
       phase_name: phase.label,
+      date: state.prework[phase.id].date || null,
       start_time: state.prework[phase.id].start || null,
-      finish_time: state.prework[phase.id].end || null
+      finish_time: state.prework[phase.id].end || null,
+      finish_time_30h: phaseTimes(phase).end || null
     })),
     pouring: {
+      date: state.dates.pouring || null,
       trucks,
       total_trucks: trucks.length,
       cumulative_volume_m3: trucks.at(-1)?.cumulative_volume_m3 ?? 0,
@@ -1132,7 +1205,7 @@ function safeFilePart(value, fallback) {
 
 function exportFileName(extension) {
   const recordId = safeFilePart(state.wall.unitNo || state.guideWall.unitNo || state.rebarCage.unitNo, "");
-  const date = safeFilePart(state.overview.date || today, today);
+  const date = safeFilePart(recordDates().at(-1) || today, today);
   return `${["diaphragm-wall", recordId, date].filter(Boolean).join("-")}.${extension}`;
 }
 
@@ -1162,13 +1235,13 @@ function exportMarkdown() {
     `- APP 版本：${data.app_version}`,
     `- 資料版本：${data.schema_version}`,
     ``,
-    `## 工程概要`,
+    `## 工程資訊`,
     ``,
     `| 欄位 | 內容 |`,
     `| --- | --- |`,
     `| 工程名稱 | ${markdownCell(data.project.name)} |`,
     `| 施工廠商 | ${markdownCell(data.project.contractor)} |`,
-    `| 施工日期 | ${markdownCell(data.project.construction_date)} |`,
+    `| 施工期間 | ${markdownCell(dateRangeText(data.project.construction_period.start, data.project.construction_period.end))} |`,
     `| 填表人 | ${markdownCell(data.project.form_filler)} |`,
     ``,
     `## 壁體資訊`,
@@ -1189,29 +1262,34 @@ function exportMarkdown() {
     ``,
     `## 開挖紀錄`,
     ``,
+    `- 開挖日期：${markdownCell(dateRangeText(data.excavation.start_date, data.excavation.end_date))}`,
+    `- 跨午夜的時間以 24 時以後接續表示（例：24:20＝翌日 00:20）`,
+    ``,
     `### 出土紀錄`,
     ``,
     `| 次數 | 時間 |`,
     `| --- | --- |`,
-    ...(data.excavation.soil_records.length ? data.excavation.soil_records.map(record => `| ${record.sequence} | ${markdownCell(record.time)} |`) : [`| — | 尚無紀錄 |`]),
+    ...(data.excavation.soil_records.length ? data.excavation.soil_records.map(record => `| ${record.sequence} | ${markdownCell(record.time_30h)} |`) : [`| — | 尚無紀錄 |`]),
     ``,
     `### 深度確認`,
     ``,
     `| 次數 | 確認時間 | 深度（m） | 與設計差異（m） |`,
     `| --- | --- | ---: | ---: |`,
-    ...(data.excavation.depth_confirmations.length ? data.excavation.depth_confirmations.map(record => `| ${record.sequence} | ${markdownCell(record.confirmation_time)} | ${markdownCell(record.depth_m)} | ${markdownCell(record.design_difference_m)} |`) : [`| — | 尚無紀錄 | — | — |`]),
+    ...(data.excavation.depth_confirmations.length ? data.excavation.depth_confirmations.map(record => `| ${record.sequence} | ${markdownCell(record.confirmation_time_30h)} | ${markdownCell(record.depth_m)} | ${markdownCell(record.design_difference_m)} |`) : [`| — | 尚無紀錄 | — | — |`]),
     ``,
     `## 前置紀錄`,
     ``,
-    `| 作業項目 | 開始時間 | 完成時間 |`,
-    `| --- | --- | --- |`,
-    ...data.prework.map(record => `| ${markdownCell(record.phase_name)} | ${markdownCell(record.start_time)} | ${markdownCell(record.finish_time)} |`),
+    `| 作業項目 | 作業日期 | 開始時間 | 完成時間 |`,
+    `| --- | --- | --- | --- |`,
+    ...data.prework.map(record => `| ${markdownCell(record.phase_name)} | ${markdownCell(record.date)} | ${markdownCell(record.start_time)} | ${markdownCell(record.finish_time_30h)} |`),
     ``,
     `## 澆置紀錄`,
     ``,
+    `- 澆置日期：${markdownCell(data.pouring.date)}`,
+    ``,
     `| 車次 | 車號 | 出廠 | 卸料 | 結束 | 坍度（cm） | 方量（m³） | 累積（m³） | 預估高（m） | 實際高（m） | 澆置時間（分） |`,
     `| ---: | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |`,
-    ...(data.pouring.trucks.length ? data.pouring.trucks.map(record => `| ${record.sequence} | ${markdownCell(record.truck_no)} | ${markdownCell(record.dispatch_time)} | ${markdownCell(record.unload_time)} | ${markdownCell(record.finish_time)} | ${markdownCell(record.slump_test_no === null ? "" : `（試${record.slump_test_no}）${record.slump_cm}`)} | ${markdownCell(record.volume_m3)} | ${markdownCell(record.cumulative_volume_m3)} | ${markdownCell(record.design_height_m)} | ${markdownCell(record.measured_height_m)} | ${markdownCell(record.pour_minutes)} |`) : [`| — | 尚無紀錄 | — | — | — | — | — | — | — | — | — |`]),
+    ...(data.pouring.trucks.length ? data.pouring.trucks.map(record => `| ${record.sequence} | ${markdownCell(record.truck_no)} | ${markdownCell(record.dispatch_time_30h)} | ${markdownCell(record.unload_time_30h)} | ${markdownCell(record.finish_time_30h)} | ${markdownCell(record.slump_test_no === null ? "" : `（試${record.slump_test_no}）${record.slump_cm}`)} | ${markdownCell(record.volume_m3)} | ${markdownCell(record.cumulative_volume_m3)} | ${markdownCell(record.design_height_m)} | ${markdownCell(record.measured_height_m)} | ${markdownCell(record.pour_minutes)} |`) : [`| — | 尚無紀錄 | — | — | — | — | — | — | — | — | — |`]),
     ``,
     `## 品質自檢`,
     ``,
@@ -1322,8 +1400,14 @@ function importJsonPayload(payload) {
   state.overview = {
     project: importText(project.name) || importText(guideWall.project) || importText(rebarCage.project),
     contractor: importText(project.contractor) || importText(guideWall.contractor),
-    date: importText(project.construction_date),
     reviewer: importText(project.form_filler)
+  };
+  // 舊版只有一個 construction_date：沒有分頁日期的欄位一律回填它
+  const legacyDate = importText(project.construction_date);
+  state.dates = {
+    excavationStart: importText(excavation.start_date) || legacyDate,
+    excavationEnd: importText(excavation.end_date),
+    pouring: importText(pouring.date) || legacyDate
   };
   state.wall = {
     unitType: importText(wall.unit_type),
@@ -1345,7 +1429,7 @@ function importJsonPayload(payload) {
     .filter(record => record.time || record.value);
   state.prework = Object.fromEntries(PHASES.map(phase => {
     const record = prework.find(item => item.phase_id === phase.id) || {};
-    return [phase.id, { start: importText(record.start_time), end: importText(record.finish_time) }];
+    return [phase.id, { date: importText(record.date) || legacyDate, start: importText(record.start_time), end: importText(record.finish_time) }];
   }));
   state.trucks = (Array.isArray(pouring.trucks) ? pouring.trucks : []).map(record => ({
     truckNo: importText(record.truck_no),
@@ -1395,7 +1479,7 @@ function importJsonPayload(payload) {
 
   const context = payload.export_context || {};
   const importedTool = ["diaphragmWall", "guideWall", "rebarCage"].includes(context.active_tool) ? context.active_tool : "diaphragmWall";
-  const importedTab = TAB_LABELS[context.active_tab] ? context.active_tab : "overview";
+  const importedTab = TAB_LABELS[context.active_tab] ? context.active_tab : "wall";
   setInitialInputs();
   setChecklistInputs();
   setQualityInputs();
@@ -1439,7 +1523,7 @@ function initialize() {
   renderPhaseEditor();
   renderAll();
   syncAllDateTimeDisplays();
-  showTab("overview");
+  showTab("wall");
 
   document.addEventListener("input", event => {
     if (event.target.matches('input[type="date"], input[type="time"]')) syncDateTimeDisplay(event.target);

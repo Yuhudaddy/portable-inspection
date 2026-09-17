@@ -6,6 +6,9 @@
   "compatibility_date": "2026-09-17",
   "assets": {
     "directory": "./",
+    // 不要把 /xxx.html 轉址成 /xxx：App 內連結、Service Worker 快取鍵、manifest 都用 .html 網址，
+    // 要和 GitHub Pages 行為一致。根路徑 / 由 _redirects 改寫成 index.html。
+    "html_handling": "none",
     "not_found_handling": "404-page"
   },
   "preview_urls": true

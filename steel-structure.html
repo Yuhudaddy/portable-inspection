@@ -35,19 +35,19 @@
       </div>
 
       <nav class="tab-navigation steel-tabs" aria-label="鋼構複核分頁">
-        <div class="tab-row tab-row-two" role="tablist" aria-label="基本資料與進場">
+        <div class="tab-row" role="tablist" aria-label="基本資料與進場">
           <button id="tab-overview" role="tab" type="button" data-tab="overview" aria-controls="panel-overview" aria-selected="true" tabindex="0">工程概要</button>
           <button id="tab-delivery" role="tab" type="button" data-tab="delivery" aria-controls="panel-delivery" aria-selected="false" tabindex="-1">構件進場</button>
         </div>
-        <div class="tab-row tab-row-two" role="tablist" aria-label="柱腳與吊裝">
+        <div class="tab-row" role="tablist" aria-label="柱腳與吊裝">
           <button id="tab-anchor" role="tab" type="button" data-tab="anchor" aria-controls="panel-anchor" aria-selected="false" tabindex="-1">基礎螺栓／柱腳</button>
           <button id="tab-erection" role="tab" type="button" data-tab="erection" aria-controls="panel-erection" aria-selected="false" tabindex="-1">吊裝／臨時固定</button>
         </div>
-        <div class="tab-row tab-row-two" role="tablist" aria-label="接合與精度">
+        <div class="tab-row" role="tablist" aria-label="接合與精度">
           <button id="tab-hsb" role="tab" type="button" data-tab="hsb" aria-controls="panel-hsb" aria-selected="false" tabindex="-1">高強度螺栓</button>
           <button id="tab-welding" role="tab" type="button" data-tab="welding" aria-controls="panel-welding" aria-selected="false" tabindex="-1">現場銲接</button>
         </div>
-        <div class="tab-row tab-row-two" role="tablist" aria-label="安裝精度">
+        <div class="tab-row" role="tablist" aria-label="安裝精度">
           <button id="tab-accuracy" role="tab" type="button" data-tab="accuracy" aria-controls="panel-accuracy" aria-selected="false" tabindex="-1">安裝精度</button>
           <button id="tab-optional" role="tab" type="button" data-tab="optional" aria-controls="panel-optional" aria-selected="false" tabindex="-1">選用項目</button>
         </div>
@@ -189,7 +189,7 @@
     </aside>
 
     <dialog class="sheet-dialog help-dialog" id="help-dialog">
-      <div class="dialog-header"><div><span>HELP</span><h2>使用說明</h2></div><button type="button" data-close-dialog aria-label="關閉使用說明">×</button></div>
+      <div class="dialog-header"><div><span class="dialog-eyebrow">HELP</span><h2>使用說明</h2></div><button type="button" data-close-dialog aria-label="關閉使用說明">×</button></div>
       <div class="dialog-body help-content">
         <ol class="help-steps">
           <li><strong>依分頁順序填</strong><span>工程概要 → 構件進場 → 柱腳 → 吊裝 → 螺栓 → 銲接 → 精度</span></li>
@@ -208,14 +208,14 @@
     </dialog>
 
     <dialog class="sheet-dialog" id="clear-dialog">
-      <div class="dialog-header"><div><span>CLEAR RECORD</span><h2>清空全部資料</h2></div><button type="button" data-close-dialog aria-label="關閉">×</button></div>
+      <div class="dialog-header"><div><span class="dialog-eyebrow">CLEAR RECORD</span><h2>清空全部資料</h2></div><button type="button" data-close-dialog aria-label="關閉">×</button></div>
       <div class="dialog-body clear-confirmation"><p>將清除本頁鋼構複核資料，且無法復原。</p></div>
       <div class="dialog-actions"><button class="secondary-button" type="button" data-close-dialog>取消</button><button class="confirm-button danger-button" id="confirm-clear" type="button">確認清空</button></div>
     </dialog>
 
     <dialog class="sheet-dialog" id="delivery-dialog">
       <form id="delivery-form" novalidate>
-        <div class="dialog-header"><div><span>DELIVERY</span><h2 id="delivery-dialog-title">新增進場構件</h2></div><button type="button" data-close-dialog aria-label="關閉">×</button></div>
+        <div class="dialog-header"><div><span class="dialog-eyebrow">DELIVERY</span><h2 id="delivery-dialog-title">新增進場構件</h2></div><button type="button" data-close-dialog aria-label="關閉">×</button></div>
         <div class="dialog-body compact-form two-fields">
           <label class="field"><span>構件類型</span><select id="delivery-type"><option>鋼柱</option><option>鋼梁</option><option>其他附件</option></select></label>
           <label class="field"><span>構件編號</span><input id="delivery-member" type="text" required /></label>
@@ -243,7 +243,7 @@
     </dialog>
 
     <dialog class="sheet-dialog export-dialog" id="export-dialog">
-      <div class="dialog-header"><div><span>FILE</span><h2>輸出</h2></div><button type="button" data-close-dialog aria-label="關閉">×</button></div>
+      <div class="dialog-header"><div><span class="dialog-eyebrow">FILE</span><h2>輸出</h2></div><button type="button" data-close-dialog aria-label="關閉">×</button></div>
       <div class="dialog-body export-options">
         <section class="export-option-group"><h3>PDF</h3><button type="button" data-export-format="pdf-current"><span>輸出目前表單</span><strong id="export-current-label">工程概要</strong></button><button type="button" data-export-format="pdf-all"><span>輸出完整複核紀錄</span><strong>鋼構施工複核表</strong><small>含工程概要及所有核心分頁</small></button></section>
         <section class="export-option-group"><h3>資料檔</h3><button type="button" data-export-format="json"><span>匯出結構化資料</span><strong>JSON</strong><small>適合後續資料庫匯入</small></button></section>

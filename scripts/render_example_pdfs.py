@@ -24,7 +24,7 @@ TARGETS = [
     ("diaphragm-wall.html", "diaphragm-wall-example.pdf", "showTool('diaphragmWall'); showTab('quality');", "all", "連續壁施工紀錄"),
     ("diaphragm-wall.html", "guide-wall-example.pdf", "showTool('guideWall');", "current", "導溝施工複核"),
     ("diaphragm-wall.html", "rebar-cage-example.pdf", "showTool('rebarCage');", "current", "鋼筋籠吊放前複核"),
-    ("diaphragm-wall-gc.html", "diaphragm-wall-gc-example.pdf", "showTool('inspection'); showTab('overview');", "all", "連續壁營造廠查驗"),
+    ("diaphragm-wall-gc.html", "diaphragm-wall-gc-example.pdf", "showTool('inspection'); showTab('design');", "all", "連續壁營造廠查驗"),
     ("diaphragm-wall-gc.html", "gc-guide-wall-example.pdf", "showTool('guideWall');", "current", "導溝施工複核"),
     ("diaphragm-wall-gc.html", "gc-rebar-cage-example.pdf", "showTool('rebarCage');", "current", "鋼筋籠吊放前複核"),
     ("template.html", "template-example.pdf", "", "all", "模板工程複核表"),

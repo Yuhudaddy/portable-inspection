@@ -87,7 +87,6 @@ const esc = value => String(value ?? "")
   .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
   .replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 const display = value => String(value ?? "").trim() || "—";
-const printText = value => String(value ?? "").trim(); // PDF 用：未填就留白，不印「—」
 
 // 三段式結果膠囊：以隱藏 radio + 相鄰 span 呈現（沿用既有 .unit-type 手法）。
 // 未勾選任一段＝原本下拉選單的「待確認」狀態；點選其一會如同 <select> 觸發 change，
@@ -236,9 +235,6 @@ function printHeader(title, sequence, identity = "尚未指定構件") {
   return `<header class="print-document-header"><div class="print-header-title"><p>STEEL STRUCTURE FIELD REVIEW / ${sequence}</p><h1>${esc(title)}</h1></div><div class="print-header-meta-body"><div class="print-header-project-lines"><div><span>工程名稱：</span><strong>${esc(display(project.project))}</strong></div><div><span>施工日期：</span><strong>${esc(display(project.date))}</strong></div><div><span>施工廠商：</span><strong>${esc(display(project.contractor))}</strong></div><div><span>填表人：</span><strong>${esc(display(project.reviewer))}</strong></div></div></div><div class="print-header-logo-wrap"><img class="print-logo" src="./taisei.png" alt="大成建設標誌" /><strong class="print-header-identity">${esc(id)}</strong></div></header>`;
 }
 
-function printFooter() {
-  return `<footer class="print-footer"><div class="print-signature-grid" aria-label="簽名欄"><div><span>所長</span><span aria-hidden="true"></span></div><div><span>副所長</span><span aria-hidden="true"></span></div><div><span>擔當者</span><span aria-hidden="true"></span></div></div></footer>`;
-}
 
 function printMeta(fields) {
   const display = printText;
@@ -305,12 +301,8 @@ function downloadText(content, mimeType, filename) {
 
 function setPdfDocumentTitle(scope) {
   const identity = state.accuracy.memberNo || state.anchor.location || state.hsb.location || state.welding.location || state.delivery.batch;
-  const parts = ["鋼構施工複核表", identity, scope === "all" ? "完整檢核紀錄" : TABS[activeTab], state.overview.date || today]
-    .filter(Boolean)
-    .map(value => String(value).trim().replace(/[\\/:*?"<>|\s]+/g, "-").replace(/-+/g, "-"));
-  const previousTitle = document.title;
-  document.title = parts.join("_");
-  window.addEventListener("afterprint", () => { document.title = previousTitle; }, { once: true });
+  const parts = ["鋼構施工複核表", identity, scope === "all" ? "完整檢核紀錄" : TABS[activeTab], state.overview.date || today];
+  setPrintDocumentTitle(parts);
 }
 
 function preparePrint(scope) {
@@ -393,9 +385,7 @@ function initialize() {
     }
   });
 
-  // 會改到 state 的互動都經過這三種事件；「確認清空」那一下除外，否則剛刪掉的草稿又會被寫回。
-  ["input", "change", "submit"].forEach(type => document.addEventListener(type, () => draft.schedule()));
-  document.addEventListener("click", event => { if (!event.target.closest("#confirm-clear")) draft.schedule(); });
+  draft.watch();
 
   $("#help-button").addEventListener("click", () => $("#help-dialog").showModal());
   $("#clear-button").addEventListener("click", () => $("#clear-dialog").showModal());

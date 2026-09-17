@@ -48,11 +48,11 @@
 
       <section class="tool-view" id="tool-inspection" data-tool-view="inspection">
         <nav class="tab-navigation" aria-label="查驗紀錄分頁">
-          <div class="tab-row tab-row-two" role="tablist" aria-label="基本資料">
+          <div class="tab-row" role="tablist" aria-label="基本資料">
             <button id="tab-design" role="tab" type="button" data-tab="design" aria-controls="panel-design" aria-selected="true" tabindex="0">設計基準</button>
             <button id="tab-result" role="tab" type="button" data-tab="result" aria-controls="panel-result" aria-selected="false" tabindex="-1">監測結論</button>
           </div>
-          <div class="tab-row tab-row-three" role="tablist" aria-label="關鍵停檢點">
+          <div class="tab-row" role="tablist" aria-label="關鍵停檢點">
             <button id="tab-hold1" role="tab" type="button" data-tab="hold1" aria-controls="panel-hold1" aria-selected="false" tabindex="-1">成槽放行</button>
             <button id="tab-hold2" role="tab" type="button" data-tab="hold2" aria-controls="panel-hold2" aria-selected="false" tabindex="-1">吊放放行</button>
             <button id="tab-hold3" role="tab" type="button" data-tab="hold3" aria-controls="panel-hold3" aria-selected="false" tabindex="-1">澆置成品</button>
@@ -99,10 +99,10 @@
           <section class="tab-panel" id="panel-hold1" role="tabpanel" aria-labelledby="tab-hold1" hidden>
             <div class="panel-heading">
               <div><span>停檢點1</span><h2>成槽放行</h2></div>
+              <p>導溝放樣與成槽洗孔檢驗</p>
+            </div>
             <div class="form-grid checklist-meta-grid record-date-grid">
               <label class="field span-two"><span>查驗日期</span><span class="native-field-wrap"><input type="date" data-bind="holdDates.hold1" /><span class="native-field-display" aria-hidden="true"></span></span></label>
-            </div>
-              <p>導溝放樣與成槽洗孔檢驗</p>
             </div>
             <dl class="check-progress" aria-live="polite">
               <div><dt>已完成查驗</dt><dd id="hold1-progress">0 / 0</dd></div>
@@ -115,10 +115,10 @@
           <section class="tab-panel" id="panel-hold2" role="tabpanel" aria-labelledby="tab-hold2" hidden>
             <div class="panel-heading">
               <div><span>停檢點2</span><h2>吊放放行</h2></div>
+              <p>鋼筋籠組裝、預埋件與監測儀器</p>
+            </div>
             <div class="form-grid checklist-meta-grid record-date-grid">
               <label class="field span-two"><span>查驗日期</span><span class="native-field-wrap"><input type="date" data-bind="holdDates.hold2" /><span class="native-field-display" aria-hidden="true"></span></span></label>
-            </div>
-              <p>鋼筋籠組裝、預埋件與監測儀器</p>
             </div>
             <dl class="check-progress" aria-live="polite">
               <div><dt>已完成查驗</dt><dd id="hold2-progress">0 / 0</dd></div>
@@ -131,10 +131,10 @@
           <section class="tab-panel" id="panel-hold3" role="tabpanel" aria-labelledby="tab-hold3" hidden>
             <div class="panel-heading">
               <div><span>停檢點3</span><h2>澆置成品</h2></div>
+              <p>特密混凝土澆置與成品檢驗</p>
+            </div>
             <div class="form-grid checklist-meta-grid record-date-grid">
               <label class="field span-two"><span>查驗日期</span><span class="native-field-wrap"><input type="date" data-bind="holdDates.hold3" /><span class="native-field-display" aria-hidden="true"></span></span></label>
-            </div>
-              <p>特密混凝土澆置與成品檢驗</p>
             </div>
             <dl class="check-progress" aria-live="polite">
               <div><dt>已完成查驗</dt><dd id="hold3-progress">0 / 0</dd></div>
@@ -147,10 +147,10 @@
           <section class="tab-panel" id="panel-result" role="tabpanel" aria-labelledby="tab-result" hidden>
             <div class="panel-heading">
               <div><span>停檢點4</span><h2>監測與結論</h2></div>
+              <p>周邊環境監測查核與放行簽認</p>
+            </div>
             <div class="form-grid checklist-meta-grid record-date-grid">
               <label class="field span-two"><span>查驗日期</span><span class="native-field-wrap"><input type="date" data-bind="holdDates.hold4" /><span class="native-field-display" aria-hidden="true"></span></span></label>
-            </div>
-              <p>周邊環境監測查核與放行簽認</p>
             </div>
             <dl class="check-progress" aria-live="polite">
               <div><dt>已完成查驗</dt><dd id="hold4-progress">0 / 0</dd></div>
@@ -194,7 +194,7 @@
 
       <section class="tool-view" id="tool-rebar-cage" data-tool-view="rebarCage" hidden>
         <nav class="tab-navigation" aria-label="鋼筋籠複核分頁">
-          <div class="tab-row tab-row-three" role="tablist" aria-label="鋼筋籠吊放前複核">
+          <div class="tab-row" role="tablist" aria-label="鋼筋籠吊放前複核">
             <button id="tab-cage-meta" role="tab" type="button" data-tab="cage-meta" aria-controls="panel-cage-meta" aria-selected="true" tabindex="0">基本資料</button>
             <button id="tab-cage-rebar" role="tab" type="button" data-tab="cage-rebar" aria-controls="panel-cage-rebar" aria-selected="false" tabindex="-1">配筋抽查明細</button>
             <button id="tab-cage-check" role="tab" type="button" data-tab="cage-check" aria-controls="panel-cage-check" aria-selected="false" tabindex="-1">組裝與吊放條件</button>
@@ -249,7 +249,7 @@
     </aside>
 
     <dialog class="sheet-dialog help-dialog help-dialog-compact" id="help-dialog">
-      <div class="dialog-header"><div><span>HELP</span><h2>使用說明</h2></div><button type="button" data-close-dialog aria-label="關閉使用說明">×</button></div>
+      <div class="dialog-header"><div><span class="dialog-eyebrow">HELP</span><h2>使用說明</h2></div><button type="button" data-close-dialog aria-label="關閉使用說明">×</button></div>
       <div class="dialog-body help-content">
         <ol class="help-steps">
           <li><strong>填基本資料</strong><span>填「工程資訊」，選「導溝／鋼筋籠／連續壁」</span></li>
@@ -269,7 +269,7 @@
     </dialog>
 
     <dialog class="sheet-dialog" id="clear-dialog">
-      <div class="dialog-header"><div><span>CLEAR RECORD</span><h2>清空全部資料</h2></div><button type="button" data-close-dialog aria-label="關閉">×</button></div>
+      <div class="dialog-header"><div><span class="dialog-eyebrow">CLEAR RECORD</span><h2>清空全部資料</h2></div><button type="button" data-close-dialog aria-label="關閉">×</button></div>
       <div class="dialog-body clear-confirmation">
         <p>將清除「連續壁、導溝、鋼筋籠」三種表單的所有輸入內容，且無法復原。</p>
       </div>
@@ -278,7 +278,7 @@
 
     <dialog class="sheet-dialog" id="rebar-dialog">
       <form id="rebar-form" novalidate>
-        <div class="dialog-header"><div><span>REBAR CHECK</span><h2 id="rebar-dialog-title">填寫抽查項目</h2></div><button type="button" data-close-dialog aria-label="關閉">×</button></div>
+        <div class="dialog-header"><div><span class="dialog-eyebrow">REBAR CHECK</span><h2 id="rebar-dialog-title">填寫抽查項目</h2></div><button type="button" data-close-dialog aria-label="關閉">×</button></div>
         <div class="dialog-body compact-form two-fields">
           <label class="field span-two"><span>位置／用途</span><input id="rebar-part" type="text" required /></label>
           <label class="field"><span>設計鋼筋號數</span><input id="rebar-design-no" type="text" placeholder="例如：D32" /></label>
@@ -296,7 +296,7 @@
     </dialog>
 
     <dialog class="sheet-dialog export-dialog" id="export-dialog">
-      <div class="dialog-header"><div><span>FILE</span><h2>檔案處理</h2></div><button type="button" data-close-dialog aria-label="關閉">×</button></div>
+      <div class="dialog-header"><div><span class="dialog-eyebrow">FILE</span><h2>檔案處理</h2></div><button type="button" data-close-dialog aria-label="關閉">×</button></div>
       <div class="dialog-body export-options">
         <section class="export-option-group">
           <h3>PDF</h3>

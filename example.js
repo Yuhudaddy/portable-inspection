@@ -19,7 +19,7 @@
       const entry = manifest[name];
       if (!entry) throw new Error("找不到範例");
       document.title = `${entry.title}｜範例輸出｜Portable Inspection`;
-      back.href = `./${entry.back.replace(/\.html$/, "")}`;
+      back.href = `./${entry.back}`;
       pdf.href = `./examples/${name}.pdf`;
       pdf.hidden = false;
       status.remove();

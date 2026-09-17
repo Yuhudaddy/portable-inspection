@@ -721,8 +721,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   padding: 16px 18px;
   border-bottom: 1px solid var(--line);
 }
-/* 眉標（CONCRETE／HELP）只限 div 的直接子 span，h2 裡另外包的 span 不受影響 */
-.dialog-header > div > span { font-family: var(--glass-font-num); color: var(--glass-accent); font-size: 0.625rem; font-weight: 800; letter-spacing: 0.12em; }
+.dialog-eyebrow { font-family: var(--glass-font-num); color: var(--glass-accent); font-size: 0.625rem; font-weight: 800; letter-spacing: 0.12em; }
 .dialog-header h2 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin: 2px 0 0; font-size: 1rem; font-weight: 600; }
 .dialog-header h2 small { color: var(--glass-muted); font-family: var(--glass-font-num); font-size: 0.75rem; font-weight: 500; white-space: nowrap; }
 .dialog-header > button {
@@ -825,9 +824,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   color: var(--glass-ink);
   text-decoration: none;
 }
-.example-button-split { display: block; padding: 0; }
-.example-button-split a { display: grid; gap: 2px; min-height: 44px; padding: 7px 10px; color: inherit; cursor: pointer; text-decoration: none; }
-.example-button-split a + a { border-top: 1px solid var(--line); }
 .example-button:active { transform: translateY(1px); }
 .example-button span { font-size: 0.8125rem; font-weight: 600; }
 .example-button small { color: var(--glass-muted); font-size: 0.6875rem; }
@@ -964,13 +960,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .app-header, .app-shell, .action-dock, .sheet-dialog, .undo-toast, .skip-link { display: none !important; }
   .print-report { display: block; }
   .print-page { display: none; break-after: page; }
-  .print-page[data-print-tab="overview-wall"] { display: none !important; }
   .print-page:last-child { break-after: auto; }
   /* ---- 列印分頁器（print-pages.js）需要的固定尺寸 ---- */
   .print-page { width: 190mm; }
-  .print-page > * { flex: 0 0 auto; }
-  body[data-print-scope] .print-page[data-measuring] { min-height: 0 !important; height: auto !important; overflow: visible !important; }
-  body[data-print-scope] .print-page[data-paginated] { height: var(--print-page-height, 277mm); min-height: 0; overflow: hidden; }
   body[data-print-scope="all"] .print-page,
   body[data-print-scope="current"] .print-page.print-selected { position: relative; display: flex; flex-direction: column; min-height: var(--print-page-height, 277mm); padding-bottom: 0; }
   /* ---- 橫向配置印在直向紙上：內容盒維持「可用頁高 × 190mm」的橫向配置（Chrome 277mm、iOS 263mm），

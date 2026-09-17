@@ -143,9 +143,9 @@ const number = value => {
 };
 const fixed = value => Number.isFinite(value) ? value.toFixed(2) : "";
 const signed = value => Number.isFinite(value) ? `${value >= 0 ? "+" : ""}${value.toFixed(2)}` : "";
-const display = value => String(value ?? "").trim() || "—";
-const printText = value => String(value ?? "").trim(); // PDF 用：未填就留白，不印「—」
-const guideCheckActual = check => [display(check.actual) === "—" ? "" : display(check.actual), check.barNo ? `號數 ${check.barNo}` : "", check.barSpacing ? `間距 ${check.barSpacing} cm` : ""].filter(Boolean).join("；") || "";
+// 這兩支檔案的 display 只做 trim：畫面上的空值由各自的樣板處理，列印時未填就留白。
+const display = printText;
+const guideCheckActual = check => [display(check.actual), check.barNo ? `號數 ${check.barNo}` : "", check.barSpacing ? `間距 ${check.barSpacing} cm` : ""].filter(Boolean).join("；") || "";
 const esc = value => String(value ?? "")
   .replaceAll("&", "&amp;")
   .replaceAll("<", "&lt;")
@@ -520,6 +520,14 @@ const state = {
 const exampleMode = new URLSearchParams(location.search).get("example") === "1";
 const draft = createDraftStore("project-portal.diaphragmWallGc.draft", () => state, { enabled: !exampleMode });
 
+// 舊草稿補齊新欄位：舊版單一「查驗日期」搬到四個停檢點；品管主任欄已移除。
+function normalizeLoadedState(loaded) {
+  const legacyDate = state.overview.date;
+  if (legacyDate && !loaded.holdDates) state.holdDates = Object.fromEntries(HOLD_POINTS.map(hold => [hold.id, legacyDate]));
+  delete state.overview.date;
+  delete state.overview.manager;
+}
+
 let activeTab = "design";
 let activeTool = "inspection";
 const editIndex = { rebar: null };
@@ -866,34 +874,31 @@ function removeRebar(index) {
 function inspectionDates() {
   return Object.values(state.holdDates).filter(Boolean).sort();
 }
+function dateRangeText(start, end) {
+  if (!start && !end) return "";
+  if (!start || !end || start === end) return start || end;
+  return `${start} ～ ${end}`;
+}
 function inspectionPeriodText() {
   const dates = inspectionDates();
-  if (!dates.length) return "";
-  return dates[0] === dates.at(-1) ? dates[0] : `${dates[0]} ～ ${dates.at(-1)}`;
+  return dateRangeText(dates[0], dates.at(-1));
 }
 
-function printHeader(title, sequence, project = state.overview.project, recordIdentity = null, overviewData = state.overview, labels = {}) {
-  const display = printText;
-  const identity = recordIdentity || [state.unit.unitType, state.unit.unitNo].filter(Boolean).join("｜") || "未指定單元";
-  const headerData = overviewData || {};
-  const dateLabel = labels.date || "查驗期間";
-  const dateValue = headerData.date ?? inspectionPeriodText();
-  const reviewerLabel = labels.reviewer || "填表人";
+// 列印表頭。每頁自己決定日期（查驗表印查驗期間、導溝／鋼筋籠印複核日期），
+// 工程名稱／施工廠商一律取共用的工程資訊；identity 與 reviewer 沒給就用連續壁本身的。
+function printHeader({ title, sequence, identity, date, dateLabel = "查驗期間", reviewer = state.overview.reviewer, reviewerLabel = "填表人" }) {
+  const shownIdentity = identity || [state.unit.unitType, state.unit.unitNo].filter(Boolean).join("｜") || "未指定單元";
   return `<header class="print-document-header"><div class="print-header-title"><p>DIAPHRAGM WALL HOLD POINT INSPECTION / ${sequence}</p><h1>${esc(title)}</h1></div><div class="print-header-meta-body"><div class="print-header-project-lines">
-    <div><span>工程名稱：</span><strong>${esc(display(headerData.project || project))}</strong></div>
-    <div><span>${esc(dateLabel)}：</span><strong>${esc(display(dateValue))}</strong></div>
-    <div><span>施工廠商：</span><strong>${esc(display(headerData.contractor))}</strong></div>
-    <div><span>${esc(reviewerLabel)}：</span><strong>${esc(display(headerData.reviewer))}</strong></div>
-  </div></div><div class="print-header-logo-wrap"><img class="print-logo" src="./taisei.png" alt="大成建設標誌" /><strong class="print-header-identity">${esc(identity)}</strong></div></header>`;
+    <div><span>工程名稱：</span><strong>${esc(display(state.overview.project))}</strong></div>
+    <div><span>${esc(dateLabel)}：</span><strong>${esc(display(date))}</strong></div>
+    <div><span>施工廠商：</span><strong>${esc(display(state.overview.contractor))}</strong></div>
+    <div><span>${esc(reviewerLabel)}：</span><strong>${esc(display(reviewer))}</strong></div>
+  </div></div><div class="print-header-logo-wrap"><img class="print-logo" src="./taisei.png" alt="大成建設標誌" /><strong class="print-header-identity">${esc(shownIdentity)}</strong></div></header>`;
 }
 
-function printFooter() {
-  return `<footer class="print-footer"><div class="print-signature-grid" aria-label="簽名欄"><div><span>所長</span><span aria-hidden="true"></span></div><div><span>副所長</span><span aria-hidden="true"></span></div><div><span>擔當者</span><span aria-hidden="true"></span></div></div></footer>`;
-}
 
 // 設計基準以 9 欄橫向長條呈現，讓兩張查驗表都能在頁首保留完整識別資料。
 function printUnitInfo() {
-  const display = printText;
   const height = designHeight();
   const designVolume = calculatedDesignVolume();
   const topElevation = number(state.unit.topElevation);
@@ -912,7 +917,6 @@ function printUnitInfo() {
 }
 
 function printHoldSection(holdId) {
-  const display = printText;
   const hold = HOLD_BY_ID[holdId];
   const rows = hold.items.map((definition, index) => {
     const record = state.holds[holdId][index];
@@ -933,7 +937,6 @@ function printHoldSection(holdId) {
 }
 
 function printConclusion() {
-  const display = printText;
   const verdicts = ["合格放行", "限期改善後複驗", "異常追蹤處理"];
   const marks = verdicts.map(value => `${state.conclusion.verdict === value ? "■" : "□"} ${value}`).join("　　");
   return `<section class="print-section compact-print-section"><h2>查驗結論與簽認</h2><div class="print-meta-grid three compact-meta">
@@ -946,20 +949,19 @@ function printConclusion() {
 }
 
 function renderPrint() {
-  const display = printText;
-  $("#print-inspection-a").innerHTML = `${printHeader("連續壁營造廠查驗表", "01")}
+  $("#print-inspection-a").innerHTML = `${printHeader({ title: "連續壁營造廠查驗表", sequence: "01", date: inspectionPeriodText() })}
     ${printUnitInfo()}
     ${printHoldSection("hold1")}
     ${printHoldSection("hold2")}${printFooter()}`;
 
-  $("#print-inspection-b").innerHTML = `${printHeader("連續壁營造廠查驗表（續）", "02")}
+  $("#print-inspection-b").innerHTML = `${printHeader({ title: "連續壁營造廠查驗表（續）", sequence: "02", date: inspectionPeriodText() })}
     ${printUnitInfo()}
     ${printHoldSection("hold3")}
     ${printHoldSection("hold4")}
     ${printConclusion()}${printFooter()}`;
 
   const guideWallRows = state.guideWall.checks.map((check, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(check.item)}</td><td class="text-left">${esc(check.standard)}</td><td class="text-left">${esc(guideCheckActual(check))}</td><td>${esc(check.result)}</td></tr>`).join("");
-  $("#print-guide-wall").innerHTML = `${printHeader("導溝施工複核表", "03", state.overview.project, state.guideWall.unitNo || "未指定單元", { project: state.overview.project, contractor: state.overview.contractor, date: state.guideWall.date, reviewer: state.overview.reviewer }, { date: "複核日期", reviewer: "營造廠複核人" })}
+  $("#print-guide-wall").innerHTML = `${printHeader({ title: "導溝施工複核表", sequence: "03", identity: state.guideWall.unitNo || "未指定單元", date: state.guideWall.date, dateLabel: "複核日期", reviewerLabel: "營造廠複核人" })}
     <section class="print-section"><h2>導溝資料</h2><div class="print-meta-grid three">
       <div><span>單元編號</span><strong>${esc(display(state.guideWall.unitNo))}</strong></div>
       <div><span>導溝頂基準高程</span><strong>${number(state.unit.guideTopElevation) === null ? "" : `GL ${signed(number(state.unit.guideTopElevation))} m`}</strong></div>
@@ -969,7 +971,7 @@ function renderPrint() {
 
   const rebarRows = state.rebarCage.rebars.length ? state.rebarCage.rebars.map((rebar, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(rebar.part)}</td><td>${esc(display(rebar.designNo))}</td><td>${esc(display(rebar.designQty))}</td><td>${esc(display(rebar.actualNo))}</td><td>${esc(display(rebar.actualQty))}</td><td>${esc(rebar.result)}</td></tr>`).join("") : `<tr><td colspan="7" class="print-empty">尚無抽查項目</td></tr>`;
   const rebarCageRows = state.rebarCage.checks.map((check, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(check.item)}</td><td class="text-left">${esc(check.standard)}</td><td class="text-left">${esc(display(check.actual))}</td><td>${esc(check.result)}</td></tr>`).join("");
-  $("#print-rebar-cage").innerHTML = `${printHeader("鋼筋籠吊放前複核表", "04", state.overview.project, [state.rebarCage.unitNo, state.rebarCage.cageNo].filter(Boolean).join("｜") || "未指定鋼筋籠", { project: state.overview.project, contractor: state.overview.contractor, date: state.rebarCage.date, reviewer: state.overview.reviewer }, { date: "複核日期", reviewer: "營造廠複核人" })}
+  $("#print-rebar-cage").innerHTML = `${printHeader({ title: "鋼筋籠吊放前複核表", sequence: "04", identity: [state.rebarCage.unitNo, state.rebarCage.cageNo].filter(Boolean).join("｜") || "未指定鋼筋籠", date: state.rebarCage.date, dateLabel: "複核日期", reviewerLabel: "營造廠複核人" })}
     <section class="print-section"><h2>鋼筋籠資料</h2><div class="print-meta-grid three compact-meta">
       <div><span>單元編號</span><strong>${esc(display(state.rebarCage.unitNo))}</strong></div>
       <div><span>鋼筋籠編號</span><strong>${esc(display(state.rebarCage.cageNo))}</strong></div>
@@ -989,12 +991,8 @@ function setPdfDocumentTitle(scope) {
       : state.rebarCage.unitNo || state.rebarCage.cageNo;
   const pageName = currentExportLabel(activeTool, activeTab);
   const date = (activeTool === "inspection" ? inspectionDates().at(-1) : activeTool === "guideWall" ? state.guideWall.date : state.rebarCage.date) || today;
-  const parts = [toolName, recordId, scope === "all" ? "完整檢核紀錄" : pageName, date]
-    .filter(Boolean)
-    .map(value => safeFilePart(value, ""));
-  const previousTitle = document.title;
-  document.title = parts.join("_");
-  window.addEventListener("afterprint", () => { document.title = previousTitle; }, { once: true });
+  const parts = [toolName, recordId, scope === "all" ? "完整檢核紀錄" : pageName, date];
+  setPrintDocumentTitle(parts);
 }
 
 function preparePrint(scope) {
@@ -1035,7 +1033,7 @@ function exportData() {
 
   return {
     app_version: APP_VERSION,
-    schema_version: "1.1",
+    schema_version: "1.2",
     record_type: "diaphragm_wall_gc_inspection",
     exported_at: new Date().toISOString(),
     export_context: {
@@ -1132,10 +1130,6 @@ function exportData() {
   };
 }
 
-function safeFilePart(value, fallback) {
-  const cleaned = String(value ?? "").trim().replace(/[\\/:*?"<>|\s]+/g, "-").replace(/-+/g, "-");
-  return cleaned || fallback;
-}
 
 function exportFileName(extension) {
   const recordId = safeFilePart(state.unit.unitNo || state.guideWall.unitNo || state.rebarCage.unitNo, "");
@@ -1175,7 +1169,7 @@ function exportMarkdown() {
     `| --- | --- |`,
     `| 工程名稱 | ${markdownCell(data.project.name)} |`,
     `| 施工廠商 | ${markdownCell(data.project.contractor)} |`,
-    `| 查驗期間 | ${markdownCell([data.project.inspection_period.start, data.project.inspection_period.end].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(" ～ "))} |`,
+    `| 查驗期間 | ${markdownCell(dateRangeText(data.project.inspection_period.start, data.project.inspection_period.end))} |`,
     `| 填表人 | ${markdownCell(data.project.site_engineer)} |`,
     ``,
     `## 設計基準`,
@@ -1525,9 +1519,7 @@ function initialize() {
     });
   });
 
-  // 會改到 state 的互動都經過這三種事件；「確認清空」那一下除外，否則剛刪掉的草稿又會被寫回。
-  ["input", "change", "submit"].forEach(type => document.addEventListener(type, () => draft.schedule()));
-  document.addEventListener("click", event => { if (!event.target.closest("#confirm-clear")) draft.schedule(); });
+  draft.watch();
 
   $("#help-button").addEventListener("click", () => $("#help-dialog").showModal());
   $("#clear-button").addEventListener("click", () => $("#clear-dialog").showModal());
@@ -1582,6 +1574,8 @@ function initialize() {
   showTool("inspection");
 }
 
-Object.assign(state, draft.load() ?? {});
+const loadedDraft = draft.load() ?? {};
+Object.assign(state, loadedDraft);
+normalizeLoadedState(loadedDraft);
 if (exampleMode) loadExample();
 initialize();

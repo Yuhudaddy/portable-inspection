@@ -166,7 +166,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .sheet-dialog { width: min(100% - 24px, 620px); max-height: min(82dvh, 720px); padding: 0; border: 0; border-radius: var(--glass-radius-lg); background: color-mix(in oklch, var(--glass-page-bg) 88%, white); color: var(--glass-ink); box-shadow: var(--glass-card-shadow); }
 .sheet-dialog::backdrop { background: rgba(20, 20, 40, 0.4); backdrop-filter: blur(4px); }
 .dialog-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--line); }
-.dialog-header span { display: block; font-family: var(--glass-font-num); color: var(--glass-accent); font-size: .625rem; font-weight: 800; letter-spacing: .14em; }
+.dialog-eyebrow { display: block; font-family: var(--glass-font-num); color: var(--glass-accent); font-size: .625rem; font-weight: 800; letter-spacing: .14em; }
 .dialog-header h2 { margin: 2px 0 0; font-size: 1rem; font-weight: 600; }
 .dialog-header > button { width: 40px; height: 40px; border: 0; border-radius: 999px; background: var(--glass-sunken); font-size: 1.2rem; line-height: 1; }
 .dialog-body { padding: 16px 18px; overflow: auto; }
@@ -177,9 +177,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .help-content p { margin: 0; color: var(--glass-soft); font-size: .8125rem; }
 .example-actions { display: grid; width: 100%; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
 .example-button { display: grid; width: 100%; min-width: 0; gap: 2px; min-height: 62px; padding: 10px 12px; border: 0; border-radius: var(--glass-radius-sm); background: var(--glass-sunken); box-shadow: var(--glass-hairline); color: var(--glass-ink); cursor: pointer; text-decoration: none; }
-.example-button-split { display: block; padding: 0; }
-.example-button-split a { display: grid; gap: 2px; min-height: 44px; padding: 7px 10px; color: inherit; cursor: pointer; text-decoration: none; }
-.example-button-split a + a { border-top: 1px solid var(--line); }
 .example-button:active { transform: translateY(1px); }
 .example-button span { font-size: .8125rem; font-weight: 600; }
 .example-button small { color: var(--glass-muted); font-size: .6875rem; }
@@ -230,9 +227,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .print-page { display: none; position: relative; break-after: page; }
   .print-page:last-child { break-after: auto; }
   .print-page { width: 190mm; }
-  .print-page > * { flex: 0 0 auto; }
-  body[data-print-scope] .print-page[data-measuring] { min-height: 0 !important; height: auto !important; overflow: visible !important; }
-  body[data-print-scope] .print-page[data-paginated] { height: var(--print-page-height, 277mm); min-height: 0; overflow: hidden; }
   body[data-print-scope="all"] .print-page,
   body[data-print-scope="current"] .print-page.print-selected { display: flex; flex-direction: column; min-height: var(--print-page-height, 277mm); padding-bottom: 0; }
   .print-document-header { display: grid; grid-template-columns: 72mm minmax(0, 1fr) 18mm; align-items: center; gap: 5mm; padding: 0 0 3mm; border-top: 1.5pt solid #444; border-bottom: 1pt solid #666; }

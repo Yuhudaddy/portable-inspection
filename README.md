@@ -20,10 +20,10 @@ The tool automatically saves a draft in the browser's local storage. Each tool h
 
 ## Local preview
 
-Open `index.html` in a modern browser, or run a local static server:
+Run the bundled static server (it mirrors Cloudflare Pages' extension-less routing, which the in-app links and the service worker rely on — a plain `python3 -m http.server` returns 404 for them):
 
 ```bash
-python3 -m http.server 4173
+python3 scripts/serve.py 4173
 ```
 
 ## Data handling

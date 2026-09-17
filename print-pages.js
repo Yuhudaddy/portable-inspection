@@ -151,5 +151,22 @@
     });
   }
 
-  window.paginatePrintReport = paginatePrintReport;
+  // ---- 列印共用小工具：五個工具頁都用同一份 ----------------------------------
+  // PDF 用的文字：未填就留白，不印「—」（畫面上的 display() 才印「—」）
+  const printText = value => String(value ?? "").trim();
+  // 頁尾簽名欄（所長／副所長／擔當者），分頁器會把它放到最後一頁
+  const printFooter = () => `<footer class="print-footer"><div class="print-signature-grid" aria-label="簽名欄"><div><span>所長</span><span aria-hidden="true"></span></div><div><span>副所長</span><span aria-hidden="true"></span></div><div><span>擔當者</span><span aria-hidden="true"></span></div></div></footer>`;
+  // 檔名片段：去掉檔名不能用的字元
+  const safeFilePart = (value, fallback = "") => {
+    const cleaned = String(value ?? "").trim().replace(/[\\/:*?"<>|\s]+/g, "-").replace(/-+/g, "-");
+    return cleaned || fallback;
+  };
+  // PDF 檔名＝document.title；列印完（afterprint）還原原本的標題
+  function setPrintDocumentTitle(parts) {
+    const previousTitle = document.title;
+    document.title = parts.filter(Boolean).map(value => safeFilePart(value)).filter(Boolean).join("_");
+    window.addEventListener("afterprint", () => { document.title = previousTitle; }, { once: true });
+  }
+
+  Object.assign(window, { paginatePrintReport, printText, printFooter, safeFilePart, setPrintDocumentTitle });
 })();

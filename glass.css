@@ -293,6 +293,11 @@
 }
 
 @media print {
-  /* 列印分頁器（print-pages.js）用來確認列印樣式已生效的旗標 */
+  /* 列印分頁器（print-pages.js）的 CSS 契約：--print-active 是「列印樣式已生效」的旗標；
+     量測時（data-measuring）放開高度讓分頁器量到真實內容高，分好頁後（data-paginated）
+     固定成一頁高度並裁掉溢出，瀏覽器就不會自行分頁。 */
   body { --print-active: 1; }
+  .print-page > * { flex: 0 0 auto; }
+  body[data-print-scope] .print-page[data-measuring] { min-height: 0 !important; height: auto !important; overflow: visible !important; }
+  body[data-print-scope] .print-page[data-paginated] { height: var(--print-page-height, 277mm); min-height: 0; overflow: hidden; }
 }

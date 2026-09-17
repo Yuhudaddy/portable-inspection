@@ -14,8 +14,9 @@ const TOOL_LABELS = {
   rebarCage: "鋼筋籠吊放前複核"
 };
 
+// 壁體資訊沒有自己的列印頁，和品質自檢共用同一張總表
 const PRINT_TAB_GROUPS = {
-  wall: "overview-wall",
+  wall: "quality",
   quality: "quality",
   excavation: "excavation-prework",
   prework: "excavation-prework",
@@ -230,6 +231,19 @@ const state = {
 const exampleMode = new URLSearchParams(location.search).get("example") === "1";
 const draft = createDraftStore("project-portal.diaphragmWall.draft", () => state, { enabled: !exampleMode });
 
+// 舊草稿補齊新欄位（Object.assign 是整組覆蓋，不會自動補）：車次的出廠時間／坍度、工序日期，
+// 以及舊版單一「施工日期」搬到各分頁日期。之後新增欄位只要改這裡的預設值。
+function normalizeLoadedState(loaded) {
+  state.trucks = state.trucks.map(truck => ({ dispatch: "", slump: "", ...truck }));
+  PHASES.forEach(phase => { state.prework[phase.id] = { date: "", start: "", end: "", ...state.prework[phase.id] }; });
+  const legacyDate = state.overview.date;
+  if (legacyDate) {
+    if (!loaded.dates) state.dates = { excavationStart: legacyDate, excavationEnd: "", pouring: legacyDate };
+    PHASES.forEach(phase => { state.prework[phase.id].date ||= legacyDate; });
+  }
+  delete state.overview.date;
+}
+
 let activeTab = "wall";
 let activeTool = "diaphragmWall";
 const editIndex = { soil: null, depth: null, truck: null, rebar: null };
@@ -243,9 +257,9 @@ const number = value => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 const fixed = value => Number.isFinite(value) ? value.toFixed(2) : "";
-const display = value => String(value ?? "").trim() || "—";
-const printText = value => String(value ?? "").trim(); // PDF 用：未填就留白，不印「—」
-const guideCheckActual = check => [display(check.actual) === "—" ? "" : display(check.actual), check.barNo ? `號數 ${check.barNo}` : "", check.barSpacing ? `間距 ${check.barSpacing} cm` : ""].filter(Boolean).join("；") || "";
+// 這兩支檔案的 display 只做 trim：畫面上的空值由各自的樣板處理，列印時未填就留白。
+const display = printText;
+const guideCheckActual = check => [display(check.actual), check.barNo ? `號數 ${check.barNo}` : "", check.barSpacing ? `間距 ${check.barSpacing} cm` : ""].filter(Boolean).join("；") || "";
 const esc = value => String(value ?? "")
   .replaceAll("&", "&amp;")
   .replaceAll("<", "&lt;")
@@ -315,6 +329,20 @@ function sequence30(times) {
   });
 }
 
+// 出土與深度確認：把 30 時制時間與設計深度差異算好，畫面、列印、匯出都吃同一份
+function calculatedExcavation() {
+  const designDepthValue = number(state.wall.designDepth);
+  const soilTimes = sequence30(state.soil.map(record => record.time));
+  const depthTimes = sequence30(state.depth.map(record => record.time));
+  return {
+    soil: state.soil.map((record, index) => ({ ...record, index, time30: soilTimes[index] })),
+    depth: state.depth.map((record, index) => {
+      const value = number(record.value);
+      return { ...record, index, time30: depthTimes[index], value, difference: value !== null && designDepthValue !== null ? value - designDepthValue : null };
+    })
+  };
+}
+
 function calculatedTrucks() {
   const designVolume = number(state.wall.designVolume);
   const height = designHeight();
@@ -330,7 +358,7 @@ function calculatedTrucks() {
     const expected = designVolume && height !== null ? height * cumulative / designVolume : null;
     const difference = measured !== null && expected !== null ? measured - expected : null;
     // 有填坍度的車次就是做了一組試體，依序編「試1、試2…」，列印與畫面都以「（試1）18」呈現
-    const slumpNo = String(truck.slump ?? "").trim() ? ++slumpTests : null;
+    const slumpNo = String(truck.slump).trim() ? ++slumpTests : null;
     const slumpLabel = slumpNo === null ? "" : `（試${slumpNo}）${truck.slump}`;
     const dispatchAt = minutesAfter(truck.dispatch, previousDispatch);
     const unloadAt = minutesAfter(truck.unload, dispatchAt ?? previousUnload);
@@ -381,8 +409,7 @@ function updateWallCalculation() {
 
 function currentExportLabel(tool = activeTool, tab = activeTab) {
   if (tool === "diaphragmWall") {
-    if (PRINT_TAB_GROUPS[tab] === "overview-wall") return "品質自檢（含壁體資訊）";
-    if (PRINT_TAB_GROUPS[tab] === "quality") return "品質自檢";
+    if (PRINT_TAB_GROUPS[tab] === "quality") return tab === "wall" ? "品質自檢（含壁體資訊）" : "品質自檢";
     if (PRINT_TAB_GROUPS[tab] === "excavation-prework") return "開挖紀錄＋前置紀錄";
     return TAB_LABELS[tab];
   }
@@ -430,12 +457,11 @@ function renderExcavation() {
   $("#depth-difference").innerHTML = `${fixed(difference)} <small>m</small>`;
   $("#depth-difference-cell").classList.toggle("is-warning", difference !== null && difference < 0);
 
-  const soilTimes = sequence30(state.soil.map(record => record.time));
-  const depthTimes = sequence30(state.depth.map(record => record.time));
-  $("#soil-list").innerHTML = state.soil.length ? state.soil.map((record, index) => `
+  const excavation = calculatedExcavation();
+  $("#soil-list").innerHTML = excavation.soil.length ? excavation.soil.map((record, index) => `
     <article class="record-item">
       <div class="record-item-main">
-        <div class="record-item-title"><strong>第 ${index + 1} 次出土</strong><span>${esc(soilTimes[index])}</span></div>
+        <div class="record-item-title"><strong>第 ${index + 1} 次出土</strong><span>${esc(record.time30)}</span></div>
       </div>
       <div class="record-item-actions">
         <button type="button" data-edit-soil="${index}">修改</button>
@@ -443,13 +469,12 @@ function renderExcavation() {
       </div>
     </article>`).join("") : emptyState("尚無出土紀錄，請按＋新增。");
 
-  $("#depth-list").innerHTML = state.depth.length ? state.depth.map((record, index) => {
-    const value = number(record.value);
-    const diff = value !== null && designDepthValue !== null ? value - designDepthValue : null;
+  $("#depth-list").innerHTML = excavation.depth.length ? excavation.depth.map((record, index) => {
+    const { value, difference: diff } = record;
     return `
       <article class="record-item">
         <div class="record-item-main">
-          <div class="record-item-title"><strong>深度 ${fixed(value)} m</strong><span>${esc(depthTimes[index])}</span></div>
+          <div class="record-item-title"><strong>深度 ${fixed(value)} m</strong><span>${esc(record.time30)}</span></div>
           <div class="record-item-meta"><span>第 ${index + 1} 次確認</span><span class="${diff !== null && diff < 0 ? "warning-text" : ""}">與設計差異 ${fixed(diff)} m</span></div>
         </div>
         <div class="record-item-actions">
@@ -473,13 +498,13 @@ function phaseTimeText(phase) {
   const values = [];
   if (phase.start) values.push(`開始 ${times.start || "—"}`);
   if (phase.end) values.push(`完成 ${times.end || "—"}`);
-  return `${record.date ? `${record.date.slice(5).replace("-", "/")}　` : ""}${values.join(" ／ ")}`;
+  return `${record.date ? `${formatDateDisplay(record.date).slice(5)}　` : ""}${values.join(" ／ ")}`;
 }
 
 function renderPhaseEditor() {
   const phase = PHASES.find(item => item.id === $("#phase-select").value) || PHASES[0];
   const record = state.prework[phase.id];
-  const fields = [`<label class="field"><span>作業日期</span><span class="native-field-wrap"><input type="date" data-phase-input="date" value="${esc(record.date ?? "")}" /><span class="native-field-display" aria-hidden="true"></span></span></label>`];
+  const fields = [`<label class="field"><span>作業日期</span><span class="native-field-wrap"><input type="date" data-phase-input="date" value="${esc(record.date)}" /><span class="native-field-display" aria-hidden="true"></span></span></label>`];
   if (phase.start) fields.push(`<label class="field"><span>${esc(phase.start)}</span><span class="native-field-wrap"><input type="time" data-phase-input="start" value="${esc(record.start)}" /><span class="native-field-display" aria-hidden="true"></span></span></label>`);
   if (phase.end) fields.push(`<label class="field"><span>${esc(phase.end)}</span><span class="native-field-wrap"><input type="time" data-phase-input="end" value="${esc(record.end)}" /><span class="native-field-display" aria-hidden="true"></span></span></label>`);
   $("#phase-time-fields").innerHTML = fields.join("");
@@ -727,7 +752,7 @@ function openTruckDialog(index = null) {
   editIndex.truck = index;
   const record = index === null ? { truckNo: "", dispatch: "", unload: "", finish: "", volume: "", measured: "", slump: "" } : state.trucks[index];
   $("#truck-number").value = record.truckNo;
-  $("#truck-dispatch").value = record.dispatch ?? "";
+  $("#truck-dispatch").value = record.dispatch;
   $("#truck-unload").value = record.unload;
   $("#truck-finish").value = record.finish;
   syncDateTimeDisplay($("#truck-dispatch"));
@@ -735,7 +760,7 @@ function openTruckDialog(index = null) {
   syncDateTimeDisplay($("#truck-finish"));
   $("#truck-volume").value = record.volume;
   $("#truck-measured").value = record.measured;
-  $("#truck-slump").value = record.slump ?? "";
+  $("#truck-slump").value = record.slump;
   $("#truck-dialog-title").textContent = index === null ? `新增第 ${state.trucks.length + 1} 車` : `修改第 ${index + 1} 車`;
   // 只算「這一車之前」的累積方量，方便對照每 100 m³ 一組坍度試體；本車填多少都不影響這個數字。
   const before = state.trucks.slice(0, index ?? state.trucks.length).reduce((sum, truck) => sum + (number(truck.volume) ?? 0), 0);
@@ -807,43 +832,21 @@ function constructionPeriodText() {
   return dateRangeText(dates[0], dates.at(-1));
 }
 
-// 每張列印頁的表頭日期都用該頁自己的日期：總表印施工期間、開挖頁印開挖日期、澆置頁印澆置日期
-function printHeader(title, sequence, project = state.overview.project, recordIdentity = null, overviewData = state.overview, labels = {}) {
-  const display = printText;
-  const identity = recordIdentity || [state.wall.unitType, state.wall.unitNo].filter(Boolean).join("｜") || "未指定單元";
-  const headerData = overviewData || {};
-  const dateLabel = labels.date || "施工期間";
-  const dateValue = headerData.date ?? constructionPeriodText();
-  const reviewerLabel = labels.reviewer || "填表人";
+// 列印表頭。每頁自己決定日期（總表印施工期間、開挖頁印開挖日期、澆置頁印澆置日期…），
+// 工程名稱／施工廠商一律取共用的工程資訊；identity 與 reviewer 沒給就用連續壁本身的。
+function printHeader({ title, sequence, identity, date, dateLabel = "施工期間", reviewer = state.overview.reviewer, reviewerLabel = "填表人" }) {
+  const shownIdentity = identity || [state.wall.unitType, state.wall.unitNo].filter(Boolean).join("｜") || "未指定單元";
   return `<header class="print-document-header"><div class="print-header-title"><p>DIAPHRAGM WALL FIELD RECORD / ${sequence}</p><h1>${esc(title)}</h1></div><div class="print-header-meta-body"><div class="print-header-project-lines">
-    <div><span>工程名稱：</span><strong>${esc(display(headerData.project || project))}</strong></div>
-    <div><span>${esc(dateLabel)}：</span><strong>${esc(display(dateValue))}</strong></div>
-    <div><span>施工廠商：</span><strong>${esc(display(headerData.contractor ?? state.overview.contractor))}</strong></div>
-    <div><span>${esc(reviewerLabel)}：</span><strong>${esc(display(headerData.reviewer ?? state.overview.reviewer))}</strong></div>
-  </div></div><div class="print-header-logo-wrap"><img class="print-logo" src="./taisei.png" alt="大成建設標誌" /><strong class="print-header-identity">${esc(identity)}</strong></div></header>`;
+    <div><span>工程名稱：</span><strong>${esc(display(state.overview.project))}</strong></div>
+    <div><span>${esc(dateLabel)}：</span><strong>${esc(display(date))}</strong></div>
+    <div><span>施工廠商：</span><strong>${esc(display(state.overview.contractor))}</strong></div>
+    <div><span>${esc(reviewerLabel)}：</span><strong>${esc(display(reviewer))}</strong></div>
+  </div></div><div class="print-header-logo-wrap"><img class="print-logo" src="./taisei.png" alt="大成建設標誌" /><strong class="print-header-identity">${esc(shownIdentity)}</strong></div></header>`;
 }
 
-function printFooter() {
-  return `<footer class="print-footer"><div class="print-signature-grid" aria-label="簽名欄"><div><span>所長</span><span aria-hidden="true"></span></div><div><span>副所長</span><span aria-hidden="true"></span></div><div><span>擔當者</span><span aria-hidden="true"></span></div></div></footer>`;
-}
 
-function printProjectOverview(data, options = {}) {
-  const display = printText;
-  const dateLabel = options.dateLabel || "施工日期";
-  const reviewerLabel = options.reviewerLabel || "填表人";
-  const fields = [
-    ["工程名稱", data.project],
-    ["施工廠商", data.contractor],
-    [dateLabel, data.date]
-  ];
-  const inlineReviewer = options.inlineReviewer !== false;
-  if (!inlineReviewer) fields.push([reviewerLabel, data.reviewer]);
-  const reviewerMeta = inlineReviewer ? `<span class="print-heading-meta">${esc(reviewerLabel)}：${esc(display(data.reviewer))}</span>` : "";
-  return `<section class="print-section print-common-overview"><h2>工程概要${reviewerMeta}</h2><div class="print-meta-grid three">${fields.map(([label, value]) => `<div><span>${esc(label)}</span><strong>${esc(display(value))}</strong></div>`).join("")}</div></section>`;
-}
 
 function printWallInfo() {
-  const display = printText;
   const height = designHeight();
   const designVolume = number(state.wall.designVolume) ?? calculatedDesignVolume();
   return `<section class="print-section print-wall-info"><h2>壁體資訊</h2><div class="print-meta-grid three">
@@ -903,31 +906,12 @@ function pouringChartSvg(rows) {
 }
 
 function renderPrint() {
-  const display = printText;
   const height = designHeight();
   const latestDepth = state.depth.at(-1);
   const latestDepthValue = latestDepth ? number(latestDepth.value) : null;
   const depthDiff = latestDepthValue !== null && number(state.wall.designDepth) !== null ? latestDepthValue - number(state.wall.designDepth) : null;
   const truckRows = calculatedTrucks();
   const lastTruck = truckRows.at(-1);
-
-  $("#print-overview-wall").innerHTML = `${printHeader("連續壁施工紀錄", "01–02")}
-    <section class="print-section"><h2>01｜工程資訊<span class="print-heading-meta">填表人：${esc(display(state.overview.reviewer))}</span></h2><div class="print-meta-grid three">
-      <div><span>工程名稱</span><strong>${esc(display(state.overview.project))}</strong></div>
-      <div><span>施工廠商</span><strong>${esc(display(state.overview.contractor))}</strong></div>
-      <div><span>施工期間</span><strong>${esc(display(constructionPeriodText()))}</strong></div>
-    </div></section>
-    <section class="print-section"><h2>02｜壁體資訊</h2><div class="print-meta-grid three">
-      <div><span>單元類型</span><strong>${esc(display(state.wall.unitType))}</strong></div>
-      <div><span>樁／壁編號</span><strong>${esc(display(state.wall.unitNo))}</strong></div>
-      <div><span>順序編號</span><strong>${esc(display(state.wall.sequenceNo))}</strong></div>
-      <div><span>混凝土強度（kgf/cm2）</span><strong>${esc(display(state.wall.strength))}</strong></div>
-      <div><span>設計深度（GL, m）</span><strong>GL ${esc(display(state.wall.designDepth))} m</strong></div>
-      <div><span>壁厚／單元長度</span><strong>${esc(display(state.wall.thickness))} m ／ ${esc(display(state.wall.length))} m</strong></div>
-      <div><span>澆置頂端高程</span><strong>GL ${number(state.wall.topElevation) !== null && number(state.wall.topElevation) >= 0 ? "+" : ""}${esc(display(state.wall.topElevation))} m</strong></div>
-      <div><span>設計澆置高度</span><strong>${fixed(height)} m</strong></div>
-      <div><span>設計／實際數量(m³)</span><strong>${esc(display(state.wall.designVolume))} ／ ${esc(display(state.wall.actualVolume))}</strong></div>
-    </div></section>${printFooter()}`;
 
   const qualityRows = state.quality.checks.map((check, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(check.item)}</td><td class="text-left">${esc(qualityCheckStandard(index, check.standard))}</td><td class="text-left">${esc(display(check.actual))}</td><td>${esc(check.result)}</td></tr>`).join("");
   const qualityStandardRows = QUALITY_STANDARD_CONFIG.map(config => {
@@ -936,29 +920,22 @@ function renderPrint() {
     if (config.key.startsWith("embedment") && selectedKey && config.key !== selectedKey) return "";
     return `<tr><td class="text-left">${esc(config.label)}</td><td class="text-left">${esc(qualityStandardText(config.key))}</td><td>${esc(qualityStandardValue(config.key))}</td><td>${esc(config.unit)}</td></tr>`;
   }).filter(Boolean).join("");
-  const qualityProject = state.overview.project;
-  const qualityIdentity = [state.wall.unitType, state.wall.unitNo].filter(Boolean).join("｜") || "未指定單元";
-  $("#print-quality").innerHTML = `${printHeader("連續壁施工品質自檢總表", "03", qualityProject, qualityIdentity)}
+  $("#print-quality").innerHTML = `${printHeader({ title: "連續壁施工品質自檢總表", sequence: "03", date: constructionPeriodText() })}
     ${printWallInfo()}
     <section class="print-section compact-print-section"><h2>檢查項目</h2><table class="print-table quality-standard-print-table"><thead><tr><th>項目</th><th>判定標準</th><th>數值</th><th>單位</th></tr></thead><tbody>${qualityStandardRows}</tbody></table></section>
     <section class="print-section compact-print-section"><h2>品質自檢項目</h2><table class="print-table quality-print-table"><thead><tr><th>項次</th><th>檢查項目</th><th>檢查標準</th><th>現場紀錄／實測</th><th>結果</th></tr></thead><tbody>${qualityRows}</tbody></table></section>
     <section class="print-section quality-note-section"><h2>缺失及改善結果</h2><div class="print-note">${esc(display(state.quality.note))}</div></section>${printFooter()}`;
 
-  const soilTimes = sequence30(state.soil.map(record => record.time));
-  const depthTimes = sequence30(state.depth.map(record => record.time));
-  const soilRows = state.soil.length ? state.soil.map((record, index) => `<tr><td>${index + 1}</td><td class="time-cell">${esc(soilTimes[index])}</td></tr>`).join("") : `<tr><td colspan="2" class="print-empty">尚無出土紀錄</td></tr>`;
-  const depthRows = state.depth.length ? state.depth.map((record, index) => {
-    const value = number(record.value);
-    const diff = value !== null && number(state.wall.designDepth) !== null ? value - number(state.wall.designDepth) : null;
-    return `<tr><td>${index + 1}</td><td class="time-cell">${esc(depthTimes[index])}</td><td>${fixed(value)}</td><td>${fixed(diff)}</td></tr>`;
-  }).join("") : `<tr><td colspan="4" class="print-empty">尚無深度確認</td></tr>`;
+  const excavation = calculatedExcavation();
+  const soilRows = excavation.soil.length ? excavation.soil.map(record => `<tr><td>${record.index + 1}</td><td class="time-cell">${esc(record.time30)}</td></tr>`).join("") : `<tr><td colspan="2" class="print-empty">尚無出土紀錄</td></tr>`;
+  const depthRows = excavation.depth.length ? excavation.depth.map(record => `<tr><td>${record.index + 1}</td><td class="time-cell">${esc(record.time30)}</td><td>${fixed(record.value)}</td><td>${fixed(record.difference)}</td></tr>`).join("") : `<tr><td colspan="4" class="print-empty">尚無深度確認</td></tr>`;
   const phaseRows = PHASES.map((phase, index) => {
     const record = state.prework[phase.id];
     const times = phaseTimes(phase);
     return `<tr><td>${index + 1}</td><td class="text-left">${esc(phase.label)}</td><td class="time-cell">${esc(display(record.date))}</td><td class="time-cell">${phase.start ? esc(times.start) : ""}</td><td class="time-cell">${phase.end ? esc(times.end) : ""}</td></tr>`;
   }).join("");
   const excavationDate = dateRangeText(state.dates.excavationStart, state.dates.excavationEnd);
-  $("#print-excavation-prework").innerHTML = `${printHeader("開挖與前置紀錄", "04–05", state.overview.project, null, { date: excavationDate }, { date: "開挖日期" })}
+  $("#print-excavation-prework").innerHTML = `${printHeader({ title: "開挖與前置紀錄", sequence: "04–05", date: excavationDate, dateLabel: "開挖日期" })}
     ${printWallInfo()}
     <section class="print-section"><h2>04｜開挖紀錄<span class="print-heading-meta">開挖日期：${esc(display(excavationDate))}</span></h2><div class="print-summary">
       <div><span>出土次數</span><strong>${state.soil.length} 次</strong></div>
@@ -974,7 +951,7 @@ function renderPrint() {
   const pouringRows = truckRows.length ? truckRows.map(row => `<tr>
     <td>${row.index + 1}</td><td>${esc(row.truckNo)}</td><td class="time-cell">${esc(row.dispatch30)}</td><td class="time-cell">${esc(row.unload30)}</td><td class="time-cell">${esc(row.finish30)}</td><td>${esc(row.slumpLabel)}</td><td>${fixed(row.volume)}</td><td>${fixed(row.cumulative)}</td><td>${fixed(row.expected)}</td><td>${fixed(row.measured)}</td><td>${row.minutes === null ? "—" : row.minutes}</td>
   </tr>`).join("") : `<tr><td colspan="11" class="print-empty">尚無澆置紀錄</td></tr>`;
-  $("#print-pouring").innerHTML = `${printHeader("澆置紀錄", "06", state.overview.project, null, { date: state.dates.pouring }, { date: "澆置日期" })}
+  $("#print-pouring").innerHTML = `${printHeader({ title: "澆置紀錄", sequence: "06", date: state.dates.pouring, dateLabel: "澆置日期" })}
     <div class="pouring-layout">
       <div class="pouring-wall-full">${printWallInfo()}</div>
       <div class="pouring-main-layout"><div class="pouring-table-column"><section class="print-section"><h2>澆置主控摘要</h2><div class="print-summary">
@@ -985,7 +962,7 @@ function renderPrint() {
       </div></section><section class="print-section pouring-table-section"><h2>逐車混凝土澆置紀錄</h2><table class="print-table"><thead><tr><th>車次</th><th>車號</th><th>出廠</th><th>卸料</th><th>結束</th><th>坍度(cm)</th><th>方量(m³)</th><th>累積(m³)</th><th>預估高(m)</th><th>實際高(m)</th><th>澆置時間(分)</th></tr></thead><tbody>${pouringRows}</tbody></table><p class="print-table-note">跨午夜的時間以 24 時以後接續表示（例：25:30＝翌日 01:30）；澆置時間＝結束 − 出廠。</p></section></div><section class="print-section pouring-chart-section"><h2>澆置高度曲線</h2>${pouringChartSvg(truckRows)}</section></div></div>${printFooter()}`;
 
   const guideWallRows = state.guideWall.checks.map((check, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(check.item)}</td><td class="text-left">${esc(check.standard)}</td><td class="text-left">${esc(guideCheckActual(check))}</td><td>${esc(check.result)}</td></tr>`).join("");
-  $("#print-guide-wall").innerHTML = `${printHeader("導溝施工複核表", "07", state.overview.project, state.guideWall.unitNo || "未指定單元", { project: state.overview.project, contractor: state.overview.contractor, date: state.guideWall.date, reviewer: state.guideWall.reviewer }, { date: "複核日期", reviewer: "營造廠複核人" })}
+  $("#print-guide-wall").innerHTML = `${printHeader({ title: "導溝施工複核表", sequence: "07", identity: state.guideWall.unitNo || "未指定單元", date: state.guideWall.date, dateLabel: "複核日期", reviewer: state.guideWall.reviewer, reviewerLabel: "營造廠複核人" })}
     <section class="print-section"><h2>導溝資料</h2><div class="print-meta-grid three">
       <div><span>單元編號</span><strong>${esc(display(state.guideWall.unitNo))}</strong></div>
       <div><span>複核意見</span><strong>${esc(display(state.guideWall.note))}</strong></div>
@@ -994,7 +971,7 @@ function renderPrint() {
 
   const rebarRows = state.rebarCage.rebars.length ? state.rebarCage.rebars.map((rebar, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(rebar.part)}</td><td>${esc(display(rebar.designNo))}</td><td>${esc(display(rebar.designQty))}</td><td>${esc(display(rebar.actualNo))}</td><td>${esc(display(rebar.actualQty))}</td><td>${esc(rebar.result)}</td></tr>`).join("") : `<tr><td colspan="7" class="print-empty">尚無配筋項目</td></tr>`;
   const rebarCageRows = state.rebarCage.checks.map((check, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(check.item)}</td><td class="text-left">${esc(check.standard)}</td><td class="text-left">${esc(display(check.actual))}</td><td>${esc(check.result)}</td></tr>`).join("");
-  $("#print-rebar-cage").innerHTML = `${printHeader("鋼筋籠吊放前複核表", "08", state.overview.project, [state.rebarCage.unitNo, state.rebarCage.cageNo].filter(Boolean).join("｜") || "未指定鋼筋籠", { project: state.overview.project, contractor: state.overview.contractor, date: state.rebarCage.date, reviewer: state.rebarCage.reviewer }, { date: "複核日期", reviewer: "營造廠複核人" })}
+  $("#print-rebar-cage").innerHTML = `${printHeader({ title: "鋼筋籠吊放前複核表", sequence: "08", identity: [state.rebarCage.unitNo, state.rebarCage.cageNo].filter(Boolean).join("｜") || "未指定鋼筋籠", date: state.rebarCage.date, dateLabel: "複核日期", reviewer: state.rebarCage.reviewer, reviewerLabel: "營造廠複核人" })}
     <section class="print-section"><h2>鋼筋籠資料</h2><div class="print-meta-grid three compact-meta">
       <div><span>單元編號</span><strong>${esc(display(state.rebarCage.unitNo))}</strong></div>
       <div><span>鋼筋籠編號</span><strong>${esc(display(state.rebarCage.cageNo))}</strong></div>
@@ -1012,22 +989,18 @@ function setPdfDocumentTitle(scope) {
       ? state.guideWall.unitNo
       : state.rebarCage.unitNo || state.rebarCage.cageNo;
   const pageName = currentExportLabel(activeTool, activeTab);
-  const group = PRINT_TAB_GROUPS[activeTab];
-  const pageDate = activeTool !== "diaphragmWall" ? null : scope === "all" ? recordDates().at(-1) : group === "pouring" ? state.dates.pouring : group === "excavation-prework" ? state.dates.excavationStart : recordDates().at(-1);
-  const date = pageDate || (activeTool === "guideWall" ? state.guideWall.date : activeTool === "rebarCage" ? state.rebarCage.date : "") || today;
-  const parts = [toolName, recordId, scope === "all" ? "完整檢核紀錄" : pageName, date]
-    .filter(Boolean)
-    .map(value => safeFilePart(value, ""));
-  const previousTitle = document.title;
-  document.title = parts.join("_");
-  window.addEventListener("afterprint", () => { document.title = previousTitle; }, { once: true });
+  // 檔名的日期跟該張列印頁一致；完整紀錄與總表用最晚的紀錄日期
+  const pageDates = { pouring: state.dates.pouring, "excavation-prework": state.dates.excavationStart, guideWall: state.guideWall.date, rebarCage: state.rebarCage.date };
+  const group = activeTool === "diaphragmWall" ? PRINT_TAB_GROUPS[activeTab] : activeTool;
+  const date = (scope === "all" && activeTool === "diaphragmWall" ? null : pageDates[group]) || recordDates().at(-1) || today;
+  const parts = [toolName, recordId, scope === "all" ? "完整檢核紀錄" : pageName, date];
+  setPrintDocumentTitle(parts);
 }
 
 function preparePrint(scope) {
   renderPrint();
   document.body.dataset.printScope = scope;
-  const requested = activeTool === "diaphragmWall" ? PRINT_TAB_GROUPS[activeTab] : PRINT_TAB_GROUPS[activeTool];
-  const current = requested === "overview-wall" ? "quality" : requested;
+  const current = activeTool === "diaphragmWall" ? PRINT_TAB_GROUPS[activeTab] : PRINT_TAB_GROUPS[activeTool];
   $$('.print-page').forEach(page => page.classList.toggle("print-selected", page.dataset.printTab === current));
   setPdfDocumentTitle(scope);
   paginatePrintReport();
@@ -1054,27 +1027,18 @@ function exportData() {
   const height = designHeight();
   const designVolume = calculatedDesignVolume();
   const depthDesign = toNumberOrNull(state.wall.designDepth);
-  const soilTimes = sequence30(state.soil.map(record => record.time));
-  const depthTimes = sequence30(state.depth.map(record => record.time));
-  const depthChecks = state.depth.map((record, index) => {
-    const depth = toNumberOrNull(record.value);
-    return {
-      sequence: index + 1,
-      confirmation_time: record.time || null,
-      confirmation_time_30h: depthTimes[index] || null,
-      depth_m: depth,
-      design_difference_m: depth !== null && depthDesign !== null ? depth - depthDesign : null
-    };
-  });
+  const depthChecks = calculatedExcavation().depth.map(record => ({
+    sequence: record.index + 1,
+    confirmation_time: record.time || null,
+    depth_m: record.value,
+    design_difference_m: record.difference
+  }));
   const trucks = calculatedTrucks().map(row => ({
     sequence: row.index + 1,
     truck_no: row.truckNo || null,
     dispatch_time: row.dispatch || null,
     unload_time: row.unload || null,
     finish_time: row.finish || null,
-    dispatch_time_30h: row.dispatch30 || null,
-    unload_time_30h: row.unload30 || null,
-    finish_time_30h: row.finish30 || null,
     pour_minutes: row.minutes,
     slump_test_no: row.slumpNo,
     slump_cm: toNumberOrNull(row.slump),
@@ -1123,7 +1087,7 @@ function exportData() {
     excavation: {
       start_date: state.dates.excavationStart || null,
       end_date: state.dates.excavationEnd || null,
-      soil_records: state.soil.map((record, index) => ({ sequence: index + 1, time: record.time || null, time_30h: soilTimes[index] || null })),
+      soil_records: state.soil.map((record, index) => ({ sequence: index + 1, time: record.time || null })),
       depth_confirmations: depthChecks
     },
     prework: PHASES.map(phase => ({
@@ -1131,8 +1095,7 @@ function exportData() {
       phase_name: phase.label,
       date: state.prework[phase.id].date || null,
       start_time: state.prework[phase.id].start || null,
-      finish_time: state.prework[phase.id].end || null,
-      finish_time_30h: phaseTimes(phase).end || null
+      finish_time: state.prework[phase.id].end || null
     })),
     pouring: {
       date: state.dates.pouring || null,
@@ -1198,10 +1161,6 @@ function exportData() {
   };
 }
 
-function safeFilePart(value, fallback) {
-  const cleaned = String(value ?? "").trim().replace(/[\\/:*?"<>|\s]+/g, "-").replace(/-+/g, "-");
-  return cleaned || fallback;
-}
 
 function exportFileName(extension) {
   const recordId = safeFilePart(state.wall.unitNo || state.guideWall.unitNo || state.rebarCage.unitNo, "");
@@ -1227,6 +1186,9 @@ function markdownCell(value) {
 
 function exportMarkdown() {
   const data = exportData();
+  const excavation = calculatedExcavation();
+  const trucks = calculatedTrucks();
+  const phaseTable = PHASES.map(phase => ({ phase, record: state.prework[phase.id], times: phaseTimes(phase) }));
   const wall = data.wall_unit;
   const lines = [
     `# 連續壁施工紀錄`,
@@ -1269,19 +1231,19 @@ function exportMarkdown() {
     ``,
     `| 次數 | 時間 |`,
     `| --- | --- |`,
-    ...(data.excavation.soil_records.length ? data.excavation.soil_records.map(record => `| ${record.sequence} | ${markdownCell(record.time_30h)} |`) : [`| — | 尚無紀錄 |`]),
+    ...(excavation.soil.length ? excavation.soil.map(record => `| ${record.index + 1} | ${markdownCell(record.time30)} |`) : [`| — | 尚無紀錄 |`]),
     ``,
     `### 深度確認`,
     ``,
     `| 次數 | 確認時間 | 深度（m） | 與設計差異（m） |`,
     `| --- | --- | ---: | ---: |`,
-    ...(data.excavation.depth_confirmations.length ? data.excavation.depth_confirmations.map(record => `| ${record.sequence} | ${markdownCell(record.confirmation_time_30h)} | ${markdownCell(record.depth_m)} | ${markdownCell(record.design_difference_m)} |`) : [`| — | 尚無紀錄 | — | — |`]),
+    ...(excavation.depth.length ? excavation.depth.map(record => `| ${record.index + 1} | ${markdownCell(record.time30)} | ${markdownCell(record.value)} | ${markdownCell(record.difference)} |`) : [`| — | 尚無紀錄 | — | — |`]),
     ``,
     `## 前置紀錄`,
     ``,
     `| 作業項目 | 作業日期 | 開始時間 | 完成時間 |`,
     `| --- | --- | --- | --- |`,
-    ...data.prework.map(record => `| ${markdownCell(record.phase_name)} | ${markdownCell(record.date)} | ${markdownCell(record.start_time)} | ${markdownCell(record.finish_time_30h)} |`),
+    ...phaseTable.map(({ phase, record, times }) => `| ${markdownCell(phase.label)} | ${markdownCell(record.date)} | ${markdownCell(times.start)} | ${markdownCell(times.end)} |`),
     ``,
     `## 澆置紀錄`,
     ``,
@@ -1289,7 +1251,7 @@ function exportMarkdown() {
     ``,
     `| 車次 | 車號 | 出廠 | 卸料 | 結束 | 坍度（cm） | 方量（m³） | 累積（m³） | 預估高（m） | 實際高（m） | 澆置時間（分） |`,
     `| ---: | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |`,
-    ...(data.pouring.trucks.length ? data.pouring.trucks.map(record => `| ${record.sequence} | ${markdownCell(record.truck_no)} | ${markdownCell(record.dispatch_time_30h)} | ${markdownCell(record.unload_time_30h)} | ${markdownCell(record.finish_time_30h)} | ${markdownCell(record.slump_test_no === null ? "" : `（試${record.slump_test_no}）${record.slump_cm}`)} | ${markdownCell(record.volume_m3)} | ${markdownCell(record.cumulative_volume_m3)} | ${markdownCell(record.design_height_m)} | ${markdownCell(record.measured_height_m)} | ${markdownCell(record.pour_minutes)} |`) : [`| — | 尚無紀錄 | — | — | — | — | — | — | — | — | — |`]),
+    ...(trucks.length ? trucks.map(row => `| ${row.index + 1} | ${markdownCell(row.truckNo)} | ${markdownCell(row.dispatch30)} | ${markdownCell(row.unload30)} | ${markdownCell(row.finish30)} | ${markdownCell(row.slumpLabel)} | ${markdownCell(fixed(row.volume))} | ${markdownCell(fixed(row.cumulative))} | ${markdownCell(fixed(row.expected))} | ${markdownCell(fixed(row.measured))} | ${markdownCell(row.minutes)} |`) : [`| — | 尚無紀錄 | — | — | — | — | — | — | — | — | — |`]),
     ``,
     `## 品質自檢`,
     ``,
@@ -1580,9 +1542,7 @@ function initialize() {
     }
   });
 
-  // 會改到 state 的互動都經過這三種事件；「確認清空」那一下除外，否則剛刪掉的草稿又會被寫回。
-  ["input", "change", "submit"].forEach(type => document.addEventListener(type, () => draft.schedule()));
-  document.addEventListener("click", event => { if (!event.target.closest("#confirm-clear")) draft.schedule(); });
+  draft.watch();
 
   $$('[role="tab"]').forEach(button => {
     button.addEventListener("click", () => showTab(button.dataset.tab));
@@ -1712,6 +1672,8 @@ function initialize() {
   showTool("diaphragmWall");
 }
 
-Object.assign(state, draft.load() ?? {});
+const loadedDraft = draft.load() ?? {};
+Object.assign(state, loadedDraft);
+normalizeLoadedState(loadedDraft);
 if (exampleMode) loadExample();
 initialize();

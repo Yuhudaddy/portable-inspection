@@ -113,7 +113,6 @@ const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
 const esc = value => String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 const display = value => String(value ?? "").trim() || "—";
-const printText = value => String(value ?? "").trim(); // PDF 用：未填就留白，不印「—」
 const num = value => { const n = Number.parseFloat(value); return Number.isFinite(n) ? n : null; };
 const fixed = value => Number.isFinite(value) ? value.toFixed(1) : "";
 const formatDate = value => { const [y, m, d] = String(value ?? "").split("-"); return y && m && d ? `${y}/${m}/${d}` : ""; };
@@ -332,7 +331,6 @@ function printHeader(title, sequence) {
   </div></div><div class="print-header-logo-wrap"><img class="print-logo" src="./taisei.png" alt="大成建設標誌" /><strong class="print-header-identity">${esc(identity)}</strong></div></header>`;
 }
 
-function printFooter() { return `<footer class="print-footer"><div class="print-signature-grid" aria-label="簽名欄"><div><span>所長</span><span aria-hidden="true"></span></div><div><span>副所長</span><span aria-hidden="true"></span></div><div><span>擔當者</span><span aria-hidden="true"></span></div></div></footer>`; }
 function printValue(value) { return esc(printText(value)); }
 
 function renderPrint() {
@@ -361,12 +359,8 @@ function renderPrint() {
 
 function setPdfDocumentTitle(scope) {
   const member = activeMember();
-  const parts = ["模板工程複核表", member?.id, scope === "all" ? "完整檢核紀錄" : TAB_LABELS[activeTab], state.overview.date || today]
-    .filter(Boolean)
-    .map(value => String(value).trim().replace(/[\\/:*?"<>|\s]+/g, "-").replace(/-+/g, "-"));
-  const previousTitle = document.title;
-  document.title = parts.join("_");
-  window.addEventListener("afterprint", () => { document.title = previousTitle; }, { once: true });
+  const parts = ["模板工程複核表", member?.id, scope === "all" ? "完整檢核紀錄" : TAB_LABELS[activeTab], state.overview.date || today];
+  setPrintDocumentTitle(parts);
 }
 
 function preparePrint(scope) {
@@ -420,9 +414,7 @@ function handleEvent(event) {
 
 document.addEventListener("input", handleEvent);
 document.addEventListener("change", handleEvent);
-// 會改到 state 的互動都經過 input／change／click；「確認清空」那一下除外，否則剛刪掉的草稿又會被寫回。
-["input", "change"].forEach(type => document.addEventListener(type, () => draft.schedule()));
-document.addEventListener("click", event => { if (!event.target.closest("#confirm-clear")) draft.schedule(); });
+draft.watch();
 document.addEventListener("click", event => {
   const target = event.target.closest("button, [data-remove-member], [data-export], [data-close-dialog]");
   if (!target) return;

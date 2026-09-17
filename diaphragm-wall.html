@@ -48,11 +48,11 @@
 
       <section class="tool-view" id="tool-diaphragmWall" data-tool-view="diaphragmWall">
       <nav class="tab-navigation" aria-label="施工紀錄分頁">
-        <div class="tab-row tab-row-two" role="tablist" aria-label="基本資料">
+        <div class="tab-row" role="tablist" aria-label="基本資料">
           <button id="tab-wall" role="tab" type="button" data-tab="wall" aria-controls="panel-wall" aria-selected="true" tabindex="0">壁體資訊</button>
           <button id="tab-quality" role="tab" type="button" data-tab="quality" aria-controls="panel-quality" aria-selected="false" tabindex="-1">品質自檢</button>
         </div>
-        <div class="tab-row tab-row-three" role="tablist" aria-label="施工紀錄">
+        <div class="tab-row" role="tablist" aria-label="施工紀錄">
           <button id="tab-excavation" role="tab" type="button" data-tab="excavation" aria-controls="panel-excavation" aria-selected="false" tabindex="-1">開挖紀錄</button>
           <button id="tab-prework" role="tab" type="button" data-tab="prework" aria-controls="panel-prework" aria-selected="false" tabindex="-1">前置紀錄</button>
           <button id="tab-pouring" role="tab" type="button" data-tab="pouring" aria-controls="panel-pouring" aria-selected="false" tabindex="-1">澆置紀錄</button>
@@ -191,7 +191,7 @@
 
       <section class="tool-view" id="tool-rebar-cage" data-tool-view="rebarCage" hidden>
         <nav class="tab-navigation" aria-label="鋼筋籠複核分頁">
-          <div class="tab-row tab-row-three" role="tablist" aria-label="鋼筋籠吊放前複核">
+          <div class="tab-row" role="tablist" aria-label="鋼筋籠吊放前複核">
             <button id="tab-cage-meta" role="tab" type="button" data-tab="cage-meta" aria-controls="panel-cage-meta" aria-selected="true" tabindex="0">基本資料</button>
             <button id="tab-cage-rebar" role="tab" type="button" data-tab="cage-rebar" aria-controls="panel-cage-rebar" aria-selected="false" tabindex="-1">配筋複核明細</button>
             <button id="tab-cage-check" role="tab" type="button" data-tab="cage-check" aria-controls="panel-cage-check" aria-selected="false" tabindex="-1">組裝與吊放條件</button>
@@ -246,7 +246,7 @@
     </aside>
 
     <dialog class="sheet-dialog help-dialog" id="help-dialog">
-      <div class="dialog-header"><div><span>HELP</span><h2>使用說明</h2></div><button type="button" data-close-dialog aria-label="關閉使用說明">×</button></div>
+      <div class="dialog-header"><div><span class="dialog-eyebrow">HELP</span><h2>使用說明</h2></div><button type="button" data-close-dialog aria-label="關閉使用說明">×</button></div>
       <div class="dialog-body help-content">
         <ol class="help-steps">
           <li><strong>填基本資料</strong><span>填「工程資訊」，選「導溝／鋼筋籠／連續壁」</span></li>
@@ -266,7 +266,7 @@
     </dialog>
 
     <dialog class="sheet-dialog" id="clear-dialog">
-      <div class="dialog-header"><div><span>CLEAR RECORD</span><h2>清空全部資料</h2></div><button type="button" data-close-dialog aria-label="關閉">×</button></div>
+      <div class="dialog-header"><div><span class="dialog-eyebrow">CLEAR RECORD</span><h2>清空全部資料</h2></div><button type="button" data-close-dialog aria-label="關閉">×</button></div>
       <div class="dialog-body clear-confirmation">
         <p>將清除「連續壁、導溝、鋼筋籠」三種表單的所有輸入內容，且無法復原。</p>
       </div>
@@ -275,7 +275,7 @@
 
     <dialog class="sheet-dialog" id="soil-dialog">
       <form id="soil-form" novalidate>
-        <div class="dialog-header"><div><span>EXCAVATION</span><h2 id="soil-dialog-title">新增出土紀錄</h2></div><button type="button" data-close-dialog aria-label="關閉">×</button></div>
+        <div class="dialog-header"><div><span class="dialog-eyebrow">EXCAVATION</span><h2 id="soil-dialog-title">新增出土紀錄</h2></div><button type="button" data-close-dialog aria-label="關閉">×</button></div>
         <div class="dialog-body compact-form">
           <label class="field"><span>出土時間</span><span class="native-field-wrap"><input id="soil-time" type="time" required /><span class="native-field-display" aria-hidden="true"></span></span></label>
         </div>
@@ -285,7 +285,7 @@
 
     <dialog class="sheet-dialog" id="depth-dialog">
       <form id="depth-form" novalidate>
-        <div class="dialog-header"><div><span>DEPTH CHECK</span><h2 id="depth-dialog-title">新增深度確認</h2></div><button type="button" data-close-dialog aria-label="關閉">×</button></div>
+        <div class="dialog-header"><div><span class="dialog-eyebrow">DEPTH CHECK</span><h2 id="depth-dialog-title">新增深度確認</h2></div><button type="button" data-close-dialog aria-label="關閉">×</button></div>
         <div class="dialog-body compact-form two-fields">
           <label class="field"><span>確認時間</span><span class="native-field-wrap"><input id="depth-time" type="time" required /><span class="native-field-display" aria-hidden="true"></span></span></label>
           <label class="field"><span>深度值（GL, m）</span><input id="depth-value" type="number" step="0.01" inputmode="decimal" placeholder="例如：-35.6" required /></label>
@@ -296,7 +296,7 @@
 
     <dialog class="sheet-dialog truck-dialog" id="truck-dialog">
       <form id="truck-form" novalidate>
-        <div class="dialog-header"><div><span>CONCRETE</span><h2><span id="truck-dialog-title">新增第 1 車</span><small id="truck-cumulative">目前累積：0.00 m³</small></h2></div><button type="button" data-close-dialog aria-label="關閉">×</button></div>
+        <div class="dialog-header"><div><span class="dialog-eyebrow">CONCRETE</span><h2><span id="truck-dialog-title">新增第 1 車</span><small id="truck-cumulative">目前累積：0.00 m³</small></h2></div><button type="button" data-close-dialog aria-label="關閉">×</button></div>
         <div class="dialog-body compact-form truck-fields">
           <label class="field"><span>車號</span><input id="truck-number" type="text" required /></label>
           <label class="field"><span>出廠時間</span><span class="native-field-wrap"><input id="truck-dispatch" type="time" required /><span class="native-field-display" aria-hidden="true"></span></span></label>
@@ -312,7 +312,7 @@
 
     <dialog class="sheet-dialog" id="rebar-dialog">
       <form id="rebar-form" novalidate>
-        <div class="dialog-header"><div><span>REBAR CHECK</span><h2 id="rebar-dialog-title">填寫配筋項目</h2></div><button type="button" data-close-dialog aria-label="關閉">×</button></div>
+        <div class="dialog-header"><div><span class="dialog-eyebrow">REBAR CHECK</span><h2 id="rebar-dialog-title">填寫配筋項目</h2></div><button type="button" data-close-dialog aria-label="關閉">×</button></div>
         <div class="dialog-body compact-form two-fields">
           <label class="field span-two"><span>位置／用途</span><input id="rebar-part" type="text" required /></label>
           <label class="field"><span>設計鋼筋號數</span><input id="rebar-design-no" type="text" placeholder="例如：D32" /></label>
@@ -330,7 +330,7 @@
     </dialog>
 
     <dialog class="sheet-dialog export-dialog" id="export-dialog">
-      <div class="dialog-header"><div><span>FILE</span><h2>檔案處理</h2></div><button type="button" data-close-dialog aria-label="關閉">×</button></div>
+      <div class="dialog-header"><div><span class="dialog-eyebrow">FILE</span><h2>檔案處理</h2></div><button type="button" data-close-dialog aria-label="關閉">×</button></div>
       <div class="dialog-body export-options">
         <section class="export-option-group">
           <h3>PDF</h3>
@@ -351,7 +351,6 @@
     <div class="undo-toast" id="undo-toast" role="status" aria-live="polite" hidden><span id="undo-message"></span><button id="undo-button" type="button">復原</button></div>
 
     <section class="print-report" id="print-report" aria-label="施工紀錄列印版">
-      <article class="print-page" data-print-tab="overview-wall" id="print-overview-wall"></article>
       <article class="print-page" data-print-tab="quality" id="print-quality"></article>
       <article class="print-page" data-print-tab="excavation-prework" id="print-excavation-prework"></article>
       <article class="print-page" data-print-tab="pouring" data-print-orientation="landscape" id="print-pouring"></article>

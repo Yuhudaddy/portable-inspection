@@ -91,7 +91,6 @@ const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
 const esc = value => String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 const display = value => String(value ?? "").trim() || "—";
-const printText = value => String(value ?? "").trim(); // PDF 用：未填就留白，不印「—」
 const formatDate = value => { const [y, m, d] = String(value ?? "").split("-"); return y && m && d ? `${y}/${m}/${d}` : ""; };
 // 三段式結果膠囊：以隱藏 radio + 相鄰 span 呈現（沿用既有 .unit-type 手法）。
 // 未勾選任一段＝原本下拉選單的「待確認」狀態；點選其一會如同 <select> 觸發 change，
@@ -164,7 +163,6 @@ function exportObject() { return { schema: "project-portal.rebar-review.v1", exp
 function fileDownload(filename, content, type) { const blob = new Blob([content], { type }); const url = URL.createObjectURL(blob); const anchor = document.createElement("a"); anchor.href = url; anchor.download = filename; anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
 function markdownExport() { const lines = ["# 鋼筋工程查驗表", "", `- 工程名稱：${display(state.overview.project)}`, `- 施工廠商：${display(state.overview.contractor)}`, `- 檢查日期：${display(state.overview.inspectionDate)}`, `- 檢查樓層／區域：${display(state.overview.floor)}`, "", "## 配筋明細"]; state.members.forEach((member, index) => { lines.push(`\n### ${index + 1}. ${member.type}｜${display(member.id)}｜${display(memberReviewResult(member))}`); lines.push(`- 軸線／位置：${display(member.grid)}；強度：${display(member.strength)}；尺寸：${display(member.width)} × ${display(member.height)} cm；保護層：${display(member.cover)} cm`); lines.push(`- 配筋：${member.bars.map(bar => `${bar.kind} ${display(bar.size)}${bar.count ? ` × ${bar.count}支` : ""}${bar.spacing ? ` @${bar.spacing}cm` : ""}${bar.note ? `（${bar.note}）` : ""}`).join("；")}`); if (member.note) lines.push(`- 備註：${member.note}`); }); lines.push("", "## 材料與施工前"); MATERIAL_CHECKS.forEach(item => lines.push(`- ${item[1]}：${display(state.material[item[0]]?.actual)}（${display(state.material[item[0]]?.result)}）`)); lines.push("", "## 澆置前放行", `- 判定：${state.release.decision}`, `- 備註：${display(state.release.decisionNote)}`); return lines.join("\n"); }
 function printHeader(title, sequence) { const display = printText; const member = activeMember(); const identity = [state.overview.floor, member?.type, member?.id].filter(Boolean).join("｜") || "未指定構件"; return `<header class="print-document-header"><div class="print-header-title"><p>RC REBAR / FIELD REVIEW / ${sequence}</p><h1>${esc(title)}</h1></div><div class="print-header-meta-body"><div class="print-header-project-lines"><div><span>工程名稱：</span><strong>${esc(display(state.overview.project))}</strong></div><div><span>施工日期：</span><strong>${esc(display(state.overview.date))}</strong></div><div><span>施工廠商：</span><strong>${esc(display(state.overview.contractor))}</strong></div><div><span>填表人：</span><strong>${esc(display(state.overview.reviewer))}</strong></div></div></div><div class="print-header-logo-wrap"><img class="print-logo" src="./taisei.png" alt="大成建設標誌" /><strong class="print-header-identity">${esc(identity)}</strong></div></header>`; }
-function printFooter() { return `<footer class="print-footer"><div class="print-signature-grid" aria-label="簽名欄"><div><span>所長</span><span aria-hidden="true"></span></div><div><span>副所長</span><span aria-hidden="true"></span></div><div><span>擔當者</span><span aria-hidden="true"></span></div></div></footer>`; }
 function printValue(value) { return esc(printText(value)); }
 function checkRows(items, getRecord) { return items.map((item, index) => { const record = getRecord(item[0]) || {}; return `<tr><td>${index + 1}</td><td class="text-left">${printValue(item[1])}</td><td class="text-left">${printValue(item[2])}</td><td class="text-left">${printValue(record.actual)}</td><td>${printValue(record.result)}</td></tr>`; }).join(""); }
 function renderPrint() {
@@ -180,12 +178,8 @@ function renderPrint() {
 }
 function setPdfDocumentTitle(scope) {
   const member = activeMember();
-  const parts = ["鋼筋工程查驗表", member?.id, scope === "all" ? "完整檢核紀錄" : TAB_LABELS[activeTab], state.overview.date || today]
-    .filter(Boolean)
-    .map(value => String(value).trim().replace(/[\\/:*?"<>|\s]+/g, "-").replace(/-+/g, "-"));
-  const previousTitle = document.title;
-  document.title = parts.join("_");
-  window.addEventListener("afterprint", () => { document.title = previousTitle; }, { once: true });
+  const parts = ["鋼筋工程查驗表", member?.id, scope === "all" ? "完整檢核紀錄" : TAB_LABELS[activeTab], state.overview.date || today];
+  setPrintDocumentTitle(parts);
 }
 
 function preparePrint(scope) { renderPrint(); document.body.dataset.printScope = scope; const page = activeTab === "overview" || activeTab === "members" ? "overview" : activeTab; $$(".print-page").forEach(item => item.classList.toggle("print-selected", item.dataset.printPage === page)); setPdfDocumentTitle(scope); paginatePrintReport(); }
@@ -223,9 +217,7 @@ function handleEvent(event) {
 
 document.addEventListener("input", handleEvent);
 document.addEventListener("change", handleEvent);
-// 會改到 state 的互動都經過 input／change／click；「確認清空」那一下除外，否則剛刪掉的草稿又會被寫回。
-["input", "change"].forEach(type => document.addEventListener(type, () => draft.schedule()));
-document.addEventListener("click", event => { if (!event.target.closest("#confirm-clear")) draft.schedule(); });
+draft.watch();
 document.addEventListener("click", event => {
   const target = event.target.closest("button, [data-remove-member], [data-remove-bar], [data-add-bar], [data-export], [data-close-dialog]");
   if (!target) return;

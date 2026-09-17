@@ -289,6 +289,19 @@ function calculatedDesignVolume() {
   return height * thickness * length;
 }
 
+function timeToMinutes(value) {
+  const [h, m] = String(value ?? "").split(":").map(Number);
+  return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : null;
+}
+
+// 澆置時間＝結束時間 − 出廠時間（分鐘），用來確認混凝土有沒有在限制時間內澆完；跨午夜補一天。
+function pourMinutes(dispatch, finish) {
+  const start = timeToMinutes(dispatch);
+  const end = timeToMinutes(finish);
+  if (start === null || end === null) return null;
+  return (end - start + 1440) % 1440;
+}
+
 function calculatedTrucks() {
   const designVolume = number(state.wall.designVolume);
   const height = designHeight();
@@ -299,7 +312,7 @@ function calculatedTrucks() {
     cumulative += volume;
     const expected = designVolume && height !== null ? height * cumulative / designVolume : null;
     const difference = measured !== null && expected !== null ? measured - expected : null;
-    return { ...truck, index, volume, cumulative, measured, expected, difference };
+    return { ...truck, index, volume, cumulative, measured, expected, difference, minutes: pourMinutes(truck.dispatch, truck.finish) };
   });
 }
 
@@ -456,10 +469,12 @@ function renderPouring() {
   $("#truck-list").innerHTML = rows.length ? rows.map(row => `
     <article class="record-item">
       <div class="record-item-main">
-        <div class="record-item-title"><strong>第 ${row.index + 1} 車｜${esc(row.truckNo)}</strong><span>${esc(row.unload)}–${esc(row.finish)}</span></div>
+        <div class="record-item-title"><strong>第 ${row.index + 1} 車｜${esc(row.truckNo)}</strong><span>${esc(row.dispatch || "—")} 出廠｜${esc(row.unload)}–${esc(row.finish)}</span></div>
         <div class="record-item-meta">
           <span>本車 ${fixed(row.volume)} m³</span>
           <span>累積 ${fixed(row.cumulative)} m³</span>
+          ${row.slump ? `<span>坍度 ${esc(row.slump)} cm</span>` : ""}
+          <span>澆置 ${row.minutes === null ? "—" : row.minutes} 分</span>
           <span>預估 ${fixed(row.expected)} m</span>
           <span>實測 ${fixed(row.measured)} m</span>
           <span class="${row.difference !== null && row.difference < -0.3 ? "warning-text" : ""}">差異 ${fixed(row.difference)} m</span>
@@ -602,7 +617,7 @@ function loadExample() {
   state.soil = ["07:40", "08:20", "09:05"].map(time => ({ time }));
   state.depth = [{ time: "12:10", value: "-35.80" }, { time: "12:35", value: "-35.82" }];
   state.prework = Object.fromEntries(PHASES.map((phase, index) => [phase.id, { start: `0${8 + index}:00`, end: `0${8 + index}:30` }]));
-  state.trucks = Array.from({ length: 8 }, (_, index) => ({ truckNo: `C${String(index + 1).padStart(2, "0")}`, unload: `${13 + Math.floor(index / 2)}:${index % 2 ? "42" : "20"}`, finish: `${13 + Math.floor(index / 2)}:${index % 2 ? "55" : "33"}`, volume: index === 7 ? "9.46" : "12", measured: (3.9 + index * 4.1).toFixed(2) }));
+  state.trucks = Array.from({ length: 8 }, (_, index) => ({ truckNo: `C${String(index + 1).padStart(2, "0")}`, dispatch: `${12 + Math.floor(index / 2)}:${index % 2 ? "50" : "28"}`, unload: `${13 + Math.floor(index / 2)}:${index % 2 ? "42" : "20"}`, finish: `${13 + Math.floor(index / 2)}:${index % 2 ? "55" : "33"}`, volume: index === 7 ? "9.46" : "12", measured: (3.9 + index * 4.1).toFixed(2), slump: index === 0 ? "18" : "" }));
   state.guideWall = { date: "2026-08-10", unitNo: "21", reviewer: "Site Engineer", note: "中心線偏差 1.6 cm；順序符合；導溝條件完成複核。", checks: GUIDE_WALL_CHECKS.map(([item, standard], index) => ({ item, standard, actual: index === 0 ? "中心線偏差 1.6 cm" : "已確認", barNo: index === 5 ? "D16" : "", barSpacing: index === 5 ? "19.5" : "", result: "符合" })) };
   state.rebarCage = { date: "2026-08-10", unitNo: "21", cageNo: "C21-U／C21-L", reviewer: "Site Engineer", note: "配筋圖逐項核對；吊放條件完成。", rebars: REBAR_CAGE_PARTS.map((part, index) => ({ part, designNo: index < 2 ? "D32" : "D16", designQty: index < 2 ? "32支" : "@20 cm", actualNo: index < 2 ? "D32" : "D16", actualQty: index < 2 ? "32支" : "@20 cm", result: "符合" })), checks: REBAR_CAGE_CHECKS.map(([item, standard], index) => ({ item, standard, actual: index === 7 ? "3 組成對安裝；線路已保護至孔口" : "已確認", result: "符合" })) };
   state.quality = { note: "各項檢查完成，未發現影響施工之缺失。", standards: { ...QUALITY_STANDARD_DEFAULTS }, checks: QUALITY_CHECKS.map(([item, standard, placeholder]) => ({ item, standard, placeholder, actual: "已確認", result: "符合" })) };
@@ -670,15 +685,21 @@ function openDepthDialog(index = null) {
 
 function openTruckDialog(index = null) {
   editIndex.truck = index;
-  const record = index === null ? { truckNo: "", unload: "", finish: "", volume: "", measured: "" } : state.trucks[index];
+  const record = index === null ? { truckNo: "", dispatch: "", unload: "", finish: "", volume: "", measured: "", slump: "" } : state.trucks[index];
   $("#truck-number").value = record.truckNo;
+  $("#truck-dispatch").value = record.dispatch ?? "";
   $("#truck-unload").value = record.unload;
   $("#truck-finish").value = record.finish;
+  syncDateTimeDisplay($("#truck-dispatch"));
   syncDateTimeDisplay($("#truck-unload"));
   syncDateTimeDisplay($("#truck-finish"));
   $("#truck-volume").value = record.volume;
   $("#truck-measured").value = record.measured;
+  $("#truck-slump").value = record.slump ?? "";
   $("#truck-dialog-title").textContent = index === null ? `新增第 ${state.trucks.length + 1} 車` : `修改第 ${index + 1} 車`;
+  // 只算「這一車之前」的累積方量，方便對照每 100 m³ 一組坍度試體；本車填多少都不影響這個數字。
+  const before = state.trucks.slice(0, index ?? state.trucks.length).reduce((sum, truck) => sum + (number(truck.volume) ?? 0), 0);
+  $("#truck-cumulative").textContent = `目前累積：${fixed(before)} m³`;
   $("#truck-form [type='submit']").textContent = index === null ? "確認加入" : "確認更新";
   $("#truck-dialog").showModal();
 }
@@ -885,8 +906,8 @@ function renderPrint() {
     <section class="print-section"><h2>05｜前置紀錄時間紀錄</h2><table class="print-table"><thead><tr><th>項次</th><th>作業項目</th><th>開始時間</th><th>完成時間</th></tr></thead><tbody>${phaseRows}</tbody></table></section>${printFooter()}`;
 
   const pouringRows = truckRows.length ? truckRows.map(row => `<tr>
-    <td>${row.index + 1}</td><td>${esc(row.truckNo)}</td><td class="time-cell">${esc(row.unload)}</td><td class="time-cell">${esc(row.finish)}</td><td>${fixed(row.volume)}</td><td>${fixed(row.cumulative)}</td><td>${fixed(row.expected)}</td><td>${fixed(row.measured)}</td><td>${fixed(row.difference)}</td>
-  </tr>`).join("") : `<tr><td colspan="9" class="print-empty">尚無澆置紀錄</td></tr>`;
+    <td>${row.index + 1}</td><td>${esc(row.truckNo)}</td><td class="time-cell">${esc(display(row.dispatch))}</td><td class="time-cell">${esc(row.unload)}</td><td class="time-cell">${esc(row.finish)}</td><td>${esc(row.slump || "")}</td><td>${fixed(row.volume)}</td><td>${fixed(row.cumulative)}</td><td>${fixed(row.expected)}</td><td>${fixed(row.measured)}</td><td>${row.minutes === null ? "—" : row.minutes}</td>
+  </tr>`).join("") : `<tr><td colspan="11" class="print-empty">尚無澆置紀錄</td></tr>`;
   $("#print-pouring").innerHTML = `${printHeader("澆置紀錄", "06")}
     <div class="pouring-layout">
       <div class="pouring-wall-full">${printWallInfo()}</div>
@@ -895,7 +916,7 @@ function renderPrint() {
         <div><span>逐車累積量(m³)</span><strong>${fixed(lastTruck?.cumulative ?? 0)}</strong></div>
         <div><span>設計／實際數量(m³)</span><strong>${esc(display(state.wall.designVolume))} ／ ${esc(display(state.wall.actualVolume))}</strong></div>
         <div><span>預估／實測／差異(m)</span><strong>${fixed(lastTruck?.expected ?? null)} ／ ${fixed(lastTruck?.measured ?? null)} ／ ${fixed(lastTruck?.difference ?? null)}</strong></div>
-      </div></section><section class="print-section pouring-table-section"><h2>逐車混凝土澆置紀錄</h2><table class="print-table"><thead><tr><th>車次</th><th>車號</th><th>卸料</th><th>結束</th><th>方量(m³)</th><th>累積(m³)</th><th>預估高度(m)</th><th>實測高度(m)</th><th>差異(m)</th></tr></thead><tbody>${pouringRows}</tbody></table></section></div><section class="print-section pouring-chart-section"><h2>澆置高度曲線</h2>${pouringChartSvg(truckRows)}</section></div></div>${printFooter()}`;
+      </div></section><section class="print-section pouring-table-section"><h2>逐車混凝土澆置紀錄</h2><table class="print-table"><thead><tr><th>車次</th><th>車號</th><th>出廠</th><th>卸料</th><th>結束</th><th>坍度(cm)</th><th>方量(m³)</th><th>累積(m³)</th><th>預估高(m)</th><th>實際高(m)</th><th>澆置時間(分)</th></tr></thead><tbody>${pouringRows}</tbody></table></section></div><section class="print-section pouring-chart-section"><h2>澆置高度曲線</h2>${pouringChartSvg(truckRows)}</section></div></div>${printFooter()}`;
 
   const guideWallRows = state.guideWall.checks.map((check, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(check.item)}</td><td class="text-left">${esc(check.standard)}</td><td class="text-left">${esc(guideCheckActual(check))}</td><td>${esc(check.result)}</td></tr>`).join("");
   $("#print-guide-wall").innerHTML = `${printHeader("導溝施工複核表", "07", state.overview.project, state.guideWall.unitNo || "未指定單元", { project: state.overview.project, contractor: state.overview.contractor, date: state.guideWall.date, reviewer: state.guideWall.reviewer })}
@@ -977,8 +998,11 @@ function exportData() {
   const trucks = calculatedTrucks().map(row => ({
     sequence: row.index + 1,
     truck_no: row.truckNo || null,
+    dispatch_time: row.dispatch || null,
     unload_time: row.unload || null,
     finish_time: row.finish || null,
+    pour_minutes: row.minutes,
+    slump_cm: toNumberOrNull(row.slump),
     volume_m3: toNumberOrNull(row.volume),
     cumulative_volume_m3: row.cumulative,
     design_height_m: row.expected,
@@ -1177,9 +1201,9 @@ function exportMarkdown() {
     ``,
     `## 澆置紀錄`,
     ``,
-    `| 車次 | 車號 | 卸料 | 結束 | 方量（m³） | 累積（m³） | 設計高度（m） | 實測高度（m） | 高度差異（m） |`,
-    `| ---: | --- | --- | --- | ---: | ---: | ---: | ---: | ---: |`,
-    ...(data.pouring.trucks.length ? data.pouring.trucks.map(record => `| ${record.sequence} | ${markdownCell(record.truck_no)} | ${markdownCell(record.unload_time)} | ${markdownCell(record.finish_time)} | ${markdownCell(record.volume_m3)} | ${markdownCell(record.cumulative_volume_m3)} | ${markdownCell(record.design_height_m)} | ${markdownCell(record.measured_height_m)} | ${markdownCell(record.height_difference_m)} |`) : [`| — | 尚無紀錄 | — | — | — | — | — | — | — |`]),
+    `| 車次 | 車號 | 出廠 | 卸料 | 結束 | 坍度（cm） | 方量（m³） | 累積（m³） | 預估高（m） | 實際高（m） | 澆置時間（分） |`,
+    `| ---: | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |`,
+    ...(data.pouring.trucks.length ? data.pouring.trucks.map(record => `| ${record.sequence} | ${markdownCell(record.truck_no)} | ${markdownCell(record.dispatch_time)} | ${markdownCell(record.unload_time)} | ${markdownCell(record.finish_time)} | ${markdownCell(record.slump_cm)} | ${markdownCell(record.volume_m3)} | ${markdownCell(record.cumulative_volume_m3)} | ${markdownCell(record.design_height_m)} | ${markdownCell(record.measured_height_m)} | ${markdownCell(record.pour_minutes)} |`) : [`| — | 尚無紀錄 | — | — | — | — | — | — | — | — | — |`]),
     ``,
     `## 品質自檢`,
     ``,
@@ -1317,10 +1341,12 @@ function importJsonPayload(payload) {
   }));
   state.trucks = (Array.isArray(pouring.trucks) ? pouring.trucks : []).map(record => ({
     truckNo: importText(record.truck_no),
+    dispatch: importText(record.dispatch_time),
     unload: importText(record.unload_time),
     finish: importText(record.finish_time),
     volume: importText(record.volume_m3),
-    measured: importText(record.measured_height_m)
+    measured: importText(record.measured_height_m),
+    slump: importText(record.slump_cm)
   }));
 
   const standardValues = { ...QUALITY_STANDARD_DEFAULTS };
@@ -1528,10 +1554,12 @@ function initialize() {
     if (!validateDialogForm(event.currentTarget)) return;
     const record = {
       truckNo: $("#truck-number").value.trim(),
+      dispatch: $("#truck-dispatch").value,
       unload: $("#truck-unload").value,
       finish: $("#truck-finish").value,
       volume: $("#truck-volume").value,
-      measured: $("#truck-measured").value
+      measured: $("#truck-measured").value,
+      slump: $("#truck-slump").value
     };
     if (editIndex.truck === null) state.trucks.push(record);
     else state.trucks[editIndex.truck] = record;

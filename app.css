@@ -720,6 +720,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 .dialog-header span { font-family: var(--glass-font-num); color: var(--glass-accent); font-size: 0.625rem; font-weight: 800; letter-spacing: 0.12em; }
 .dialog-header h2 { margin: 2px 0 0; font-size: 1rem; font-weight: 600; }
+.dialog-header h2 small { margin-left: 8px; color: var(--glass-muted); font-family: var(--glass-font-num); font-size: 0.75rem; font-weight: 500; white-space: nowrap; }
 .dialog-header > button {
   width: 40px;
   height: 40px;
@@ -1057,13 +1058,17 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .pouring-layout .print-summary span { font-size: 6pt; white-space: nowrap; }
   .pouring-layout .print-summary strong { margin-top: .7mm; font-size: 7.4pt; white-space: nowrap; }
   .pouring-table-section { margin-top: 3mm !important; }
+  /* 逐車表 11 欄：車次｜車號｜出廠｜卸料｜結束｜坍度｜方量｜累積｜預估高｜實際高｜澆置時間；字級比其他表小 1.5pt（約 2px） */
   .pouring-table-section .print-table th, .pouring-table-section .print-table td { white-space: nowrap; }
-  .pouring-table-section .print-table th:nth-child(1) { width: 6%; }
-  .pouring-table-section .print-table th:nth-child(2) { width: 11%; }
-  .pouring-table-section .print-table th:nth-child(3), .pouring-table-section .print-table th:nth-child(4) { width: 11%; }
-  .pouring-table-section .print-table th:nth-child(5), .pouring-table-section .print-table th:nth-child(6) { width: 10%; }
-  .pouring-table-section .print-table th:nth-child(7), .pouring-table-section .print-table th:nth-child(8) { width: 13%; }
-  .pouring-table-section .print-table th:nth-child(9) { width: 15%; }
+  .pouring-table-section .print-table th { padding: 1.2mm 0.6mm; font-size: 5pt; }
+  .pouring-table-section .print-table td { padding: 1mm 0.8mm; font-size: 6pt; }
+  .pouring-table-section .print-table th:nth-child(1) { width: 5%; }
+  .pouring-table-section .print-table th:nth-child(2) { width: 10%; }
+  .pouring-table-section .print-table th:nth-child(3), .pouring-table-section .print-table th:nth-child(4), .pouring-table-section .print-table th:nth-child(5) { width: 9%; }
+  .pouring-table-section .print-table th:nth-child(6) { width: 8%; }
+  .pouring-table-section .print-table th:nth-child(7), .pouring-table-section .print-table th:nth-child(8) { width: 9%; }
+  .pouring-table-section .print-table th:nth-child(9), .pouring-table-section .print-table th:nth-child(10) { width: 10%; }
+  .pouring-table-section .print-table th:nth-child(11) { width: 12%; }
   .pouring-chart-section { min-width: 0; display: flex; flex-direction: column; }
   .print-heading-meta { float: none; margin-left: auto; font-size: 7pt; }
   .pouring-chart-section { break-inside: avoid; }

@@ -252,14 +252,19 @@
     <dialog class="sheet-dialog help-dialog" id="help-dialog">
       <div class="dialog-header"><div><span>HELP</span><h2>使用說明</h2></div><button type="button" data-close-dialog aria-label="關閉使用說明">×</button></div>
       <div class="dialog-body help-content">
-        <section><h3>選擇紀錄工具</h3><p>使用頁面上方的「導溝／鋼筋籠／連續壁」切換表單；所有內容都在同一個 App 內填寫。</p></section>
-        <section><h3>填寫方式</h3><p>連續壁依六個分頁填寫。品質自檢逐項填寫現場紀錄與結果；開挖與澆置紀錄請按「＋新增」，確認後才會加入主控顯示板。</p></section>
-        <section><h3>高度比對</h3><p>預估高度＝設計澆置高度 × 累積方量 ÷ 設計數量；高度差異＝實測累積高度－預估高度。</p></section>
-        <section><h3>資料與輸出</h3><p>本工具只把草稿暫存在這支手機的瀏覽器裡，不會上傳或同步；重新整理或關閉頁面後會自動還原，「清空」會一併刪除暫存。完成後請由底部「輸出」選擇 PDF、JSON 或 Markdown；JSON 可匯回本頁的全部分頁，也適合匯入資料庫；Markdown 僅供閱讀與歸檔。若要將手機交給下一位使用者，請先使用「清空」移除目前頁面的內容。輸出 PDF 時，請在瀏覽器的列印設定關閉「頁首及頁尾」，才不會印出網址、日期與頁碼。</p></section>
-        <section class="help-examples"><h3>已填妥範例輸出</h3><p>先查看實際輸出外觀，再開始填寫現場紀錄；連續壁範例已包含檢查項目、品質自檢摘要與澆置高度曲線。</p><div class="example-actions">
-          <a class="example-button" href="./example.html?file=diaphragm-wall-example"><span>連續壁｜完整範例 PDF</span><small>查看全部輸出頁面</small></a>
-          <a class="example-button" href="./example.html?file=guide-wall-example"><span>導溝</span><small>開啟 PDF 範例</small></a>
-          <a class="example-button" href="./example.html?file=rebar-cage-example"><span>鋼筋籠</span><small>開啟 PDF 範例</small></a>
+        <ol class="help-steps">
+          <li><strong>填基本資料</strong><span>填「工程資訊」，選「導溝／鋼筋籠／連續壁」</span></li>
+          <li><strong>逐頁填寫</strong><span>連續壁依分頁順序填；開挖與澆置紀錄按「＋新增」</span></li>
+          <li><strong>輸出</strong><span>按右下角 ⬆，選 PDF 或 JSON（JSON 可再匯回本頁）</span></li>
+        </ol>
+        <ul class="help-notes">
+          <li>草稿只存在這支手機的瀏覽器裡，「清空」會一併刪除</li>
+          <li>印 PDF 前，在瀏覽器的列印設定關閉「頁首及頁尾」</li>
+        </ul>
+        <section class="help-examples"><h3>已填妥範例</h3><div class="example-actions">
+          <a class="example-button" href="./example.html?file=diaphragm-wall-example"><span>連續壁</span><small>完整範例 PDF</small></a>
+          <a class="example-button" href="./example.html?file=guide-wall-example"><span>導溝</span><small>範例 PDF</small></a>
+          <a class="example-button" href="./example.html?file=rebar-cage-example"><span>鋼筋籠</span><small>範例 PDF</small></a>
         </div></section>
       </div>
     </dialog>

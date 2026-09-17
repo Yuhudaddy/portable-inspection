@@ -251,9 +251,16 @@
     <dialog class="sheet-dialog help-dialog help-dialog-compact" id="help-dialog">
       <div class="dialog-header"><div><span>HELP</span><h2>使用說明</h2></div><button type="button" data-close-dialog aria-label="關閉使用說明">×</button></div>
       <div class="dialog-body help-content">
-        <section><h3>本表定位</h3><p>營造廠二級品管查驗表。逐車出土、泥漿池操作與澆置日誌屬分包商一級品管，以附件檢附。</p></section>
-        <section><h3>填寫與輸出</h3><p>先在「設計基準」填設計參數與標準值，再依成槽放行 → 吊放放行 → 澆置成品 → 監測結論逐點查驗；深度誤差、籠頂偏差、超方率與超打高度自動換算，超標即警示。草稿只暫存在這支手機的瀏覽器裡，不會上傳；重新整理會自動還原，「清空」會一併刪除暫存。底部「檔案」輸出 PDF／JSON／Markdown。輸出 PDF 時，請在瀏覽器的列印設定關閉「頁首及頁尾」，才不會印出網址、日期與頁碼。</p></section>
-        <section class="help-examples"><h3>已填妥範例輸出</h3><div class="example-actions">
+        <ol class="help-steps">
+          <li><strong>填基本資料</strong><span>填「工程資訊」，選「導溝／鋼筋籠／連續壁」</span></li>
+          <li><strong>逐項查驗</strong><span>連續壁先填「設計基準」，再依「成槽放行 → 吊放放行 → 澆置成品 → 監測結論」填，超標會自動警示</span></li>
+          <li><strong>輸出</strong><span>按右下角 ⬆，選 PDF 或 JSON</span></li>
+        </ol>
+        <ul class="help-notes">
+          <li>草稿只存在這支手機的瀏覽器裡，「清空」會一併刪除</li>
+          <li>印 PDF 前，在瀏覽器的列印設定關閉「頁首及頁尾」</li>
+        </ul>
+        <section class="help-examples"><h3>已填妥範例</h3><div class="example-actions">
           <a class="example-button" href="./example.html?file=diaphragm-wall-gc-example"><span>查驗表</span></a>
           <a class="example-button" href="./example.html?file=gc-guide-wall-example"><span>導溝</span></a>
           <a class="example-button" href="./example.html?file=gc-rebar-cage-example"><span>鋼筋籠</span></a>

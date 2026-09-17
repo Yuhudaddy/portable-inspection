@@ -197,6 +197,48 @@
 /* 不合格列：整列淡紅底，三段鈕改白底維持對比 */
 .is-failed .glass-segmented { background: #fff; }
 
+/* ---- 使用說明：三個編號步驟 ＋ 兩條提醒（五個工具頁共用同一骨架）---------------
+   數字沿用頁面標題「01 工程概要」的樣式；提醒用 ※ 小字，上下各一條分隔線。 */
+.help-steps {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: help-step;
+}
+.help-steps li {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  column-gap: 10px;
+  counter-increment: help-step;
+}
+.help-steps li::before {
+  content: counter(help-step, decimal-leading-zero);
+  grid-row: 1 / span 2;
+  font-family: var(--glass-font-num);
+  color: var(--glass-accent);
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+.help-steps strong { font-size: 0.875rem; font-weight: 600; line-height: 1.45; }
+.help-steps span { color: var(--glass-soft); font-size: 0.8125rem; line-height: 1.55; }
+.help-notes {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 12px 0;
+  border-top: 1px solid var(--glass-line);
+  border-bottom: 1px solid var(--glass-line);
+  list-style: none;
+  color: var(--glass-muted);
+  font-size: 0.75rem;
+  line-height: 1.55;
+}
+.help-notes li { padding-left: 1.3em; text-indent: -1.3em; }
+.help-notes li::before { content: "※ "; }
+
 /* ---- 橫向捲動分頁：可捲動的提示 --------------------------------------------
    兩側用透明遮罩把膠囊淡出（不是畫白色，任何背景都吃），右側再加一顆白色圓徽章「›」。
    淡出與徽章只在該方向還有內容時出現（scroll-driven animation；未捲動時只有右側，

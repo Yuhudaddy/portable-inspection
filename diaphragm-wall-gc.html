@@ -178,7 +178,6 @@
           </div>
           <div class="form-grid checklist-meta-grid">
             <label class="field span-two"><span>複核日期</span><span class="native-field-wrap"><input type="date" data-check-bind="guideWall.date" /><span class="native-field-display" aria-hidden="true"></span></span></label>
-            <label class="field span-two"><span>單元編號</span><input type="text" data-check-bind="guideWall.unitNo" /></label>
           </div>
           <dl class="check-progress" aria-live="polite">
             <div><dt>已完成複核</dt><dd id="guide-wall-progress">0 / 15</dd></div>
@@ -209,7 +208,7 @@
             </div>
             <div class="form-grid checklist-meta-grid">
             <label class="field span-two"><span>複核日期</span><span class="native-field-wrap"><input type="date" data-check-bind="rebarCage.date" /><span class="native-field-display" aria-hidden="true"></span></span></label>
-            <label class="field"><span>單元編號</span><input type="text" data-check-bind="rebarCage.unitNo" /></label>
+            <label class="field calculated-field"><span>單元編號<em>同設計基準</em></span><input id="rebar-cage-unit" type="text" readonly tabindex="-1" placeholder="請先填設計基準" /></label>
             <label class="field"><span>鋼筋籠編號</span><input type="text" data-check-bind="rebarCage.cageNo" /></label>
             <label class="field span-two"><span>核定配筋圖號</span><input type="text" data-check-bind="rebarCage.drawingNo" placeholder="例如：S-21 Rev.C" /></label>
             </div>

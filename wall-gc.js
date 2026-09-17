@@ -505,12 +505,13 @@ const state = {
   holds: emptyHolds(),
   conclusion: { verdict: "待判定", note: "" },
   // 工程名稱／施工廠商／查驗人由 overview 統一持有，導溝與鋼筋籠共用，不再各自複製一份。
+  // 單元編號只存在 unit：鋼筋籠與壁體是同一個單元，直接帶入；導溝是全區同一種配筋與尺寸的統一檢查，不分單元。
   guideWall: {
-    date: today, unitNo: "", note: "",
+    date: today, note: "",
     checks: GUIDE_WALL_CHECKS.map(createGuideWallCheck)
   },
   rebarCage: {
-    date: today, unitNo: "", cageNo: "", drawingNo: "", note: "",
+    date: today, cageNo: "", drawingNo: "", note: "",
     rebars: REBAR_CAGE_PARTS.map(part => ({ part, designNo: "", designQty: "", actualNo: "", actualQty: "", result: "待確認" })),
     checks: REBAR_CAGE_CHECKS.map(([item, standard]) => ({ item, standard, actual: "", result: "待確認" }))
   }
@@ -526,6 +527,10 @@ function normalizeLoadedState(loaded) {
   if (legacyDate && !loaded.holdDates) state.holdDates = Object.fromEntries(HOLD_POINTS.map(hold => [hold.id, legacyDate]));
   delete state.overview.date;
   delete state.overview.manager;
+  // 1.2 以前導溝、鋼筋籠各自存一份單元編號；鋼筋籠那份與壁體同單元，壁體沒填時拿來補上
+  state.unit.unitNo ||= state.rebarCage.unitNo || "";
+  delete state.guideWall.unitNo;
+  delete state.rebarCage.unitNo;
 }
 
 let activeTab = "design";
@@ -594,19 +599,19 @@ function setInitialInputs() {
   });
 }
 
+const wallUnitLabel = () => [state.unit.unitType, state.unit.unitNo].filter(Boolean).join("｜");
 function updateIdentity() {
+  const unitField = $("#rebar-cage-unit");
+  if (unitField) unitField.value = wallUnitLabel();
   if (activeTool === "guideWall") {
-    $("#record-identity").textContent = state.guideWall.unitNo ? `導溝｜${state.guideWall.unitNo}` : "導溝施工複核";
+    $("#record-identity").textContent = "導溝施工複核";
     return;
   }
   if (activeTool === "rebarCage") {
-    $("#record-identity").textContent = state.rebarCage.cageNo || state.rebarCage.unitNo
-      ? [state.rebarCage.unitNo, state.rebarCage.cageNo].filter(Boolean).join("｜")
-      : "鋼筋籠吊放前複核";
+    $("#record-identity").textContent = [state.unit.unitNo, state.rebarCage.cageNo].filter(Boolean).join("｜") || "鋼筋籠吊放前複核";
     return;
   }
-  const parts = [state.unit.unitType, state.unit.unitNo].filter(Boolean);
-  $("#record-identity").textContent = parts.length ? parts.join("｜") : "尚未指定單元";
+  $("#record-identity").textContent = wallUnitLabel() || "尚未指定單元";
 }
 
 function updateUnitCalculation() {
@@ -800,8 +805,8 @@ function loadExample() {
   Object.assign(state.unit, { unitType: "公母單元", unitNo: "21", sequenceNo: "03", slurryType: "皂土系", guideTopElevation: "0.15", strength: "350", thickness: "1.00", length: "2.80", designDepth: "-35.80", topElevation: "-0.50", designVolume: "98.84" });
   state.holds = Object.fromEntries(HOLD_POINTS.map((hold, holdIndex) => [hold.id, hold.items.map((definition, index) => ({ actual: holdIndex === 2 && index === 8 ? "107.46 m³；超方約 8.72%" : holdIndex === 0 && index === 0 ? "12 mm" : holdIndex === 2 && index === 0 ? "17.5 cm" : "已確認", result: "符合" }))]));
   state.conclusion = { verdict: "合格放行", note: "各停檢點均完成查驗，相關專業分包商紀錄列入附件保存。" };
-  state.guideWall = { date: "2026-08-10", unitNo: "21", note: "中心線偏差 1.6 cm；導溝施工條件符合。", checks: GUIDE_WALL_CHECKS.map(([item, standard], index) => ({ item, standard, actual: index === 0 ? "中心線偏差 1.6 cm" : "已確認", barNo: index === 5 ? "D16" : "", barSpacing: index === 5 ? "19.5" : "", result: "符合" })) };
-  state.rebarCage = { date: "2026-08-10", unitNo: "21", cageNo: "C21-U／C21-L", drawingNo: "S-21 Rev.C", note: "配筋圖逐項核對；吊放條件完成。", rebars: REBAR_CAGE_PARTS.map((part, index) => ({ part, designNo: index < 2 ? "D32" : "D16", designQty: index < 2 ? "32支" : "@20 cm", actualNo: index < 2 ? "D32" : "D16", actualQty: index < 2 ? "32支" : "@20 cm", result: "符合" })), checks: REBAR_CAGE_CHECKS.map(([item, standard], index) => ({ item, standard, actual: index === 7 ? "3 組成對安裝；線路已保護至孔口" : "已確認", result: "符合" })) };
+  state.guideWall = { date: "2026-08-10", note: "中心線偏差 1.6 cm；導溝施工條件符合。", checks: GUIDE_WALL_CHECKS.map(([item, standard], index) => ({ item, standard, actual: index === 0 ? "中心線偏差 1.6 cm" : "已確認", barNo: index === 5 ? "D16" : "", barSpacing: index === 5 ? "19.5" : "", result: "符合" })) };
+  state.rebarCage = { date: "2026-08-10", cageNo: "C21-U／C21-L", drawingNo: "S-21 Rev.C", note: "配筋圖逐項核對；吊放條件完成。", rebars: REBAR_CAGE_PARTS.map((part, index) => ({ part, designNo: index < 2 ? "D32" : "D16", designQty: index < 2 ? "32支" : "@20 cm", actualNo: index < 2 ? "D32" : "D16", actualQty: index < 2 ? "32支" : "@20 cm", result: "符合" })), checks: REBAR_CAGE_CHECKS.map(([item, standard], index) => ({ item, standard, actual: index === 7 ? "3 組成對安裝；線路已保護至孔口" : "已確認", result: "符合" })) };
 }
 
 function clearAllData() {
@@ -816,11 +821,11 @@ function clearAllData() {
   state.holds = emptyHolds();
   state.conclusion = { verdict: "待判定", note: "" };
   state.guideWall = {
-    date: "", unitNo: "", note: "",
+    date: "", note: "",
     checks: GUIDE_WALL_CHECKS.map(createGuideWallCheck)
   };
   state.rebarCage = {
-    date: "", unitNo: "", cageNo: "", drawingNo: "", note: "",
+    date: "", cageNo: "", drawingNo: "", note: "",
     rebars: REBAR_CAGE_PARTS.map(part => ({ part, designNo: "", designQty: "", actualNo: "", actualQty: "", result: "待確認" })),
     checks: REBAR_CAGE_CHECKS.map(([item, standard]) => ({ item, standard, actual: "", result: "待確認" }))
   };
@@ -961,9 +966,8 @@ function renderPrint() {
     ${printConclusion()}${printFooter()}`;
 
   const guideWallRows = state.guideWall.checks.map((check, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(check.item)}</td><td class="text-left">${esc(check.standard)}</td><td class="text-left">${esc(guideCheckActual(check))}</td><td>${esc(check.result)}</td></tr>`).join("");
-  $("#print-guide-wall").innerHTML = `${printHeader({ title: "導溝施工複核表", sequence: "03", identity: state.guideWall.unitNo || "未指定單元", date: state.guideWall.date, dateLabel: "複核日期", reviewerLabel: "營造廠複核人" })}
+  $("#print-guide-wall").innerHTML = `${printHeader({ title: "導溝施工複核表", sequence: "03", identity: "不分單元", date: state.guideWall.date, dateLabel: "複核日期", reviewerLabel: "營造廠複核人" })}
     <section class="print-section"><h2>導溝資料</h2><div class="print-meta-grid three">
-      <div><span>單元編號</span><strong>${esc(display(state.guideWall.unitNo))}</strong></div>
       <div><span>導溝頂基準高程</span><strong>${number(state.unit.guideTopElevation) === null ? "" : `GL ${signed(number(state.unit.guideTopElevation))} m`}</strong></div>
       <div><span>複核意見</span><strong>${esc(display(state.guideWall.note))}</strong></div>
     </div></section>
@@ -971,9 +975,9 @@ function renderPrint() {
 
   const rebarRows = state.rebarCage.rebars.length ? state.rebarCage.rebars.map((rebar, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(rebar.part)}</td><td>${esc(display(rebar.designNo))}</td><td>${esc(display(rebar.designQty))}</td><td>${esc(display(rebar.actualNo))}</td><td>${esc(display(rebar.actualQty))}</td><td>${esc(rebar.result)}</td></tr>`).join("") : `<tr><td colspan="7" class="print-empty">尚無抽查項目</td></tr>`;
   const rebarCageRows = state.rebarCage.checks.map((check, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(check.item)}</td><td class="text-left">${esc(check.standard)}</td><td class="text-left">${esc(display(check.actual))}</td><td>${esc(check.result)}</td></tr>`).join("");
-  $("#print-rebar-cage").innerHTML = `${printHeader({ title: "鋼筋籠吊放前複核表", sequence: "04", identity: [state.rebarCage.unitNo, state.rebarCage.cageNo].filter(Boolean).join("｜") || "未指定鋼筋籠", date: state.rebarCage.date, dateLabel: "複核日期", reviewerLabel: "營造廠複核人" })}
+  $("#print-rebar-cage").innerHTML = `${printHeader({ title: "鋼筋籠吊放前複核表", sequence: "04", identity: [state.unit.unitNo, state.rebarCage.cageNo].filter(Boolean).join("｜") || "未指定鋼筋籠", date: state.rebarCage.date, dateLabel: "複核日期", reviewerLabel: "營造廠複核人" })}
     <section class="print-section"><h2>鋼筋籠資料</h2><div class="print-meta-grid three compact-meta">
-      <div><span>單元編號</span><strong>${esc(display(state.rebarCage.unitNo))}</strong></div>
+      <div><span>單元編號</span><strong>${esc(display(wallUnitLabel()))}</strong></div>
       <div><span>鋼筋籠編號</span><strong>${esc(display(state.rebarCage.cageNo))}</strong></div>
       <div><span>核定配筋圖號</span><strong>${esc(display(state.rebarCage.drawingNo))}</strong></div>
       <div><span>複核意見</span><strong>${esc(display(state.rebarCage.note))}</strong></div>
@@ -984,11 +988,7 @@ function renderPrint() {
 
 function setPdfDocumentTitle(scope) {
   const toolName = TOOL_LABELS[activeTool] || "施工檢核紀錄";
-  const recordId = activeTool === "inspection"
-    ? state.unit.unitNo
-    : activeTool === "guideWall"
-      ? state.guideWall.unitNo
-      : state.rebarCage.unitNo || state.rebarCage.cageNo;
+  const recordId = activeTool === "guideWall" ? "" : state.unit.unitNo || (activeTool === "rebarCage" ? state.rebarCage.cageNo : "");
   const pageName = currentExportLabel(activeTool, activeTab);
   const date = (activeTool === "inspection" ? inspectionDates().at(-1) : activeTool === "guideWall" ? state.guideWall.date : state.rebarCage.date) || today;
   const parts = [toolName, recordId, scope === "all" ? "完整檢核紀錄" : pageName, date];
@@ -1033,7 +1033,7 @@ function exportData() {
 
   return {
     app_version: APP_VERSION,
-    schema_version: "1.2",
+    schema_version: "1.3",
     record_type: "diaphragm_wall_gc_inspection",
     exported_at: new Date().toISOString(),
     export_context: {
@@ -1089,7 +1089,6 @@ function exportData() {
       project: state.overview.project || null,
       contractor: state.overview.contractor || null,
       review_date: state.guideWall.date || null,
-      unit_no: state.guideWall.unitNo || null,
       reviewer: state.overview.reviewer || null,
       note: state.guideWall.note || null,
       items: state.guideWall.checks.map((check, index) => ({
@@ -1105,7 +1104,6 @@ function exportData() {
     rebar_cage_review: {
       project: state.overview.project || null,
       review_date: state.rebarCage.date || null,
-      unit_no: state.rebarCage.unitNo || null,
       cage_no: state.rebarCage.cageNo || null,
       drawing_no: state.rebarCage.drawingNo || null,
       reviewer: state.overview.reviewer || null,
@@ -1132,7 +1130,7 @@ function exportData() {
 
 
 function exportFileName(extension) {
-  const recordId = safeFilePart(state.unit.unitNo || state.guideWall.unitNo || state.rebarCage.unitNo, "");
+  const recordId = safeFilePart(state.unit.unitNo, "");
   const date = safeFilePart(inspectionDates().at(-1) || today, today);
   return `${["diaphragm-wall-gc", recordId, date].filter(Boolean).join("-")}.${extension}`;
 }
@@ -1300,8 +1298,6 @@ function importVendorPayload(payload) {
     topElevation: importText(wall.top_elevation_m),
     designVolume: ""
   };
-  state.guideWall.unitNo = state.unit.unitNo;
-  state.rebarCage.unitNo = state.unit.unitNo;
   return "匯入完成：已帶入廠商版的工程名稱與設計參數；實測值請由營造廠自行查驗填寫。";
 }
 
@@ -1324,7 +1320,7 @@ function importGcPayload(payload) {
   state.holdDates = Object.fromEntries(HOLD_POINTS.map(hold => [hold.id, importText(importedHoldDates.find(record => record.hold_point_id === hold.id)?.inspection_date) || legacyDate]));
   state.unit = {
     unitType: importText(wall.unit_type),
-    unitNo: importText(wall.unit_no),
+    unitNo: importText(wall.unit_no) || importText(rebarCage.unit_no), // 1.2 以前鋼筋籠自己帶單元編號
     sequenceNo: importText(wall.sequence_no),
     slurryType: importText(wall.slurry_type),
     guideTopElevation: importText(wall.guide_wall_top_elevation_m),
@@ -1359,7 +1355,6 @@ function importGcPayload(payload) {
   };
   state.guideWall = {
     date: importText(guideWall.review_date),
-    unitNo: importText(guideWall.unit_no),
     note: importText(guideWall.note),
     checks: importGuideWallItems(guideWall.items)
   };
@@ -1367,7 +1362,6 @@ function importGcPayload(payload) {
   const importedRebars = Array.isArray(rebarCage.rebar_items) ? rebarCage.rebar_items : [];
   state.rebarCage = {
     date: importText(rebarCage.review_date),
-    unitNo: importText(rebarCage.unit_no),
     cageNo: importText(rebarCage.cage_no),
     drawingNo: importText(rebarCage.drawing_no),
     note: importText(rebarCage.note),

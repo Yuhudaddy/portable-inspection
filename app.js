@@ -211,12 +211,13 @@ const state = {
   prework: Object.fromEntries(PHASES.map(phase => [phase.id, { date: today, start: "", end: "" }])),
   trucks: [],
   // 工程名稱／施工廠商由 overview 統一持有，導溝與鋼筋籠共用；複核人（營造廠）與填表人（廠商）是不同人，各自保留。
+  // 單元編號只存在 wall：鋼筋籠與壁體是同一個單元，直接帶入；導溝是全區同一種配筋與尺寸的統一檢查，不分單元。
   guideWall: {
-    date: today, unitNo: "", reviewer: "", note: "",
+    date: today, reviewer: "", note: "",
     checks: GUIDE_WALL_CHECKS.map(createGuideWallCheck)
   },
   rebarCage: {
-    date: today, unitNo: "", cageNo: "", reviewer: "", note: "",
+    date: today, cageNo: "", reviewer: "", note: "",
     rebars: REBAR_CAGE_PARTS.map(part => ({ part, designNo: "", designQty: "", actualNo: "", actualQty: "", result: "待確認" })),
     checks: REBAR_CAGE_CHECKS.map(([item, standard]) => ({ item, standard, actual: "", result: "待確認" }))
   },
@@ -242,6 +243,10 @@ function normalizeLoadedState(loaded) {
     PHASES.forEach(phase => { state.prework[phase.id].date ||= legacyDate; });
   }
   delete state.overview.date;
+  // 1.2 以前導溝、鋼筋籠各自存一份單元編號；鋼筋籠那份與壁體同單元，壁體沒填時拿來補上
+  state.wall.unitNo ||= state.rebarCage.unitNo || "";
+  delete state.guideWall.unitNo;
+  delete state.rebarCage.unitNo;
 }
 
 let activeTab = "wall";
@@ -343,6 +348,20 @@ function calculatedExcavation() {
   };
 }
 
+// 車次合理性提醒的門檻（只提醒不擋）。30 時制會把「比基準早」的時間解讀成隔天，所以時間打錯不會報錯，
+// 而是變成間隔特別大；用間隔來抓打錯與順序錯，方量則抓明顯超出一般拌合車的值。
+const TRUCK_LIMITS = { dispatchGapMinutes: 12 * 60, unloadAfterDispatchMinutes: 4 * 60, finishAfterUnloadMinutes: 3 * 60, clock30Minutes: 30 * 60, maxVolume: 15 };
+const hoursText = minutes => `${(minutes / 60).toFixed(1)} 小時`;
+function truckFlags({ truck, volume, dispatchAt, unloadAt, finishAt, previousDispatch }) {
+  const flags = [];
+  if (previousDispatch !== null && dispatchAt !== null && dispatchAt - previousDispatch > TRUCK_LIMITS.dispatchGapMinutes) flags.push(`出廠時間比前一車晚 ${hoursText(dispatchAt - previousDispatch)}，請確認車次順序或是否打錯`);
+  if (dispatchAt !== null && unloadAt !== null && unloadAt - dispatchAt > TRUCK_LIMITS.unloadAfterDispatchMinutes) flags.push(`出廠到卸料相差 ${hoursText(unloadAt - dispatchAt)}，請確認時間是否打錯`);
+  if (unloadAt !== null && finishAt !== null && finishAt - unloadAt > TRUCK_LIMITS.finishAfterUnloadMinutes) flags.push(`卸料到結束相差 ${hoursText(finishAt - unloadAt)}，請確認時間是否打錯`);
+  if (String(truck.volume).trim() && volume <= 0) flags.push("方量為 0 或負值，請確認");
+  if (volume > TRUCK_LIMITS.maxVolume) flags.push(`單車方量 ${fixed(volume)} m³ 超過一般拌合車容量，請確認`);
+  return flags;
+}
+
 function calculatedTrucks() {
   const designVolume = number(state.wall.designVolume);
   const height = designHeight();
@@ -351,6 +370,7 @@ function calculatedTrucks() {
   // 30 時制的基準：出廠時間以上一車出廠為準（車次只會越來越晚），卸料以本車出廠、結束以本車卸料為準
   let previousDispatch = null;
   let previousUnload = null;
+  let passed30 = false;
   return state.trucks.map((truck, index) => {
     const volume = number(truck.volume) ?? 0;
     const measured = number(truck.measured);
@@ -358,16 +378,22 @@ function calculatedTrucks() {
     const expected = designVolume && height !== null ? height * cumulative / designVolume : null;
     const difference = measured !== null && expected !== null ? measured - expected : null;
     // 有填坍度的車次就是做了一組試體，依序編「試1、試2…」，列印與畫面都以「（試1）18」呈現
-    const slumpNo = String(truck.slump).trim() ? ++slumpTests : null;
+    const slumpNo = String(truck.slump ?? "").trim() ? ++slumpTests : null;
     const slumpLabel = slumpNo === null ? "" : `（試${slumpNo}）${truck.slump}`;
     const dispatchAt = minutesAfter(truck.dispatch, previousDispatch);
     const unloadAt = minutesAfter(truck.unload, dispatchAt ?? previousUnload);
     const finishAt = minutesAfter(truck.finish, unloadAt);
+    const flags = truckFlags({ truck, volume, dispatchAt, unloadAt, finishAt, previousDispatch });
+    // 推算超過 30:00（翌日 06:00）只在第一車提醒一次，通宵澆置後面每車都提醒就成了雜訊
+    if (!passed30 && [dispatchAt, unloadAt, finishAt].some(value => value !== null && value >= TRUCK_LIMITS.clock30Minutes)) {
+      passed30 = true;
+      flags.push("時間已推算到 30:00 以後（翌日 06:00 後），如非通宵澆置請檢查前面車次的時間");
+    }
     if (dispatchAt !== null) previousDispatch = dispatchAt;
     if (unloadAt !== null) previousUnload = unloadAt;
     // 澆置時間＝結束 − 出廠（分鐘），確認混凝土是否在限制時間內澆完
     const minutes = dispatchAt !== null && finishAt !== null ? finishAt - dispatchAt : null;
-    return { ...truck, index, volume, cumulative, measured, expected, difference, minutes, slumpNo, slumpLabel,
+    return { ...truck, index, volume, cumulative, measured, expected, difference, minutes, slumpNo, slumpLabel, flags,
       dispatch30: clock30(dispatchAt), unload30: clock30(unloadAt), finish30: clock30(finishAt) };
   });
 }
@@ -380,17 +406,19 @@ function setInitialInputs() {
   });
 }
 
+const wallUnitLabel = () => [state.wall.unitType, state.wall.unitNo].filter(Boolean).join("｜");
 function updateIdentity() {
+  const unitField = $("#rebar-cage-unit");
+  if (unitField) unitField.value = wallUnitLabel();
   if (activeTool === "guideWall") {
-    $("#record-identity").textContent = state.guideWall.unitNo ? `導溝｜${state.guideWall.unitNo}` : "導溝施工複核";
+    $("#record-identity").textContent = "導溝施工複核";
     return;
   }
   if (activeTool === "rebarCage") {
-    $("#record-identity").textContent = state.rebarCage.cageNo || state.rebarCage.unitNo ? [state.rebarCage.unitNo, state.rebarCage.cageNo].filter(Boolean).join("｜") : "鋼筋籠吊放前複核";
+    $("#record-identity").textContent = [state.wall.unitNo, state.rebarCage.cageNo].filter(Boolean).join("｜") || "鋼筋籠吊放前複核";
     return;
   }
-  const parts = [state.wall.unitType, state.wall.unitNo].filter(Boolean);
-  $("#record-identity").textContent = parts.length ? parts.join("｜") : "尚未指定單元";
+  $("#record-identity").textContent = wallUnitLabel() || "尚未指定單元";
 }
 
 function updateWallCalculation() {
@@ -532,7 +560,7 @@ function renderPouring() {
   $("#truck-list").innerHTML = rows.length ? rows.map(row => `
     <article class="record-item">
       <div class="record-item-main">
-        <div class="record-item-title"><strong>第 ${row.index + 1} 車｜${esc(row.truckNo)}</strong><span>${esc(row.dispatch30 || "—")} 出廠｜${esc(row.unload30)}–${esc(row.finish30)}</span></div>
+        <div class="record-item-title"><strong>第 ${row.index + 1} 車｜${esc(row.truckNo)}</strong><span class="${row.flags.length ? "warning-text" : ""}">${esc(row.dispatch30 || "—")} 出廠｜${esc(row.unload30)}–${esc(row.finish30)}</span></div>
         <div class="record-item-meta">
           <span>本車 ${fixed(row.volume)} m³</span>
           <span>累積 ${fixed(row.cumulative)} m³</span>
@@ -549,8 +577,11 @@ function renderPouring() {
       </div>
     </article>`).join("") : emptyState("尚無澆置車次，請按＋新增車次。");
 
-  const warnings = rows.filter(row => row.difference !== null && row.difference < -0.3);
-  $("#pour-warnings").innerHTML = warnings.map(row => `<div class="warning-item"><strong>第 ${row.index + 1} 車差異 ${fixed(row.difference)} m：</strong>請確認量測基準、實際方量、超挖或坍孔可能性。</div>`).join("");
+  const warnings = rows.flatMap(row => [
+    ...(row.difference !== null && row.difference < -0.3 ? [`<div class="warning-item"><strong>第 ${row.index + 1} 車差異 ${fixed(row.difference)} m：</strong>請確認量測基準、實際方量、超挖或坍孔可能性。</div>`] : []),
+    ...row.flags.map(flag => `<div class="warning-item"><strong>第 ${row.index + 1} 車：</strong>${esc(flag)}</div>`)
+  ]);
+  $("#pour-warnings").innerHTML = warnings.join("");
 }
 
 // 三段式結果膠囊：以隱藏 radio + 相鄰 span 呈現（沿用既有 .unit-type 手法）。
@@ -682,8 +713,8 @@ function loadExample() {
   state.depth = [{ time: "12:10", value: "-35.80" }, { time: "12:35", value: "-35.82" }];
   state.prework = Object.fromEntries(PHASES.map((phase, index) => [phase.id, { date: "2026-08-11", start: `0${8 + index}:00`, end: `0${8 + index}:30` }]));
   state.trucks = Array.from({ length: 8 }, (_, index) => ({ truckNo: `C${String(index + 1).padStart(2, "0")}`, dispatch: `${12 + Math.floor(index / 2)}:${index % 2 ? "50" : "28"}`, unload: `${13 + Math.floor(index / 2)}:${index % 2 ? "42" : "20"}`, finish: `${13 + Math.floor(index / 2)}:${index % 2 ? "55" : "33"}`, volume: index === 7 ? "9.46" : "12", measured: (3.9 + index * 4.1).toFixed(2), slump: index === 0 ? "18" : "" }));
-  state.guideWall = { date: "2026-08-10", unitNo: "21", reviewer: "Site Engineer", note: "中心線偏差 1.6 cm；順序符合；導溝條件完成複核。", checks: GUIDE_WALL_CHECKS.map(([item, standard], index) => ({ item, standard, actual: index === 0 ? "中心線偏差 1.6 cm" : "已確認", barNo: index === 5 ? "D16" : "", barSpacing: index === 5 ? "19.5" : "", result: "符合" })) };
-  state.rebarCage = { date: "2026-08-10", unitNo: "21", cageNo: "C21-U／C21-L", reviewer: "Site Engineer", note: "配筋圖逐項核對；吊放條件完成。", rebars: REBAR_CAGE_PARTS.map((part, index) => ({ part, designNo: index < 2 ? "D32" : "D16", designQty: index < 2 ? "32支" : "@20 cm", actualNo: index < 2 ? "D32" : "D16", actualQty: index < 2 ? "32支" : "@20 cm", result: "符合" })), checks: REBAR_CAGE_CHECKS.map(([item, standard], index) => ({ item, standard, actual: index === 7 ? "3 組成對安裝；線路已保護至孔口" : "已確認", result: "符合" })) };
+  state.guideWall = { date: "2026-08-10", reviewer: "Site Engineer", note: "中心線偏差 1.6 cm；順序符合；導溝條件完成複核。", checks: GUIDE_WALL_CHECKS.map(([item, standard], index) => ({ item, standard, actual: index === 0 ? "中心線偏差 1.6 cm" : "已確認", barNo: index === 5 ? "D16" : "", barSpacing: index === 5 ? "19.5" : "", result: "符合" })) };
+  state.rebarCage = { date: "2026-08-10", cageNo: "C21-U／C21-L", reviewer: "Site Engineer", note: "配筋圖逐項核對；吊放條件完成。", rebars: REBAR_CAGE_PARTS.map((part, index) => ({ part, designNo: index < 2 ? "D32" : "D16", designQty: index < 2 ? "32支" : "@20 cm", actualNo: index < 2 ? "D32" : "D16", actualQty: index < 2 ? "32支" : "@20 cm", result: "符合" })), checks: REBAR_CAGE_CHECKS.map(([item, standard], index) => ({ item, standard, actual: index === 7 ? "3 組成對安裝；線路已保護至孔口" : "已確認", result: "符合" })) };
   state.quality = { note: "各項檢查完成，未發現影響施工之缺失。", standards: { ...QUALITY_STANDARD_DEFAULTS }, checks: QUALITY_CHECKS.map(([item, standard, placeholder]) => ({ item, standard, placeholder, actual: "已確認", result: "符合" })) };
 }
 
@@ -700,11 +731,11 @@ function clearAllData() {
   state.prework = Object.fromEntries(PHASES.map(phase => [phase.id, { date: "", start: "", end: "" }]));
   state.trucks = [];
   state.guideWall = {
-    date: "", unitNo: "", reviewer: "", note: "",
+    date: "", reviewer: "", note: "",
     checks: GUIDE_WALL_CHECKS.map(createGuideWallCheck)
   };
   state.rebarCage = {
-    date: "", unitNo: "", cageNo: "", reviewer: "", note: "",
+    date: "", cageNo: "", reviewer: "", note: "",
     rebars: REBAR_CAGE_PARTS.map(part => ({ part, designNo: "", designQty: "", actualNo: "", actualQty: "", result: "待確認" })),
     checks: REBAR_CAGE_CHECKS.map(([item, standard]) => ({ item, standard, actual: "", result: "待確認" }))
   };
@@ -961,18 +992,17 @@ function renderPrint() {
       </div></section><section class="print-section pouring-table-section"><h2>逐車混凝土澆置紀錄</h2><table class="print-table"><thead><tr><th>車次</th><th>車號</th><th>出廠</th><th>卸料</th><th>結束</th><th>坍度(cm)</th><th>方量(m³)</th><th>累積(m³)</th><th>預估高(m)</th><th>實際高(m)</th><th>澆置時間(分)</th></tr></thead><tbody>${pouringRows}</tbody></table><p class="print-table-note">跨午夜的時間以 24 時以後接續表示（例：25:30＝翌日 01:30）；澆置時間＝結束 − 出廠。</p></section></div><section class="print-section pouring-chart-section"><h2>澆置高度曲線</h2>${pouringChartSvg(truckRows)}</section></div></div>${printFooter()}`;
 
   const guideWallRows = state.guideWall.checks.map((check, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(check.item)}</td><td class="text-left">${esc(check.standard)}</td><td class="text-left">${esc(guideCheckActual(check))}</td><td>${esc(check.result)}</td></tr>`).join("");
-  $("#print-guide-wall").innerHTML = `${printHeader({ title: "導溝施工複核表", sequence: "07", identity: state.guideWall.unitNo || "未指定單元", date: state.guideWall.date, dateLabel: "複核日期", reviewer: state.guideWall.reviewer, reviewerLabel: "營造廠複核人" })}
-    <section class="print-section"><h2>導溝資料</h2><div class="print-meta-grid three">
-      <div><span>單元編號</span><strong>${esc(display(state.guideWall.unitNo))}</strong></div>
+  $("#print-guide-wall").innerHTML = `${printHeader({ title: "導溝施工複核表", sequence: "07", identity: "不分單元", date: state.guideWall.date, dateLabel: "複核日期", reviewer: state.guideWall.reviewer, reviewerLabel: "營造廠複核人" })}
+    <section class="print-section"><h2>導溝資料</h2><div class="print-meta-grid single">
       <div><span>複核意見</span><strong>${esc(display(state.guideWall.note))}</strong></div>
     </div></section>
     <section class="print-section"><h2>導溝複核項目</h2><table class="print-table checklist-print-table"><thead><tr><th>項次</th><th>複核項目</th><th>確認基準</th><th>現場紀錄／實測</th><th>結果</th></tr></thead><tbody>${guideWallRows}</tbody></table></section>${printFooter()}`;
 
   const rebarRows = state.rebarCage.rebars.length ? state.rebarCage.rebars.map((rebar, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(rebar.part)}</td><td>${esc(display(rebar.designNo))}</td><td>${esc(display(rebar.designQty))}</td><td>${esc(display(rebar.actualNo))}</td><td>${esc(display(rebar.actualQty))}</td><td>${esc(rebar.result)}</td></tr>`).join("") : `<tr><td colspan="7" class="print-empty">尚無配筋項目</td></tr>`;
   const rebarCageRows = state.rebarCage.checks.map((check, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(check.item)}</td><td class="text-left">${esc(check.standard)}</td><td class="text-left">${esc(display(check.actual))}</td><td>${esc(check.result)}</td></tr>`).join("");
-  $("#print-rebar-cage").innerHTML = `${printHeader({ title: "鋼筋籠吊放前複核表", sequence: "08", identity: [state.rebarCage.unitNo, state.rebarCage.cageNo].filter(Boolean).join("｜") || "未指定鋼筋籠", date: state.rebarCage.date, dateLabel: "複核日期", reviewer: state.rebarCage.reviewer, reviewerLabel: "營造廠複核人" })}
+  $("#print-rebar-cage").innerHTML = `${printHeader({ title: "鋼筋籠吊放前複核表", sequence: "08", identity: [state.wall.unitNo, state.rebarCage.cageNo].filter(Boolean).join("｜") || "未指定鋼筋籠", date: state.rebarCage.date, dateLabel: "複核日期", reviewer: state.rebarCage.reviewer, reviewerLabel: "營造廠複核人" })}
     <section class="print-section"><h2>鋼筋籠資料</h2><div class="print-meta-grid three compact-meta">
-      <div><span>單元編號</span><strong>${esc(display(state.rebarCage.unitNo))}</strong></div>
+      <div><span>單元編號</span><strong>${esc(display(wallUnitLabel()))}</strong></div>
       <div><span>鋼筋籠編號</span><strong>${esc(display(state.rebarCage.cageNo))}</strong></div>
       <div><span>複核意見</span><strong>${esc(display(state.rebarCage.note))}</strong></div>
     </div></section>
@@ -982,11 +1012,7 @@ function renderPrint() {
 
 function setPdfDocumentTitle(scope) {
   const toolName = TOOL_LABELS[activeTool] || "施工檢核紀錄";
-  const recordId = activeTool === "diaphragmWall"
-    ? state.wall.unitNo
-    : activeTool === "guideWall"
-      ? state.guideWall.unitNo
-      : state.rebarCage.unitNo || state.rebarCage.cageNo;
+  const recordId = activeTool === "guideWall" ? "" : state.wall.unitNo || (activeTool === "rebarCage" ? state.rebarCage.cageNo : "");
   const pageName = currentExportLabel(activeTool, activeTab);
   // 檔名的日期跟該張列印頁一致；完整紀錄與總表用最晚的紀錄日期
   const pageDates = { pouring: state.dates.pouring, "excavation-prework": state.dates.excavationStart, guideWall: state.guideWall.date, rebarCage: state.rebarCage.date };
@@ -1055,7 +1081,7 @@ function exportData() {
 
   return {
     app_version: APP_VERSION,
-    schema_version: "1.2",
+    schema_version: "1.3",
     record_type: "diaphragm_wall_field_record",
     exported_at: new Date().toISOString(),
     export_context: {
@@ -1120,7 +1146,6 @@ function exportData() {
       project: state.overview.project || null,
       contractor: state.overview.contractor || null,
       review_date: state.guideWall.date || null,
-      unit_no: state.guideWall.unitNo || null,
       reviewer: state.guideWall.reviewer || null,
       note: state.guideWall.note || null,
       items: state.guideWall.checks.map((check, index) => ({
@@ -1136,7 +1161,6 @@ function exportData() {
     rebar_cage_review: {
       project: state.overview.project || null,
       review_date: state.rebarCage.date || null,
-      unit_no: state.rebarCage.unitNo || null,
       cage_no: state.rebarCage.cageNo || null,
       reviewer: state.rebarCage.reviewer || null,
       note: state.rebarCage.note || null,
@@ -1162,7 +1186,7 @@ function exportData() {
 
 
 function exportFileName(extension) {
-  const recordId = safeFilePart(state.wall.unitNo || state.guideWall.unitNo || state.rebarCage.unitNo, "");
+  const recordId = safeFilePart(state.wall.unitNo, "");
   const date = safeFilePart(recordDates().at(-1) || today, today);
   return `${["diaphragm-wall", recordId, date].filter(Boolean).join("-")}.${extension}`;
 }
@@ -1372,7 +1396,7 @@ function importJsonPayload(payload) {
   };
   state.wall = {
     unitType: importText(wall.unit_type),
-    unitNo: importText(wall.unit_no),
+    unitNo: importText(wall.unit_no) || importText(rebarCage.unit_no), // 1.2 以前鋼筋籠自己帶單元編號
     sequenceNo: importText(wall.sequence_no),
     designDepth: importText(wall.design_depth_m),
     strength: importText(wall.concrete_strength_kgf_cm2),
@@ -1414,7 +1438,6 @@ function importJsonPayload(payload) {
   };
   state.guideWall = {
     date: importText(guideWall.review_date),
-    unitNo: importText(guideWall.unit_no),
     reviewer: importText(guideWall.reviewer),
     note: importText(guideWall.note),
     checks: importGuideWallItems(guideWall.items)
@@ -1423,7 +1446,6 @@ function importJsonPayload(payload) {
   const importedRebars = Array.isArray(rebarCage.rebar_items) ? rebarCage.rebar_items : [];
   state.rebarCage = {
     date: importText(rebarCage.review_date),
-    unitNo: importText(rebarCage.unit_no),
     cageNo: importText(rebarCage.cage_no),
     reviewer: importText(rebarCage.reviewer),
     note: importText(rebarCage.note),

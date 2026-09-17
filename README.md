@@ -4,7 +4,7 @@ A lightweight mobile-first PDF tool for field record entry.
 
 ## Deployment
 
-This repository is published as a GitHub Pages site. It contains only the files required by the deployed web app.
+Production: **https://portable-inspection.h10840206.workers.dev/** — deployed automatically by Cloudflare Workers Builds on every push to `main` (static assets only, no Worker code; see `wrangler.jsonc`, `_headers`, `_redirects`, `.assetsignore`). The former GitHub Pages site (`yuhudaddy.github.io/portable-inspection`) still builds from the same branch but only shows a "moved" notice on its home page; it will be retired later.
 
 The site opens at `index.html`, which is the tool index. The Diaphragm Wall entry tool is `diaphragm-wall.html`; its Diaphragm Wall unit record, Guide Wall review, and Rebar Cage review share one application and one PDF workflow. The template entry tool is `template.html`; it provides a mobile-first RC formwork review, measurement, pour-release, stripping, PDF, JSON, and Markdown workflow. The steel-structure entry tool is `steel-structure.html`; it provides a mobile-first general-contractor review for member delivery, anchor bolts/column bases, erection and temporary fixing, high-strength bolts, field welding, installation accuracy, and optional studs/deck/grouting records. Rebar and scaffold links remain placeholders. Legacy `record.html` and `checklists.html` URLs redirect to the Diaphragm Wall tool.
 

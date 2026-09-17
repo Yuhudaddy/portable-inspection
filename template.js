@@ -448,4 +448,3 @@ if (query.get("example") === "1") loadExample();
 renderAll();
 setTab(TAB_LABELS[query.get("tab")] ? query.get("tab") : "overview");
 
-if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./sw.js").catch(() => {});

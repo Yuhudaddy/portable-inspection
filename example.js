@@ -37,5 +37,4 @@
     })
     .catch(() => { status.textContent = "找不到這份範例，請回到工具頁重新開啟。"; });
 
-  if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./sw.js").catch(() => {});
 })();

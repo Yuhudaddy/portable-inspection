@@ -422,7 +422,6 @@ function initialize() {
   });
 
   if (TABS[query.get("tab")]) showTab(query.get("tab"));
-  if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./sw.js").catch(() => {});
 }
 
 Object.assign(state, draft.load() ?? {});

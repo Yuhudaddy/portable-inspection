@@ -718,9 +718,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   padding: 16px 18px;
   border-bottom: 1px solid var(--line);
 }
-.dialog-header span { font-family: var(--glass-font-num); color: var(--glass-accent); font-size: 0.625rem; font-weight: 800; letter-spacing: 0.12em; }
-.dialog-header h2 { margin: 2px 0 0; font-size: 1rem; font-weight: 600; }
-.dialog-header h2 small { margin-left: 8px; color: var(--glass-muted); font-family: var(--glass-font-num); font-size: 0.75rem; font-weight: 500; white-space: nowrap; }
+/* 眉標（CONCRETE／HELP）只限 div 的直接子 span，h2 裡另外包的 span 不受影響 */
+.dialog-header > div > span { font-family: var(--glass-font-num); color: var(--glass-accent); font-size: 0.625rem; font-weight: 800; letter-spacing: 0.12em; }
+.dialog-header h2 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin: 2px 0 0; font-size: 1rem; font-weight: 600; }
+.dialog-header h2 small { color: var(--glass-muted); font-family: var(--glass-font-num); font-size: 0.75rem; font-weight: 500; white-space: nowrap; }
 .dialog-header > button {
   width: 40px;
   height: 40px;

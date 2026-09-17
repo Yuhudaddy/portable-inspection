@@ -1,7 +1,6 @@
 const APP_VERSION = "1.4";
 
 const TAB_LABELS = {
-  overview: "工程概要",
   design: "設計基準",
   hold1: "成槽放行",
   hold2: "吊放放行",
@@ -16,7 +15,6 @@ const TOOL_LABELS = {
 };
 
 const PRINT_TAB_GROUPS = {
-  overview: "inspection-a",
   design: "inspection-a",
   hold1: "inspection-a",
   hold2: "inspection-a",
@@ -487,7 +485,9 @@ const emptyHolds = () => Object.fromEntries(HOLD_POINTS.map(hold => [
 ]));
 
 const state = {
-  overview: { project: "", contractor: "", date: today, reviewer: "", manager: "" },
+  overview: { project: "", contractor: "", reviewer: "" },
+  // 四個停檢點分別在不同時間查驗，各自有查驗日期（hold4＝監測結論）
+  holdDates: { hold1: today, hold2: today, hold3: today, hold4: today },
   unit: {
     unitType: "",
     unitNo: "",
@@ -520,7 +520,7 @@ const state = {
 const exampleMode = new URLSearchParams(location.search).get("example") === "1";
 const draft = createDraftStore("project-portal.diaphragmWallGc.draft", () => state, { enabled: !exampleMode });
 
-let activeTab = "overview";
+let activeTab = "design";
 let activeTool = "inspection";
 const editIndex = { rebar: null };
 let undoTimer;
@@ -787,7 +787,8 @@ function renderAll() {
 }
 
 function loadExample() {
-  state.overview = { project: "Example Construction Project — North Lot", contractor: "○○營造股份有限公司", date: "2026-08-11", reviewer: "Site Engineer", manager: "QA Manager" };
+  state.overview = { project: "Example Construction Project — North Lot", contractor: "○○營造股份有限公司", reviewer: "Site Engineer" };
+  state.holdDates = { hold1: "2026-08-10", hold2: "2026-08-11", hold3: "2026-08-11", hold4: "2026-08-12" };
   Object.assign(state.unit, { unitType: "公母單元", unitNo: "21", sequenceNo: "03", slurryType: "皂土系", guideTopElevation: "0.15", strength: "350", thickness: "1.00", length: "2.80", designDepth: "-35.80", topElevation: "-0.50", designVolume: "98.84" });
   state.holds = Object.fromEntries(HOLD_POINTS.map((hold, holdIndex) => [hold.id, hold.items.map((definition, index) => ({ actual: holdIndex === 2 && index === 8 ? "107.46 m³；超方約 8.72%" : holdIndex === 0 && index === 0 ? "12 mm" : holdIndex === 2 && index === 0 ? "17.5 cm" : "已確認", result: "符合" }))]));
   state.conclusion = { verdict: "合格放行", note: "各停檢點均完成查驗，相關專業分包商紀錄列入附件保存。" };
@@ -797,7 +798,8 @@ function loadExample() {
 
 function clearAllData() {
   draft.clear();
-  state.overview = { project: "", contractor: "", date: "", reviewer: "", manager: "" };
+  state.overview = { project: "", contractor: "", reviewer: "" };
+  state.holdDates = { hold1: "", hold2: "", hold3: "", hold4: "" };
   state.unit = {
     unitType: "", unitNo: "", sequenceNo: "", slurryType: "", guideTopElevation: "", strength: "",
     thickness: "", length: "", designDepth: "", topElevation: "", designVolume: ""
@@ -860,15 +862,26 @@ function removeRebar(index) {
   });
 }
 
+// 查驗期間：四個停檢點查驗日期的最早～最晚（查驗表表頭與檔名用）
+function inspectionDates() {
+  return Object.values(state.holdDates).filter(Boolean).sort();
+}
+function inspectionPeriodText() {
+  const dates = inspectionDates();
+  if (!dates.length) return "";
+  return dates[0] === dates.at(-1) ? dates[0] : `${dates[0]} ～ ${dates.at(-1)}`;
+}
+
 function printHeader(title, sequence, project = state.overview.project, recordIdentity = null, overviewData = state.overview, labels = {}) {
   const display = printText;
   const identity = recordIdentity || [state.unit.unitType, state.unit.unitNo].filter(Boolean).join("｜") || "未指定單元";
   const headerData = overviewData || {};
-  const dateLabel = labels.date || "查驗日期";
-  const reviewerLabel = labels.reviewer || "查驗工程師";
+  const dateLabel = labels.date || "查驗期間";
+  const dateValue = headerData.date ?? inspectionPeriodText();
+  const reviewerLabel = labels.reviewer || "填表人";
   return `<header class="print-document-header"><div class="print-header-title"><p>DIAPHRAGM WALL HOLD POINT INSPECTION / ${sequence}</p><h1>${esc(title)}</h1></div><div class="print-header-meta-body"><div class="print-header-project-lines">
     <div><span>工程名稱：</span><strong>${esc(display(headerData.project || project))}</strong></div>
-    <div><span>${esc(dateLabel)}：</span><strong>${esc(display(headerData.date))}</strong></div>
+    <div><span>${esc(dateLabel)}：</span><strong>${esc(display(dateValue))}</strong></div>
     <div><span>施工廠商：</span><strong>${esc(display(headerData.contractor))}</strong></div>
     <div><span>${esc(reviewerLabel)}：</span><strong>${esc(display(headerData.reviewer))}</strong></div>
   </div></div><div class="print-header-logo-wrap"><img class="print-logo" src="./taisei.png" alt="大成建設標誌" /><strong class="print-header-identity">${esc(identity)}</strong></div></header>`;
@@ -914,7 +927,8 @@ function printHoldSection(holdId) {
       <td>${esc(record.result)}</td>
     </tr>`;
   }).join("");
-  return `<section class="print-section compact-print-section"><h2>【${esc(hold.badge)}】${esc(hold.title)}<span class="print-heading-meta">${esc(hold.release)}</span></h2>
+  const inspected = printText(state.holdDates[holdId]);
+  return `<section class="print-section compact-print-section"><h2>【${esc(hold.badge)}】${esc(hold.title)}<span class="print-heading-meta">${esc(hold.release)}${inspected ? `｜查驗日期 ${esc(inspected)}` : ""}</span></h2>
     <table class="print-table quality-print-table"><thead><tr><th>項次</th><th>查驗項目</th><th>判定標準</th><th>現場紀錄／實測</th><th>結果</th></tr></thead><tbody>${rows}</tbody></table></section>`;
 }
 
@@ -924,8 +938,8 @@ function printConclusion() {
   const marks = verdicts.map(value => `${state.conclusion.verdict === value ? "■" : "□"} ${value}`).join("　　");
   return `<section class="print-section compact-print-section"><h2>查驗結論與簽認</h2><div class="print-meta-grid three compact-meta">
     <div><span>查驗結果</span><strong>${esc(marks)}</strong></div>
-    <div><span>營造廠現場查驗工程師</span><strong>${esc(display(state.overview.reviewer))}</strong></div>
-    <div><span>營造廠品管／工務主任</span><strong>${esc(display(state.overview.manager))}</strong></div>
+    <div><span>填表人</span><strong>${esc(display(state.overview.reviewer))}</strong></div>
+    <div><span>查驗期間</span><strong>${esc(display(inspectionPeriodText()))}</strong></div>
   </div></section>
   <section class="print-section compact-print-section"><h2>改善或備註說明</h2><div class="print-note">${esc(display(state.conclusion.note))}</div></section>
   <section class="print-section compact-print-section"><h2>應檢附之專業分包商紀錄附件</h2><table class="print-table"><tbody><tr><td class="text-left">${ATTACHMENTS.map(esc).join("　")}</td></tr></tbody></table></section>`;
@@ -974,7 +988,7 @@ function setPdfDocumentTitle(scope) {
       ? state.guideWall.unitNo
       : state.rebarCage.unitNo || state.rebarCage.cageNo;
   const pageName = currentExportLabel(activeTool, activeTab);
-  const date = state.overview.date || today;
+  const date = (activeTool === "inspection" ? inspectionDates().at(-1) : activeTool === "guideWall" ? state.guideWall.date : state.rebarCage.date) || today;
   const parts = [toolName, recordId, scope === "all" ? "完整檢核紀錄" : pageName, date]
     .filter(Boolean)
     .map(value => safeFilePart(value, ""));
@@ -1032,9 +1046,9 @@ function exportData() {
     project: {
       name: state.overview.project || null,
       contractor: state.overview.contractor || null,
-      inspection_date: state.overview.date || null,
-      site_engineer: state.overview.reviewer || null,
-      qc_manager: state.overview.manager || null
+      inspection_date: inspectionDates().at(-1) || null, // 相容舊欄位：以最晚的查驗日期代表
+      inspection_period: { start: inspectionDates()[0] || null, end: inspectionDates().at(-1) || null },
+      site_engineer: state.overview.reviewer || null
     },
     wall_unit: {
       unit_type: state.unit.unitType || null,
@@ -1056,6 +1070,7 @@ function exportData() {
       hold_point: hold.badge,
       title: hold.title,
       release: hold.release,
+      inspection_date: state.holdDates[hold.id] || null,
       items: hold.items.map((definition, index) => ({
         item_no: index + 1,
         key: definition.key,
@@ -1124,7 +1139,7 @@ function safeFilePart(value, fallback) {
 
 function exportFileName(extension) {
   const recordId = safeFilePart(state.unit.unitNo || state.guideWall.unitNo || state.rebarCage.unitNo, "");
-  const date = safeFilePart(state.overview.date || today, today);
+  const date = safeFilePart(inspectionDates().at(-1) || today, today);
   return `${["diaphragm-wall-gc", recordId, date].filter(Boolean).join("-")}.${extension}`;
 }
 
@@ -1154,15 +1169,14 @@ function exportMarkdown() {
     `- APP 版本：${data.app_version}`,
     `- 資料版本：${data.schema_version}`,
     ``,
-    `## 工程概要`,
+    `## 工程資訊`,
     ``,
     `| 欄位 | 內容 |`,
     `| --- | --- |`,
     `| 工程名稱 | ${markdownCell(data.project.name)} |`,
     `| 施工廠商 | ${markdownCell(data.project.contractor)} |`,
-    `| 查驗日期 | ${markdownCell(data.project.inspection_date)} |`,
-    `| 現場查驗工程師 | ${markdownCell(data.project.site_engineer)} |`,
-    `| 品管／工務主任 | ${markdownCell(data.project.qc_manager)} |`,
+    `| 查驗期間 | ${markdownCell([data.project.inspection_period.start, data.project.inspection_period.end].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(" ～ "))} |`,
+    `| 填表人 | ${markdownCell(data.project.site_engineer)} |`,
     ``,
     `## 設計基準`,
     ``,
@@ -1182,7 +1196,7 @@ function exportMarkdown() {
     `| 設計數量（m³） | ${markdownCell(wall.design_volume_m3)} |`,
     ``,
     ...data.hold_points.flatMap(hold => [
-      `## 【${hold.hold_point}】${hold.title}（${hold.release}）`,
+      `## 【${hold.hold_point}】${hold.title}（${hold.release}）${hold.inspection_date ? `｜查驗日期 ${hold.inspection_date}` : ""}`,
       ``,
       `| 項次 | 查驗項目 | 判定標準 | 現場紀錄／實測 | 警示 | 結果 |`,
       `| ---: | --- | --- | --- | --- | --- |`,
@@ -1277,9 +1291,7 @@ function importVendorPayload(payload) {
   state.overview = {
     project: importText(project.name),
     contractor: importText(project.contractor),
-    date: importText(project.construction_date) || today,
-    reviewer: "",
-    manager: ""
+    reviewer: ""
   };
   state.unit = {
     unitType: importText(wall.unit_type),
@@ -1310,10 +1322,12 @@ function importGcPayload(payload) {
   state.overview = {
     project: importText(project.name) || importText(guideWall.project) || importText(rebarCage.project),
     contractor: importText(project.contractor) || importText(guideWall.contractor),
-    date: importText(project.inspection_date),
-    reviewer: importText(project.site_engineer) || importText(guideWall.reviewer) || importText(rebarCage.reviewer),
-    manager: importText(project.qc_manager)
+    reviewer: importText(project.site_engineer) || importText(guideWall.reviewer) || importText(rebarCage.reviewer)
   };
+  // 舊版只有一個 inspection_date：沒有各停檢點日期的欄位一律回填它
+  const legacyDate = importText(project.inspection_date);
+  const importedHoldDates = Array.isArray(payload.hold_points) ? payload.hold_points : [];
+  state.holdDates = Object.fromEntries(HOLD_POINTS.map(hold => [hold.id, importText(importedHoldDates.find(record => record.hold_point_id === hold.id)?.inspection_date) || legacyDate]));
   state.unit = {
     unitType: importText(wall.unit_type),
     unitNo: importText(wall.unit_no),
@@ -1388,7 +1402,7 @@ function importJsonPayload(payload) {
 
   const context = payload.export_context || {};
   const importedTool = ["inspection", "guideWall", "rebarCage"].includes(context.active_tool) ? context.active_tool : "inspection";
-  const importedTab = TAB_LABELS[context.active_tab] ? context.active_tab : "overview";
+  const importedTab = TAB_LABELS[context.active_tab] ? context.active_tab : "design";
   setInitialInputs();
   renderAll();
   showTool(importedTool);
@@ -1426,7 +1440,7 @@ function initialize() {
   setInitialInputs();
   renderAll();
   syncAllDateTimeDisplays();
-  showTab("overview");
+  showTab("design");
 
   document.addEventListener("input", event => {
     if (event.target.matches('input[type="date"], input[type="time"]')) syncDateTimeDisplay(event.target);

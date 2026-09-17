@@ -37,7 +37,7 @@
         <div class="shared-info-head span-two"><span id="shared-info-heading">工程資訊</span><small>導溝、鋼筋籠、連續壁三表共用</small></div>
         <label class="field span-two"><span>工程名稱</span><input type="text" data-bind="overview.project" autocomplete="organization" /></label>
         <label class="field"><span>施工廠商（專業分包商）</span><input type="text" data-bind="overview.contractor" autocomplete="organization" /></label>
-        <label class="field"><span>營造廠查驗／複核人</span><input type="text" data-bind="overview.reviewer" autocomplete="name" /></label>
+        <label class="field"><span>填表人</span><input type="text" data-bind="overview.reviewer" autocomplete="name" /></label>
       </section>
 
       <nav class="record-switcher" id="record-switcher" aria-label="查驗紀錄類型">
@@ -48,9 +48,8 @@
 
       <section class="tool-view" id="tool-inspection" data-tool-view="inspection">
         <nav class="tab-navigation" aria-label="查驗紀錄分頁">
-          <div class="tab-row tab-row-three" role="tablist" aria-label="基本資料">
-            <button id="tab-overview" role="tab" type="button" data-tab="overview" aria-controls="panel-overview" aria-selected="true" tabindex="0">工程概要</button>
-            <button id="tab-design" role="tab" type="button" data-tab="design" aria-controls="panel-design" aria-selected="false" tabindex="-1">設計基準</button>
+          <div class="tab-row tab-row-two" role="tablist" aria-label="基本資料">
+            <button id="tab-design" role="tab" type="button" data-tab="design" aria-controls="panel-design" aria-selected="true" tabindex="0">設計基準</button>
             <button id="tab-result" role="tab" type="button" data-tab="result" aria-controls="panel-result" aria-selected="false" tabindex="-1">監測結論</button>
           </div>
           <div class="tab-row tab-row-three" role="tablist" aria-label="關鍵停檢點">
@@ -61,19 +60,7 @@
         </nav>
 
         <section class="panel-frame">
-          <section class="tab-panel" id="panel-overview" role="tabpanel" aria-labelledby="tab-overview">
-            <div class="panel-heading">
-              <div><span>01</span><h2>工程概要</h2></div>
-              <p>本次查驗的基本識別資料</p>
-            </div>
-            <div class="form-grid overview-grid">
-              <label class="field span-two"><span>查驗日期</span><span class="native-field-wrap"><input type="date" data-bind="overview.date" /><span class="native-field-display" aria-hidden="true"></span></span></label>
-              <label class="field span-two"><span>營造廠品管／工務主任</span><input type="text" data-bind="overview.manager" autocomplete="name" /></label>
-            </div>
-            <p class="quality-context-note">本表為營造廠（總包）二級品管查驗紀錄。逐車出土時間、泥漿池操作、逐車澆置日誌等一級自主品管項目由專業分包商填報，並以附件方式檢附。</p>
-          </section>
-
-          <section class="tab-panel quality-panel" id="panel-design" role="tabpanel" aria-labelledby="tab-design" hidden>
+          <section class="tab-panel quality-panel" id="panel-design" role="tabpanel" aria-labelledby="tab-design">
             <div class="panel-heading">
               <div><span>02</span><h2>設計基準</h2></div>
               <p>停檢點判定所需的設計與標準值</p>
@@ -106,11 +93,15 @@
               <div class="quality-standard-list" id="standard-list"></div>
               <p class="quality-standard-note" id="standard-note"></p>
             </section>
+            <p class="quality-context-note">本表為營造廠（總包）二級品管查驗紀錄。逐車出土時間、泥漿池操作、逐車澆置日誌等一級自主品管項目由專業分包商填報，並以附件方式檢附。</p>
           </section>
 
           <section class="tab-panel" id="panel-hold1" role="tabpanel" aria-labelledby="tab-hold1" hidden>
             <div class="panel-heading">
               <div><span>停檢點1</span><h2>成槽放行</h2></div>
+            <div class="form-grid checklist-meta-grid record-date-grid">
+              <label class="field span-two"><span>查驗日期</span><span class="native-field-wrap"><input type="date" data-bind="holdDates.hold1" /><span class="native-field-display" aria-hidden="true"></span></span></label>
+            </div>
               <p>導溝放樣與成槽洗孔檢驗</p>
             </div>
             <dl class="check-progress" aria-live="polite">
@@ -124,6 +115,9 @@
           <section class="tab-panel" id="panel-hold2" role="tabpanel" aria-labelledby="tab-hold2" hidden>
             <div class="panel-heading">
               <div><span>停檢點2</span><h2>吊放放行</h2></div>
+            <div class="form-grid checklist-meta-grid record-date-grid">
+              <label class="field span-two"><span>查驗日期</span><span class="native-field-wrap"><input type="date" data-bind="holdDates.hold2" /><span class="native-field-display" aria-hidden="true"></span></span></label>
+            </div>
               <p>鋼筋籠組裝、預埋件與監測儀器</p>
             </div>
             <dl class="check-progress" aria-live="polite">
@@ -137,6 +131,9 @@
           <section class="tab-panel" id="panel-hold3" role="tabpanel" aria-labelledby="tab-hold3" hidden>
             <div class="panel-heading">
               <div><span>停檢點3</span><h2>澆置成品</h2></div>
+            <div class="form-grid checklist-meta-grid record-date-grid">
+              <label class="field span-two"><span>查驗日期</span><span class="native-field-wrap"><input type="date" data-bind="holdDates.hold3" /><span class="native-field-display" aria-hidden="true"></span></span></label>
+            </div>
               <p>特密混凝土澆置與成品檢驗</p>
             </div>
             <dl class="check-progress" aria-live="polite">
@@ -150,6 +147,9 @@
           <section class="tab-panel" id="panel-result" role="tabpanel" aria-labelledby="tab-result" hidden>
             <div class="panel-heading">
               <div><span>停檢點4</span><h2>監測與結論</h2></div>
+            <div class="form-grid checklist-meta-grid record-date-grid">
+              <label class="field span-two"><span>查驗日期</span><span class="native-field-wrap"><input type="date" data-bind="holdDates.hold4" /><span class="native-field-display" aria-hidden="true"></span></span></label>
+            </div>
               <p>周邊環境監測查核與放行簽認</p>
             </div>
             <dl class="check-progress" aria-live="polite">

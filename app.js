@@ -306,13 +306,17 @@ function calculatedTrucks() {
   const designVolume = number(state.wall.designVolume);
   const height = designHeight();
   let cumulative = 0;
+  let slumpTests = 0;
   return state.trucks.map((truck, index) => {
     const volume = number(truck.volume) ?? 0;
     const measured = number(truck.measured);
     cumulative += volume;
     const expected = designVolume && height !== null ? height * cumulative / designVolume : null;
     const difference = measured !== null && expected !== null ? measured - expected : null;
-    return { ...truck, index, volume, cumulative, measured, expected, difference, minutes: pourMinutes(truck.dispatch, truck.finish) };
+    // 有填坍度的車次就是做了一組試體，依序編「試1、試2…」，列印與畫面都以「（試1）18」呈現
+    const slumpNo = String(truck.slump ?? "").trim() ? ++slumpTests : null;
+    const slumpLabel = slumpNo === null ? "" : `（試${slumpNo}）${truck.slump}`;
+    return { ...truck, index, volume, cumulative, measured, expected, difference, minutes: pourMinutes(truck.dispatch, truck.finish), slumpNo, slumpLabel };
   });
 }
 
@@ -473,7 +477,7 @@ function renderPouring() {
         <div class="record-item-meta">
           <span>本車 ${fixed(row.volume)} m³</span>
           <span>累積 ${fixed(row.cumulative)} m³</span>
-          ${row.slump ? `<span>坍度 ${esc(row.slump)} cm</span>` : ""}
+          ${row.slumpLabel ? `<span>坍度 ${esc(row.slumpLabel)} cm</span>` : ""}
           <span>澆置 ${row.minutes === null ? "—" : row.minutes} 分</span>
           <span>預估 ${fixed(row.expected)} m</span>
           <span>實測 ${fixed(row.measured)} m</span>
@@ -906,7 +910,7 @@ function renderPrint() {
     <section class="print-section"><h2>05｜前置紀錄時間紀錄</h2><table class="print-table"><thead><tr><th>項次</th><th>作業項目</th><th>開始時間</th><th>完成時間</th></tr></thead><tbody>${phaseRows}</tbody></table></section>${printFooter()}`;
 
   const pouringRows = truckRows.length ? truckRows.map(row => `<tr>
-    <td>${row.index + 1}</td><td>${esc(row.truckNo)}</td><td class="time-cell">${esc(display(row.dispatch))}</td><td class="time-cell">${esc(row.unload)}</td><td class="time-cell">${esc(row.finish)}</td><td>${esc(row.slump || "")}</td><td>${fixed(row.volume)}</td><td>${fixed(row.cumulative)}</td><td>${fixed(row.expected)}</td><td>${fixed(row.measured)}</td><td>${row.minutes === null ? "—" : row.minutes}</td>
+    <td>${row.index + 1}</td><td>${esc(row.truckNo)}</td><td class="time-cell">${esc(display(row.dispatch))}</td><td class="time-cell">${esc(row.unload)}</td><td class="time-cell">${esc(row.finish)}</td><td>${esc(row.slumpLabel)}</td><td>${fixed(row.volume)}</td><td>${fixed(row.cumulative)}</td><td>${fixed(row.expected)}</td><td>${fixed(row.measured)}</td><td>${row.minutes === null ? "—" : row.minutes}</td>
   </tr>`).join("") : `<tr><td colspan="11" class="print-empty">尚無澆置紀錄</td></tr>`;
   $("#print-pouring").innerHTML = `${printHeader("澆置紀錄", "06")}
     <div class="pouring-layout">
@@ -1002,6 +1006,7 @@ function exportData() {
     unload_time: row.unload || null,
     finish_time: row.finish || null,
     pour_minutes: row.minutes,
+    slump_test_no: row.slumpNo,
     slump_cm: toNumberOrNull(row.slump),
     volume_m3: toNumberOrNull(row.volume),
     cumulative_volume_m3: row.cumulative,
@@ -1203,7 +1208,7 @@ function exportMarkdown() {
     ``,
     `| 車次 | 車號 | 出廠 | 卸料 | 結束 | 坍度（cm） | 方量（m³） | 累積（m³） | 預估高（m） | 實際高（m） | 澆置時間（分） |`,
     `| ---: | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |`,
-    ...(data.pouring.trucks.length ? data.pouring.trucks.map(record => `| ${record.sequence} | ${markdownCell(record.truck_no)} | ${markdownCell(record.dispatch_time)} | ${markdownCell(record.unload_time)} | ${markdownCell(record.finish_time)} | ${markdownCell(record.slump_cm)} | ${markdownCell(record.volume_m3)} | ${markdownCell(record.cumulative_volume_m3)} | ${markdownCell(record.design_height_m)} | ${markdownCell(record.measured_height_m)} | ${markdownCell(record.pour_minutes)} |`) : [`| — | 尚無紀錄 | — | — | — | — | — | — | — | — | — |`]),
+    ...(data.pouring.trucks.length ? data.pouring.trucks.map(record => `| ${record.sequence} | ${markdownCell(record.truck_no)} | ${markdownCell(record.dispatch_time)} | ${markdownCell(record.unload_time)} | ${markdownCell(record.finish_time)} | ${markdownCell(record.slump_test_no === null ? "" : `（試${record.slump_test_no}）${record.slump_cm}`)} | ${markdownCell(record.volume_m3)} | ${markdownCell(record.cumulative_volume_m3)} | ${markdownCell(record.design_height_m)} | ${markdownCell(record.measured_height_m)} | ${markdownCell(record.pour_minutes)} |`) : [`| — | 尚無紀錄 | — | — | — | — | — | — | — | — | — |`]),
     ``,
     `## 品質自檢`,
     ``,

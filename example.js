@@ -16,7 +16,7 @@
   fetch("./examples/pages/manifest.json")
     .then(response => response.json())
     .then(manifest => {
-      const entry = manifest[name];
+      const entry = Object.prototype.hasOwnProperty.call(manifest, name) ? manifest[name] : null;
       if (!entry) throw new Error("找不到範例");
       document.title = `${entry.title}｜範例輸出｜Portable Inspection`;
       back.href = `./${entry.back}`;

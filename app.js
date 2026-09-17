@@ -799,13 +799,12 @@ function showUndo(message, action) {
 function removeRecord(type, index) {
   const collection = state[type];
   const [removed] = collection.splice(index, 1);
-  if (type === "truck") renderPouring();
-  else renderExcavation();
+  const render = type === "trucks" ? renderPouring : renderExcavation;
+  render();
   const label = type === "soil" ? "出土紀錄" : type === "depth" ? "深度確認" : "澆置車次";
   showUndo(`已刪除${label}`, () => {
     collection.splice(index, 0, removed);
-    if (type === "truck") renderPouring();
-    else renderExcavation();
+    render();
   });
 }
 
@@ -1657,7 +1656,7 @@ function initialize() {
     else if (editDepth) openDepthDialog(Number(editDepth.dataset.editDepth));
     else if (deleteDepth) removeRecord("depth", Number(deleteDepth.dataset.deleteDepth));
     else if (editTruck) openTruckDialog(Number(editTruck.dataset.editTruck));
-    else if (deleteTruck) removeRecord("truck", Number(deleteTruck.dataset.deleteTruck));
+    else if (deleteTruck) removeRecord("trucks", Number(deleteTruck.dataset.deleteTruck));
     else if (editRebar) openRebarDialog(Number(editRebar.dataset.editRebar));
     else if (deleteRebar) removeRebar(Number(deleteRebar.dataset.deleteRebar));
   });

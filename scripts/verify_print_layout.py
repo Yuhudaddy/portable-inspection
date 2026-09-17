@@ -43,7 +43,7 @@ def check(pdf_path):
             failures.append(f"    p{index + 1}: 簽名欄{'（旋轉頁）距右緣' if rotated else '底距頁底'} {gap_mm:.1f}mm")
     return failures
 
-server = subprocess.Popen([sys.executable, "-m", "http.server", str(PORT)], cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+server = subprocess.Popen([sys.executable, "-m", "http.server", "--bind", "127.0.0.1", str(PORT)], cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 time.sleep(1.2)
 failed = False
 try:

@@ -44,7 +44,7 @@ def render_pages(pdf_path, name):
         width, height = pixmap.width, pixmap.height
     return {"pages": len(document), "width": width, "height": height}
 
-server = subprocess.Popen([sys.executable, "-m", "http.server", str(PORT)], cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+server = subprocess.Popen([sys.executable, "-m", "http.server", "--bind", "127.0.0.1", str(PORT)], cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 time.sleep(1.2)
 shutil.rmtree(PAGES, ignore_errors=True)
 PAGES.mkdir()

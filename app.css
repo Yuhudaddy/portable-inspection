@@ -928,10 +928,17 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .pouring-board { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .pouring-board > div, .pouring-board > div:last-child { grid-column: auto; border-top: 0; border-bottom: 0; border-right: 1px solid var(--line); }
   .pouring-board > div:last-child { border-right: 0; }
-  .phase-editor { grid-template-columns: 1.3fr 2fr auto; align-items: end; }
-  .phase-editor .confirm-button { width: auto; min-width: 110px; }
+  /* 前置紀錄編輯列：工序、日期、起迄時間排成一列；寬度不夠放按鈕時，按鈕自己一列靠右 */
+  .phase-editor { grid-template-columns: minmax(0, 1.3fr) minmax(0, 2fr); align-items: end; }
+  .phase-time-grid { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
+  .phase-editor .confirm-button { width: auto; min-width: 110px; grid-column: 1 / -1; justify-self: end; }
   .action-dock { right: max(16px, calc((100vw - 880px) / 2)); left: max(16px, calc((100vw - 880px) / 2)); }
   .undo-toast { right: max(16px, calc((100vw - 720px) / 2)); left: max(16px, calc((100vw - 720px) / 2)); }
+}
+
+@media (min-width: 800px) {
+  .phase-editor { grid-template-columns: minmax(0, 1.3fr) minmax(0, 2fr) auto; }
+  .phase-editor .confirm-button { grid-column: auto; }
 }
 
 @media (hover: hover) {

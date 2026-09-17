@@ -438,5 +438,5 @@ const query = new URLSearchParams(location.search);
 Object.assign(state, draft.load() ?? {});
 if (query.get("example") === "1") loadExample();
 renderAll();
-setTab(TAB_LABELS[query.get("tab")] ? query.get("tab") : "overview");
+setTab(Object.prototype.hasOwnProperty.call(TAB_LABELS, query.get("tab") ?? "") ? query.get("tab") : "overview");
 

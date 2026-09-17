@@ -10,14 +10,16 @@
 .bar-remove { min-height: 40px; padding: 5px 10px; border: 0; background: transparent; color: var(--glass-muted); font-size: .6875rem; text-decoration: underline; white-space: nowrap; }
 
 /* 批次配筋明細：桌面以矩陣快速輸入，手機以橫向摘要＋展開編輯 */
-.member-toolbar-actions { display: flex; align-items: end; gap: 7px; flex-wrap: wrap; justify-content: flex-end; }
+/* 要比 template.css 的 .member-toolbar > div（grid）更具體，否則三個控制項會被排成直的 */
+.member-toolbar > .member-toolbar-actions { display: flex; align-items: end; gap: 7px; flex-wrap: wrap; justify-content: flex-end; }
 .batch-count { display: grid; gap: 3px; color: var(--glass-muted); font-size: .6875rem; font-weight: 700; }
 .batch-count input { width: 66px; min-height: 36px; padding: 6px 8px; border: 0; border-radius: var(--glass-radius-sm); background: var(--glass-sunken); color: var(--glass-ink); font: inherit; }
 .member-batch-toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: -2px 0 12px; padding: 10px 12px; border-radius: var(--glass-radius-sm); background: var(--glass-sunken); color: var(--glass-muted); font-size: .6875rem; }
 .member-batch-toolbar > span:first-child { color: var(--glass-ink); font-weight: 700; }
 .member-batch-toolbar select { min-height: 34px; padding: 5px 8px; border: 0; border-radius: var(--glass-radius-sm); background: #fff; color: var(--glass-ink); font: inherit; }
 .batch-hint { margin-left: auto; }
-.member-table-wrap { overflow-x: auto; border-radius: var(--glass-radius-md); background: #fff; box-shadow: var(--glass-card-shadow); }
+/* grid-column 佔滿：template.css 在 ≥640px 會把 .member-list 切成兩欄，表格不能只拿一半 */
+.member-table-wrap { grid-column: 1 / -1; overflow-x: auto; border-radius: var(--glass-radius-md); background: #fff; box-shadow: var(--glass-card-shadow); }
 .member-matrix { width: 100%; min-width: 1080px; border-collapse: collapse; table-layout: fixed; }
 .member-matrix th, .member-matrix td { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 8px 7px; vertical-align: middle; }
 .member-matrix th:last-child, .member-matrix td:last-child { border-right: 0; }
@@ -56,7 +58,7 @@
 
 @media (max-width: 700px) {
   .member-toolbar { align-items: flex-start; flex-direction: column; }
-  .member-toolbar-actions { width: 100%; justify-content: flex-start; }
+  .member-toolbar > .member-toolbar-actions { width: 100%; justify-content: flex-start; }
   .member-batch-toolbar { align-items: flex-start; }
   .batch-hint { flex-basis: 100%; margin-left: 0; }
   .member-table-wrap { margin-right: -2px; }

@@ -411,7 +411,7 @@ function initialize() {
     if (remove) removeDelivery(Number(remove.dataset.deleteDelivery));
   });
 
-  if (TABS[query.get("tab")]) showTab(query.get("tab"));
+  if (Object.prototype.hasOwnProperty.call(TABS, query.get("tab") ?? "")) showTab(query.get("tab"));
 }
 
 Object.assign(state, draft.load() ?? {});

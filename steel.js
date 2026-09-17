@@ -421,7 +421,6 @@ function initialize() {
     if (remove) removeDelivery(Number(remove.dataset.deleteDelivery));
   });
 
-  window.addEventListener("afterprint", () => { document.body.dataset.printScope = "none"; });
   if (TABS[query.get("tab")]) showTab(query.get("tab"));
   if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./sw.js").catch(() => {});
 }

@@ -1565,7 +1565,6 @@ function initialize() {
     $("#undo-toast").hidden = true;
   });
 
-  window.addEventListener("afterprint", () => { document.body.dataset.printScope = "none"; });
   showTool("inspection");
   if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./sw.js").catch(() => {});
 }

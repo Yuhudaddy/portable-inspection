@@ -60,7 +60,7 @@ try:
             page.pdf(path=str(OUT / filename), prefer_css_page_size=True, print_background=True)
             page.close()
             name = filename[:-len(".pdf")]
-            manifest[name] = {"title": title, "back": html, **render_pages(OUT / filename, name)}
+            manifest[name] = {"title": title, "back": html.removesuffix(".html"), **render_pages(OUT / filename, name)}
             print(f"寫入 examples/{filename}（{manifest[name]['pages']} 頁）與 pages/{name}-*.webp")
         browser.close()
     (PAGES / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")

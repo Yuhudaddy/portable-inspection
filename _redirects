@@ -1,2 +1,0 @@
-# html_handling 設為 none 後根路徑不會自動對到 index.html，這裡改寫（200，不是轉址）
-/  /index.html  200

@@ -2,7 +2,7 @@
   "name": "Portable Inspection",
   "short_name": "Portable Inspection",
   "description": "A local field record entry prototype.",
-  "start_url": "./index.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#ffffff",

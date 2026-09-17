@@ -1,6 +1,6 @@
-const CACHE_NAME = "portable-inspection-v85";
+const CACHE_NAME = "portable-inspection-v86";
 // 範例 PDF（共約 8MB）不放進 shell：每次升版都要整批重抓，手機上安裝又慢又容易失敗；範例本來就需要連線。
-const APP_SHELL = ["./index.html", "./404.html", "./glass.css", "./portal.css", "./portal.js", "./draft.js", "./print-pages.js", "./dialog-forms.js", "./example.html", "./example.css", "./example.js", "./diaphragm-wall.html", "./diaphragm-wall-gc.html", "./wall-gc.js", "./app.css", "./app.js", "./template.html", "./template.css", "./template.js", "./rebar.html", "./rebar.css", "./rebar.js", "./steel-structure.html", "./steel.css", "./steel.js", "./record.html", "./checklists.html", "./manifest.webmanifest", "./app-icon-144.png", "./apple-touch-icon.png", "./icon-192.png", "./icon-512.png", "./icon-maskable-512.png", "./taisei.png"];
+const APP_SHELL = ["./", "./404.html", "./glass.css", "./portal.css", "./portal.js", "./draft.js", "./print-pages.js", "./dialog-forms.js", "./example", "./example.css", "./example.js", "./diaphragm-wall", "./diaphragm-wall-gc", "./wall-gc.js", "./app.css", "./app.js", "./template", "./template.css", "./template.js", "./rebar", "./rebar.css", "./rebar.js", "./steel-structure", "./steel.css", "./steel.js", "./record", "./checklists", "./manifest.webmanifest", "./app-icon-144.png", "./apple-touch-icon.png", "./icon-192.png", "./icon-512.png", "./icon-maskable-512.png", "./taisei.png"];
 
 self.addEventListener("install", event => {
   event.waitUntil(
@@ -33,7 +33,7 @@ self.addEventListener("fetch", event => {
           return response;
         }))
         .catch(() => caches.match(event.request, { ignoreSearch: true })
-          .then(cached => cached || caches.match("./index.html", { ignoreSearch: true })))
+          .then(cached => cached || caches.match("./", { ignoreSearch: true })))
     );
     return;
   }
@@ -46,6 +46,6 @@ self.addEventListener("fetch", event => {
         }
         return response;
       }))
-      .catch(() => caches.match("./index.html", { ignoreSearch: true }))
+      .catch(() => caches.match("./", { ignoreSearch: true }))
   );
 });

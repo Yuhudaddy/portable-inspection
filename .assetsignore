@@ -1,0 +1,13 @@
+# 不要當成網站資產上傳到 Cloudflare 的東西（產生腳本、文件、暫存、版控）
+.git
+.github
+.gitignore
+.playwright-cli
+.impeccable.md
+.DS_Store
+docs
+scripts
+tmp
+output
+*.md
+wrangler.jsonc

@@ -1,0 +1,12 @@
+// Cloudflare Workers（static assets）部署設定：純靜態網站，沒有 Worker 程式碼。
+// Workers Builds 連結 GitHub 後，每次推 main 會自動執行 `wrangler deploy` 上傳這個目錄。
+// 不上傳的檔案列在 .assetsignore；自訂 HTTP 標頭在 _headers。
+{
+  "name": "portable-inspection",
+  "compatibility_date": "2026-09-17",
+  "assets": {
+    "directory": "./",
+    "not_found_handling": "404-page"
+  },
+  "preview_urls": true
+}

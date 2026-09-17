@@ -1,0 +1,6 @@
+# Cloudflare（Pages／Workers static assets）自訂回應標頭；GitHub Pages 不會讀這個檔，放著無害。
+# Service Worker 與 manifest 不做瀏覽器快取：推新版後手機重新整理立刻拿到最新的。
+/sw.js
+  Cache-Control: no-cache
+/manifest.webmanifest
+  Cache-Control: no-cache

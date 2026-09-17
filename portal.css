@@ -246,25 +246,3 @@ h1 {
   }
 }
 
-/* ---- 舊網址的搬家提示（只在 github.io 顯示）------------------------------------ */
-.moved-notice {
-  margin: 0 0 18px;
-  padding: 14px 16px;
-  border-radius: var(--glass-radius-md);
-  background: var(--glass-card-bg);
-  box-shadow: var(--glass-card-shadow), inset 4px 0 0 var(--glass-accent);
-}
-.moved-notice strong { display: block; font-size: 0.9375rem; }
-.moved-notice p { margin: 4px 0 10px; color: var(--glass-soft); font-size: 0.8125rem; line-height: 1.5; }
-.moved-link {
-  display: inline-flex;
-  align-items: center;
-  min-height: 40px;
-  padding: 0 16px;
-  border-radius: 999px;
-  background: var(--glass-accent);
-  color: var(--glass-accent-on);
-  font-size: 0.875rem;
-  font-weight: 600;
-  text-decoration: none;
-}

@@ -24,7 +24,4 @@
   });
 })();
 
-// 舊網址（GitHub Pages）才顯示搬家提示；同一份程式碼也部署在新網址，那邊不需要。
-if (location.hostname.endsWith("github.io")) document.getElementById("moved-notice").hidden = false;
-
 if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./sw.js").catch(() => {});

@@ -4,7 +4,7 @@ A lightweight mobile-first PDF tool for field record entry.
 
 ## Deployment
 
-Production: **https://portable-inspection.pages.dev/** — a Cloudflare Pages project connected to this repository (no build step, output directory `/`), redeployed on every push to `main`. `_headers` sets `Cache-Control: no-cache` on `sw.js` and the manifest. Internal links are extension-less (`./diaphragm-wall`, not `.html`) because Pages redirects `*.html` URLs. The former GitHub Pages site (`yuhudaddy.github.io/portable-inspection`) was retired on 2026-09-17; the repository stays as the source for Cloudflare Pages.
+Production: **https://portable-inspection.pages.dev/** — a Cloudflare Pages project connected to this repository (no build step, output directory `/`), redeployed on every push to `main`. `_headers` sets `Cache-Control: no-cache` on `sw.js` and the manifest. Internal links are extension-less (`./diaphragm-wall`, not `.html`) because Pages redirects `*.html` URLs. The same branch is also published by GitHub Pages at **https://yuhudaddy.github.io/portable-inspection/** (kept as a second, identical mirror; note GitHub Pages cannot set headers, so a new `sw.js` there can lag up to 10 minutes behind a push). `.nojekyll` keeps GitHub from running Jekyll on the files.
 
 The site opens at `index.html`, which is the tool index:
 

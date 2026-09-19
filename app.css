@@ -559,7 +559,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   font-variant-numeric: tabular-nums;
 }
 
-.check-card-list, .rebar-card-list {
+.check-card-list {
   display: block;
   border-radius: var(--glass-radius-lg);
   background: var(--glass-card-bg);
@@ -567,9 +567,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   overflow: hidden;
 }
 .check-progress + .check-card-list { margin-top: 24px; }
-.check-card, .rebar-card { border-top: 1px solid var(--line); }
-.check-card-list > :first-child, .rebar-card-list > :first-child { border-top: 0; }
-.check-card.is-failed, .rebar-card.is-failed { background: var(--glass-danger-wash); }
+.check-card { border-top: 1px solid var(--line); }
+.check-card-list > :first-child { border-top: 0; }
+.check-card.is-failed { background: var(--glass-danger-wash); }
 .check-card { padding: 16px; }
 .check-card-head { display: flex; align-items: baseline; gap: 10px; }
 .check-card-head span { font-family: var(--glass-font-num); color: var(--glass-faint); font-size: 0.75rem; }
@@ -612,30 +612,35 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .note-field > span { font-size: 0.6875rem; font-weight: 500; }
 .note-field textarea { width: calc(100% + 20px); min-height: 72px; margin: 0 -10px; padding: 4px 10px; border-radius: 10px; background: transparent; font-size: 1rem; }
 
-/* 配筋抽查明細列 */
-.rebar-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 14px 16px; }
-.rebar-card-main { min-width: 0; }
-.rebar-card-title { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 8px; }
-.rebar-card-title strong { min-width: 0; font-size: 0.9375rem; font-weight: 600; }
-.rebar-card-title em {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: var(--glass-neutral-bg);
-  color: var(--glass-neutral-ink);
-  font-size: 0.75rem;
-  font-style: normal;
-  font-weight: 600;
-  white-space: nowrap;
-}
-.rebar-card.is-passed em { background: var(--glass-success-bg); color: var(--glass-success-ink); }
-.rebar-card.is-failed em { background: var(--glass-danger-bg); color: var(--glass-danger-ink); }
-.rebar-card dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 12px; margin: 6px 0 0; }
-.rebar-card dl > div { display: flex; gap: 4px; min-width: 0; color: var(--glass-soft); font-size: 0.75rem; }
-.rebar-card dt { flex: none; color: var(--glass-soft); }
-.rebar-card dd { margin: 0; overflow-wrap: anywhere; font-family: var(--glass-font-num); color: var(--glass-ink); font-weight: 500; }
-.rebar-card .record-item-actions { flex-direction: column; align-items: end; }
+/* ---- 配筋抽查明細：簡易／詳細切換（Transitions.dev 藥丸，顏色改用 glass 變數）---- */
+.t-tabs { --tabs-dur: 250ms; --tabs-ease: cubic-bezier(0.22, 1, 0.36, 1); position: relative; display: inline-flex; align-items: center; gap: 3px; padding: 3px; border-radius: 48px; background: var(--glass-sunken); box-shadow: var(--glass-hairline); }
+.t-tab { position: relative; z-index: 1; appearance: none; border: 0; background: transparent; height: 30px; padding: 4px 14px; border-radius: 48px; color: var(--glass-muted); font: inherit; font-size: 0.8125rem; font-weight: 600; cursor: pointer; transition: color var(--tabs-dur) var(--tabs-ease); }
+.t-tab[aria-selected="true"], .t-tab:not([aria-selected="true"]):hover { color: var(--glass-ink); }
+.t-tabs-pill { position: absolute; top: 3px; left: 0; z-index: 0; width: 0; height: 30px; border-radius: 48px; background: var(--glass-card-bg); box-shadow: var(--glass-lift-shadow); transform: translateX(0); transition: transform var(--tabs-dur) var(--tabs-ease), width var(--tabs-dur) var(--tabs-ease); will-change: transform, width; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .t-tabs-pill, .t-tab { transition: none !important; } }
+
+/* 部位卡片：標題列一行擺「編號｜部位｜對稱｜填寫」，摘要文字＝PDF 會印的內容 */
+.rebar-part-head { align-items: center; }
+.rebar-part-head strong { flex: 1 1 auto; min-width: 0; }
+.rebar-symmetric { display: inline-flex; flex: none; align-items: center; gap: 4px; font-size: 0.75rem; color: var(--glass-soft); }
+.rebar-symmetric input[type="checkbox"] { width: 16px; min-height: 0; height: 16px; margin: 0; padding: 0; accent-color: var(--glass-accent); }
+.rebar-fill-button { flex: none; min-height: 30px; padding: 0 12px; border: 0; border-radius: 999px; background: var(--glass-accent-soft); color: var(--glass-accent-strong); font: inherit; font-size: 0.8125rem; font-weight: 600; }
+.check-card > p.rebar-part-summary { display: grid; gap: 2px; }
+.rebar-part-summary span { font-family: var(--glass-font-num); color: var(--glass-ink); }
+.rebar-part-summary.is-mirrored span { font-family: inherit; color: var(--glass-muted); }
+.rebar-part-card.is-failed .rebar-fill-button { background: #fff; }
+.rebar-part-fields { justify-content: flex-end; }
+
+/* 填寫視窗：深度區間 */
+.rebar-interval { margin: 0 0 12px; padding: 10px 12px 12px; border: 1px solid var(--glass-line); border-radius: var(--glass-radius-sm); }
+.rebar-interval legend { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 0 0 8px; font-size: 0.8125rem; font-weight: 600; color: var(--glass-soft); }
+.rebar-interval-remove { border: 0; background: transparent; color: var(--glass-danger-ink); font: inherit; font-size: 0.75rem; }
+.three-fields { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.gl-input { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 6px; }
+.gl-input em { font-style: normal; font-size: 0.8125rem; color: var(--glass-soft); white-space: nowrap; }
+.gl-field.is-invalid input { box-shadow: inset 0 0 0 1.5px var(--glass-danger); }
+.rebar-extra-toggle { display: flex; align-items: center; gap: 8px; }
+.rebar-extra-toggle input[type="checkbox"] { flex: none; width: 18px; min-height: 0; height: 18px; margin: 0; padding: 0; accent-color: var(--glass-accent); }
 
 /* ---- 底部分離式玻璃列 ------------------------------------------------------ */
 .action-dock {
@@ -914,7 +919,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .quality-standard-heading { display: block; }
   .quality-standard-heading > div { margin-bottom: 4px; }
   .quality-standard-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .rebar-card dl { grid-template-columns: 1fr; }
 }
 
 @media (min-width: 640px) {
@@ -1093,6 +1097,17 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .quality-standard-print-table th { padding: 0.9mm 0.7mm; font-size: 5.8pt; }
   .quality-standard-print-table td { height: 5.5mm; padding: 0.7mm 0.9mm; font-size: 6.2pt; }
   .checklist-print-table th:first-child, .rebar-cage-print-table th:first-child, .rebar-cage-check-print-table th:first-child { width: 7%; }
+  .rebar-cage-print-table.is-simple th:nth-child(2) { width: 26%; }
+  .rebar-cage-print-table.is-simple th:last-child { width: 12%; }
+  .rebar-cage-print-table.is-detailed th:nth-child(2) { width: 20%; }
+  .rebar-cage-print-table.is-detailed th:nth-child(3), .rebar-cage-print-table.is-detailed th:nth-child(4) { width: 10%; }
+  .rebar-cage-print-table.is-detailed th:nth-child(5), .rebar-cage-print-table.is-detailed th:nth-child(7) { width: 7%; }
+  .rebar-cage-print-table.is-detailed th:last-child { width: 12%; }
+  /* 同一部位多列：項次／部位／對稱／結果格子相鄰邊線拿掉，看起來像合併格（不用 rowspan，分頁器才能逐列搬） */
+  .rebar-cage-print-table.is-detailed tr.part-has-more > td:nth-child(1), .rebar-cage-print-table.is-detailed tr.part-has-more > td:nth-child(2),
+  .rebar-cage-print-table.is-detailed tr.part-has-more > td:nth-child(7), .rebar-cage-print-table.is-detailed tr.part-has-more > td:nth-child(8) { border-bottom: 0; }
+  .rebar-cage-print-table.is-detailed tr.part-continued > td:nth-child(1), .rebar-cage-print-table.is-detailed tr.part-continued > td:nth-child(2),
+  .rebar-cage-print-table.is-detailed tr.part-continued > td:nth-child(7), .rebar-cage-print-table.is-detailed tr.part-continued > td:nth-child(8) { border-top: 0; }
   .quality-print-table th:first-child { width: 6%; }
   .quality-print-table th:nth-child(2) { width: 23%; }
   .quality-print-table th:nth-child(3) { width: 28%; }
@@ -1102,6 +1117,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .quality-standard-print-table th:nth-child(3) { width: 15%; }
   .quality-standard-print-table th:last-child { width: 10%; }
   .checklist-print-table th:nth-child(2), .rebar-cage-check-print-table th:nth-child(2) { width: 20%; }
-  .checklist-print-table th:nth-child(3), .rebar-cage-check-print-table th:nth-child(3) { width: 30%; }
+  .checklist-print-table th:nth-child(3) { width: 42%; }
+  .checklist-print-table th:nth-child(4) { width: 19%; }
+  .rebar-cage-check-print-table th:nth-child(3) { width: 30%; }
   .checklist-print-table th:last-child, .rebar-cage-check-print-table th:last-child { width: 12%; }
 }

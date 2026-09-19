@@ -27,6 +27,11 @@ class PagesHandler(http.server.SimpleHTTPRequestHandler):
         super().end_headers()
 
 
+class PagesServer(http.server.ThreadingHTTPServer):
+    # 預設 backlog 只有 5，Chrome 一次開十幾條連線抓 script 會被 RST 掉，驗證腳本就偶發 ReferenceError
+    request_queue_size = 64
+
+
 if __name__ == "__main__":
     print(f"http://localhost:{PORT}/  （Ctrl+C 結束）")
-    http.server.ThreadingHTTPServer(("127.0.0.1", PORT), PagesHandler).serve_forever()
+    PagesServer(("127.0.0.1", PORT), PagesHandler).serve_forever()

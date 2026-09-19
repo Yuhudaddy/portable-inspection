@@ -11,8 +11,8 @@ OUT = ROOT / "tmp" / "verify-print"
 OUT.mkdir(parents=True, exist_ok=True)
 PORT = 4199
 FILL = {
-    "diaphragm-wall.html": "state.wall.unitNo='A01'; for(let i=0;i<70;i++) state.trucks.push({id:'t'+i,truckNo:'T'+i,volume:'8',measured:'1'}); for(let i=0;i<60;i++) state.soil.push({id:'s'+i,time:'09:00'}); for(let i=0;i<40;i++) state.depth.push({id:'d'+i,time:'10:00',value:'35.0'}); state.guideWall.note=Array(40).fill('導溝備註測試文字，用來把內容撐長。').join('\\n'); state.rebarCage.note=Array(40).fill('鋼筋籠備註測試文字，用來把內容撐長。').join('\\n');",
-    "diaphragm-wall-gc.html": "state.unit.unitNo='B02'; state.guideWall.note=Array(60).fill('導溝備註測試文字，用來把內容撐長。').join('\\n'); state.rebarCage.note=Array(60).fill('鋼筋籠備註測試文字，用來把內容撐長。').join('\\n');",
+    "diaphragm-wall.html": "state.wall.unitNo='A01'; for(let i=0;i<70;i++) state.trucks.push({id:'t'+i,truckNo:'T'+i,volume:'8',measured:'1'}); for(let i=0;i<60;i++) state.soil.push({id:'s'+i,time:'09:00'}); for(let i=0;i<40;i++) state.depth.push({id:'d'+i,time:'10:00',value:'35.0'}); state.guideWall.note=Array(40).fill('導溝備註測試文字，用來把內容撐長。').join('\\n'); state.rebarCage.note=Array(40).fill('鋼筋籠備註測試文字，用來把內容撐長。').join('\\n'); state.rebarCage.mode='detailed'; state.rebarCage.parts.forEach(p => { if (p.intervals) p.intervals = [0,1,2].map(i => ({ top: String(i*10), bottom: String(i*10+10), size: 'D32', spacing: '60', extra: { enabled: i === 2, size: 'D32', spacing: '15' } })); });",
+    "diaphragm-wall-gc.html": "state.unit.unitNo='B02'; state.guideWall.note=Array(60).fill('導溝備註測試文字，用來把內容撐長。').join('\\n'); state.rebarCage.note=Array(60).fill('鋼筋籠備註測試文字，用來把內容撐長。').join('\\n'); state.rebarCage.mode='detailed'; state.rebarCage.parts.forEach(p => { if (p.intervals) p.intervals = [0,1,2].map(i => ({ top: String(i*10), bottom: String(i*10+10), size: 'D32', spacing: '60', extra: { enabled: i === 2, size: 'D32', spacing: '15' } })); });",
     "template.html": "for(let i=0;i<12;i++) state.members.push(Object.assign(createMember(),{id:'C'+i,type:'柱'}));",
     "rebar.html": "for(let i=0;i<8;i++) state.members.push(createMember({id:'B'+i,type:'梁'}));",
     "steel-structure.html": "for(let i=0;i<70;i++) state.delivery.records.push({type:'柱',memberNo:'C-'+i,spec:'H400x400',qty:'1',doc:'MTC-'+i,appearance:'良好',storage:'良好',result:'合格'}); state.delivery.note=Array(50).fill('進場備註測試文字，用來把內容撐長。').join('\\n');",
@@ -43,7 +43,7 @@ def check(pdf_path):
             failures.append(f"    p{index + 1}: 簽名欄{'（旋轉頁）距右緣' if rotated else '底距頁底'} {gap_mm:.1f}mm")
     return failures
 
-server = subprocess.Popen([sys.executable, "-m", "http.server", "--bind", "127.0.0.1", str(PORT)], cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+server = subprocess.Popen([sys.executable, str(ROOT / "scripts" / "serve.py"), str(PORT)], cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 time.sleep(1.2)
 failed = False
 try:

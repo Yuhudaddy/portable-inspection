@@ -26,30 +26,19 @@ const PRINT_TAB_GROUPS = {
 };
 
 const GUIDE_WALL_CHECKS = [
-  ["放樣與單元中心線", "放樣點位、單元順序與核定圖說相符；應留存測量實測值"],
-  ["地下管線位置確認", "依竣工圖、探測或試掘結果確認，導溝位置不得與既有管線衝突"],
-  ["導溝寬度／淨寬", "實測導溝內面淨寬符合設計壁厚及核定加寬值"],
-  ["導溝深度與底高程", "導溝深度至少 1.8 m，且深入原土層 30 cm 以上；底高程及測量基準符合核定施工圖"],
-  ["導溝牆壁厚度", "導溝牆厚、斷面及結構尺寸符合核定圖說"],
-  ["導溝鋼筋號數與間距", "鋼筋號數、支數／間距與核定配筋圖一致；於下方欄位填寫實測或圖說值"],
-  ["回撐木配置與間距", "回撐木間距 @200 cm（如核定支撐計畫另有規定，依核定計畫），固定牢靠且可防止導溝變形"],
-  ["導溝混凝土強度", "混凝土強度符合設計要求，並可追溯出廠或試驗紀錄"],
-  ["導溝垂直與壁面完整性", "導溝壁面垂直度 1/300，且無鬆動、剝落、裂縫；底部無堆積物"],
-  ["單元界面與接頭區", "界面位置、接頭區淨空可供後續施工"],
-  ["開挖坡面與鄰產保護", "開挖坡面應維持臨時穩定；鄰產及地下管線位置已確認，並採必要保護措施"],
-  ["成槽前放行條件", "測量複核、現場條件及廠商自檢紀錄齊備"]
+  ["放樣", "點位、單元順序與核定圖說相符"],
+  ["地下管線", "未與既有管線衝突"],
+  ["位置與淨寬", "導溝內面淨寬符合設計連續壁厚+施工餘裕(5cm內)"],
+  ["深度", "・深度至少 1.8 m，且回填土層以下至少 30 cm\n・溝底高程符合核定施工圖"],
+  ["牆厚", "導溝牆厚、斷面及結構尺寸符合核定圖說"],
+  ["鋼筋", "鋼筋號數／支數／間距與核定配筋圖一致"],
+  ["回撐木", "間距 @200 cm 或依核定支撐計畫（拆模後未達指定強度時嚴禁重車行駛）"],
+  ["混凝土強度", "混凝土強度符合設計要求"],
+  ["頂部基準高程", "符合設計圖說"],
+  ["壁面順直度", "導溝兩側壁面垂直度 1/300，並保持順直，無明顯扭曲或局部變形"],
+  ["壁面與底部完整性", "無鬆動、剝落、裂縫；底部無堆積物"]
 ];
-const GUIDE_REBAR_SIZES = ["D10", "D13", "D16", "D19", "D22", "D25", "D29", "D32", "D35", "D38", "D41", "D51"];
 const createGuideWallCheck = ([item, standard]) => ({ item, standard, actual: "", barNo: "", barSpacing: "", result: "待確認" });
-
-function guideRebarSizeOptions(selected) {
-  return [`<option value="">請選擇</option>`, ...GUIDE_REBAR_SIZES.map(value => `<option value="${esc(value)}" ${value === selected ? "selected" : ""}>${esc(value)}</option>`)].join("");
-}
-
-const REBAR_CAGE_PARTS = [
-  "A 面縱向主筋", "B 面縱向主筋", "A 面水平分布筋", "B 面水平分布筋",
-  "垂直補強筋", "桁架筋／剛性補強", "吊筋／吊環", "接頭區補強筋", "保護層定位筋／墊塊"
-];
 
 const REBAR_CAGE_CHECKS = [
   ["籠號與單元對應", "籠號、單元號與核定配筋圖一致"],
@@ -218,7 +207,8 @@ const state = {
   },
   rebarCage: {
     date: today, cageNo: "", reviewer: "", note: "",
-    rebars: REBAR_CAGE_PARTS.map(part => ({ part, designNo: "", designQty: "", actualNo: "", actualQty: "", result: "待確認" })),
+    mode: "simple",
+    parts: createRebarCageParts(),
     checks: REBAR_CAGE_CHECKS.map(([item, standard]) => ({ item, standard, actual: "", result: "待確認" }))
   },
   quality: {
@@ -247,11 +237,15 @@ function normalizeLoadedState(loaded) {
   state.wall.unitNo ||= state.rebarCage.unitNo || "";
   delete state.guideWall.unitNo;
   delete state.rebarCage.unitNo;
+  // 1.4 以前的草稿：配筋抽查是自由列表 rebars；改成 13 個固定部位後直接重設，模式從簡易開始
+  state.rebarCage.mode = state.rebarCage.mode === "detailed" ? "detailed" : "simple";
+  state.rebarCage.parts = normalizeRebarCageParts(state.rebarCage.parts);
+  delete state.rebarCage.rebars;
 }
 
 let activeTab = "wall";
 let activeTool = "diaphragmWall";
-const editIndex = { soil: null, depth: null, truck: null, rebar: null };
+const editIndex = { soil: null, depth: null, truck: null };
 let undoTimer;
 let undoAction = null;
 
@@ -264,13 +258,15 @@ const number = value => {
 const fixed = value => Number.isFinite(value) ? value.toFixed(2) : "";
 // 這兩支檔案的 display 只做 trim：畫面上的空值由各自的樣板處理，列印時未填就留白。
 const display = printText;
-const guideCheckActual = check => [display(check.actual), check.barNo ? `號數 ${check.barNo}` : "", check.barSpacing ? `間距 ${check.barSpacing} cm` : ""].filter(Boolean).join("；") || "";
+const guideCheckActual = check => [display(check.actual), check.barNo ? `號數 ${barSizeMark(check.barNo)}` : "", check.barSpacing ? `間距 ${check.barSpacing} cm` : ""].filter(Boolean).join("；") || "";
 const esc = value => String(value ?? "")
   .replaceAll("&", "&amp;")
   .replaceAll("<", "&lt;")
   .replaceAll(">", "&gt;")
   .replaceAll('"', "&quot;")
   .replaceAll("'", "&#039;");
+// 判定標準文字裡的 \n 會變成換行；要條列就直接在文字裡寫「・」。
+const standardHtml = value => String(value ?? "").split("\n").map(line => esc(line.trim())).filter(Boolean).join("<br>");
 
 const formatDateDisplay = value => {
   const [y, m, d] = String(value ?? "").split("-");
@@ -608,13 +604,13 @@ function renderCheckCards(type) {
   target.innerHTML = state[type].checks.map((check, index) => `
     <article class="check-card ${check.result === "不符合" ? "is-failed" : ""}">
       <div class="check-card-head"><span>${String(index + 1).padStart(2, "0")}</span><strong>${esc(check.item)}</strong></div>
-      <p>${esc(type === "quality" ? qualityCheckStandard(index, check.standard) : check.standard)}</p>
+      <p>${type === "quality" ? esc(qualityCheckStandard(index, check.standard)) : standardHtml(check.standard)}</p>
       <div class="check-card-fields">
         <label class="field"><span>現場紀錄／實測</span><input type="text" value="${esc(check.actual)}" data-check-item="${type}" data-check-index="${index}" data-check-field="actual" /></label>
         <div class="field result-field"><span id="check-${type}-${index}-result-label">複核結果</span>${resultSegmented(`check-${type}-${index}-result`, check.result, `data-check-item="${type}" data-check-index="${index}" data-check-field="result"`)}</div>
       </div>
       ${type === "guideWall" && check.item.includes("鋼筋") ? `<div class="guide-rebar-fields">
-        <label class="field"><span>鋼筋號數</span><select data-check-item="${type}" data-check-index="${index}" data-check-field="barNo">${guideRebarSizeOptions(check.barNo)}</select></label>
+        <label class="field"><span>鋼筋號數</span><select data-check-item="${type}" data-check-index="${index}" data-check-field="barNo">${barSizeOptions(check.barNo)}</select></label>
         <label class="field"><span>間距（cm）</span><input type="number" min="0" step="0.5" inputmode="decimal" placeholder="例如：20" value="${esc(check.barSpacing)}" data-check-item="${type}" data-check-index="${index}" data-check-field="barSpacing" /></label>
       </div>` : ""}
     </article>`).join("");
@@ -628,20 +624,10 @@ function renderCheckCards(type) {
 }
 
 function renderRebars() {
-  const rows = state.rebarCage.rebars;
-  $("#rebar-cage-rebar-list").innerHTML = rows.length ? rows.map((rebar, index) => `
-    <article class="rebar-card ${rebar.result === "不符合" ? "is-failed" : rebar.result === "符合" ? "is-passed" : ""}">
-      <div class="rebar-card-main">
-        <div class="rebar-card-title"><strong>${esc(rebar.part)}</strong><em>${esc(rebar.result)}</em></div>
-        <dl>
-          <div><dt>設計</dt><dd>${esc([rebar.designNo, rebar.designQty].filter(Boolean).join("／") || "尚未填寫")}</dd></div>
-          <div><dt>實際</dt><dd>${esc([rebar.actualNo, rebar.actualQty].filter(Boolean).join("／") || "尚未填寫")}</dd></div>
-        </dl>
-      </div>
-      <div class="record-item-actions"><button type="button" data-edit-rebar="${index}">填寫</button><button type="button" data-delete-rebar="${index}">刪除</button></div>
-    </article>`).join("") : emptyState("尚無配筋項目，請按＋新增。 ");
-  const completed = rows.filter(rebar => rebar.result !== "待確認").length;
-  $("#rebar-cage-rebar-progress").textContent = `${completed} / ${rows.length}`;
+  const cage = state.rebarCage;
+  $("#rebar-cage-rebar-list").innerHTML = rebarCageCardsHtml(cage, resultSegmented);
+  $("#rebar-cage-rebar-progress").textContent = `${cage.parts.filter(part => part.result !== "待確認").length} / ${cage.parts.length}`;
+  syncRebarCageModeTabs(cage.mode);
 }
 
 function setChecklistInputs() {
@@ -705,6 +691,27 @@ function renderAll() {
   renderChecklists();
 }
 
+// 範例：詳細模式，主筋兩個深度區間、第二區間啟用補強插筋；水平溫度筋內外側對稱。
+function exampleRebarCageParts() {
+  const parts = createRebarCageParts();
+  const fill = (index, patch) => Object.assign(parts[index], patch);
+  const interval = (top, bottom, size, spacing, extra = null) => ({ top, bottom, size, spacing, extra: extra ? { enabled: true, size: extra[0], spacing: extra[1] } : { enabled: false, size: "", spacing: "" } });
+  fill(0, { intervals: [interval("0", "20", "D32", "60"), interval("20", "35.8", "D32", "60", ["D32", "30"])] });
+  fill(1, { intervals: [interval("0", "20", "D32", "60", ["D32", "30"]), interval("20", "35.8", "D32", "60", ["D32", "15"])] });
+  fill(2, { symmetric: true, intervals: [interval("0", "35.8", "D32", "60")] });
+  fill(4, { intervals: [interval("0", "35.8", "D32", "60")] });
+  fill(5, { intervals: [interval("0", "35.8", "D32", "60")] });
+  fill(6, { intervals: [interval("0", "35.8", "D32", "60")] });
+  fill(7, { symmetric: true, count: "3", size: "D19" });
+  fill(8, { size: "D16", spacing: "30" });
+  fill(9, { size: "D16", spacing: "60" });
+  fill(10, { symmetric: true, count: "2", size: "D32", spacing: "600" });
+  fill(11, { spacing: "200" });
+  fill(12, { spacing: "240" });
+  parts.forEach(part => { part.result = "符合"; });
+  return parts;
+}
+
 function loadExample() {
   state.overview = { project: "Example Construction Project — North Lot", contractor: "○○營造股份有限公司", reviewer: "Site Engineer" };
   state.dates = { excavationStart: "2026-08-10", excavationEnd: "2026-08-11", pouring: "2026-08-11" };
@@ -714,7 +721,7 @@ function loadExample() {
   state.prework = Object.fromEntries(PHASES.map((phase, index) => [phase.id, { date: "2026-08-11", start: `0${8 + index}:00`, end: `0${8 + index}:30` }]));
   state.trucks = Array.from({ length: 8 }, (_, index) => ({ truckNo: `C${String(index + 1).padStart(2, "0")}`, dispatch: `${12 + Math.floor(index / 2)}:${index % 2 ? "50" : "28"}`, unload: `${13 + Math.floor(index / 2)}:${index % 2 ? "42" : "20"}`, finish: `${13 + Math.floor(index / 2)}:${index % 2 ? "55" : "33"}`, volume: index === 7 ? "9.46" : "12", measured: (3.9 + index * 4.1).toFixed(2), slump: index === 0 ? "18" : "" }));
   state.guideWall = { date: "2026-08-10", reviewer: "Site Engineer", note: "中心線偏差 1.6 cm；順序符合；導溝條件完成複核。", checks: GUIDE_WALL_CHECKS.map(([item, standard], index) => ({ item, standard, actual: index === 0 ? "中心線偏差 1.6 cm" : "已確認", barNo: index === 5 ? "D16" : "", barSpacing: index === 5 ? "19.5" : "", result: "符合" })) };
-  state.rebarCage = { date: "2026-08-10", cageNo: "C21-U／C21-L", reviewer: "Site Engineer", note: "配筋圖逐項核對；吊放條件完成。", rebars: REBAR_CAGE_PARTS.map((part, index) => ({ part, designNo: index < 2 ? "D32" : "D16", designQty: index < 2 ? "32支" : "@20 cm", actualNo: index < 2 ? "D32" : "D16", actualQty: index < 2 ? "32支" : "@20 cm", result: "符合" })), checks: REBAR_CAGE_CHECKS.map(([item, standard], index) => ({ item, standard, actual: index === 7 ? "3 組成對安裝；線路已保護至孔口" : "已確認", result: "符合" })) };
+  state.rebarCage = { date: "2026-08-10", cageNo: "C21-U／C21-L", reviewer: "Site Engineer", note: "配筋圖逐項核對；吊放條件完成。", mode: "detailed", parts: exampleRebarCageParts(), checks: REBAR_CAGE_CHECKS.map(([item, standard], index) => ({ item, standard, actual: index === 7 ? "3 組成對安裝；線路已保護至孔口" : "已確認", result: "符合" })) };
   state.quality = { note: "各項檢查完成，未發現影響施工之缺失。", standards: { ...QUALITY_STANDARD_DEFAULTS }, checks: QUALITY_CHECKS.map(([item, standard, placeholder]) => ({ item, standard, placeholder, actual: "已確認", result: "符合" })) };
 }
 
@@ -736,7 +743,8 @@ function clearAllData() {
   };
   state.rebarCage = {
     date: "", cageNo: "", reviewer: "", note: "",
-    rebars: REBAR_CAGE_PARTS.map(part => ({ part, designNo: "", designQty: "", actualNo: "", actualQty: "", result: "待確認" })),
+    mode: "simple",
+    parts: createRebarCageParts(),
     checks: REBAR_CAGE_CHECKS.map(([item, standard]) => ({ item, standard, actual: "", result: "待確認" }))
   };
   state.quality = {
@@ -800,21 +808,6 @@ function openTruckDialog(index = null) {
   $("#truck-dialog").showModal();
 }
 
-function openRebarDialog(index = null) {
-  editIndex.rebar = index;
-  const record = index === null
-    ? { part: "", designNo: "", designQty: "", actualNo: "", actualQty: "", result: "待確認" }
-    : state.rebarCage.rebars[index];
-  $("#rebar-part").value = record.part;
-  $("#rebar-design-no").value = record.designNo;
-  $("#rebar-design-qty").value = record.designQty;
-  $("#rebar-actual-no").value = record.actualNo;
-  $("#rebar-actual-qty").value = record.actualQty;
-  $$('input[name="rebar-result"]').forEach(radio => { radio.checked = radio.value === record.result; });
-  $("#rebar-dialog-title").textContent = index === null ? "新增配筋項目" : `填寫第 ${index + 1} 項配筋`;
-  $("#rebar-form [type='submit']").textContent = index === null ? "確認加入" : "確認更新";
-  $("#rebar-dialog").showModal();
-}
 
 function showUndo(message, action) {
   clearTimeout(undoTimer);
@@ -839,14 +832,6 @@ function removeRecord(type, index) {
   });
 }
 
-function removeRebar(index) {
-  const [removed] = state.rebarCage.rebars.splice(index, 1);
-  renderRebars();
-  showUndo("已刪除配筋項目", () => {
-    state.rebarCage.rebars.splice(index, 0, removed);
-    renderRebars();
-  });
-}
 
 // 施工期間：所有紀錄日期的最早～最晚（總表與檔名用）
 function recordDates() {
@@ -881,7 +866,7 @@ function printWallInfo() {
   const designVolume = number(state.wall.designVolume) ?? calculatedDesignVolume();
   return `<section class="print-section print-wall-info"><h2>壁體資訊</h2><div class="print-meta-grid three">
     <div><span>單元類型</span><strong>${esc(display(state.wall.unitType))}</strong></div>
-    <div><span>樁／壁編號</span><strong>${esc(display(state.wall.unitNo))}</strong></div>
+    <div><span>軸線／方向編號</span><strong>${esc(display(state.wall.unitNo))}</strong></div>
     <div><span>順序編號</span><strong>${esc(display(state.wall.sequenceNo))}</strong></div>
     <div><span>混凝土強度(kgf/cm²)</span><strong>${esc(display(state.wall.strength))}</strong></div>
     <div><span>設計深度(GL,m)</span><strong>GL ${esc(display(state.wall.designDepth))} m</strong></div>
@@ -991,22 +976,21 @@ function renderPrint() {
         <div><span>預估／實測／差異(m)</span><strong>${fixed(lastTruck?.expected ?? null)} ／ ${fixed(lastTruck?.measured ?? null)} ／ ${fixed(lastTruck?.difference ?? null)}</strong></div>
       </div></section><section class="print-section pouring-table-section"><h2>逐車混凝土澆置紀錄</h2><table class="print-table"><thead><tr><th>車次</th><th>車號</th><th>出廠</th><th>卸料</th><th>結束</th><th>坍度(cm)</th><th>方量(m³)</th><th>累積(m³)</th><th>預估高(m)</th><th>實際高(m)</th><th>澆置時間(分)</th></tr></thead><tbody>${pouringRows}</tbody></table><p class="print-table-note">跨午夜的時間以 24 時以後接續表示（例：25:30＝翌日 01:30）；澆置時間＝結束 − 出廠。</p></section></div><section class="print-section pouring-chart-section"><h2>澆置高度曲線</h2>${pouringChartSvg(truckRows)}</section></div></div>${printFooter()}`;
 
-  const guideWallRows = state.guideWall.checks.map((check, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(check.item)}</td><td class="text-left">${esc(check.standard)}</td><td class="text-left">${esc(guideCheckActual(check))}</td><td>${esc(check.result)}</td></tr>`).join("");
+  const guideWallRows = state.guideWall.checks.map((check, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(check.item)}</td><td class="text-left">${standardHtml(check.standard)}</td><td class="text-left">${esc(guideCheckActual(check))}</td><td>${esc(check.result)}</td></tr>`).join("");
   $("#print-guide-wall").innerHTML = `${printHeader({ title: "導溝施工複核表", sequence: "07", identity: "不分單元", date: state.guideWall.date, dateLabel: "複核日期", reviewer: state.guideWall.reviewer, reviewerLabel: "營造廠複核人" })}
     <section class="print-section"><h2>導溝資料</h2><div class="print-meta-grid single">
       <div><span>複核意見</span><strong>${esc(display(state.guideWall.note))}</strong></div>
     </div></section>
     <section class="print-section"><h2>導溝複核項目</h2><table class="print-table checklist-print-table"><thead><tr><th>項次</th><th>複核項目</th><th>確認基準</th><th>現場紀錄／實測</th><th>結果</th></tr></thead><tbody>${guideWallRows}</tbody></table></section>${printFooter()}`;
 
-  const rebarRows = state.rebarCage.rebars.length ? state.rebarCage.rebars.map((rebar, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(rebar.part)}</td><td>${esc(display(rebar.designNo))}</td><td>${esc(display(rebar.designQty))}</td><td>${esc(display(rebar.actualNo))}</td><td>${esc(display(rebar.actualQty))}</td><td>${esc(rebar.result)}</td></tr>`).join("") : `<tr><td colspan="7" class="print-empty">尚無配筋項目</td></tr>`;
-  const rebarCageRows = state.rebarCage.checks.map((check, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(check.item)}</td><td class="text-left">${esc(check.standard)}</td><td class="text-left">${esc(display(check.actual))}</td><td>${esc(check.result)}</td></tr>`).join("");
+  const rebarCageRows = state.rebarCage.checks.map((check, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(check.item)}</td><td class="text-left">${standardHtml(check.standard)}</td><td class="text-left">${esc(display(check.actual))}</td><td>${esc(check.result)}</td></tr>`).join("");
   $("#print-rebar-cage").innerHTML = `${printHeader({ title: "鋼筋籠吊放前複核表", sequence: "08", identity: [state.wall.unitNo, state.rebarCage.cageNo].filter(Boolean).join("｜") || "未指定鋼筋籠", date: state.rebarCage.date, dateLabel: "複核日期", reviewer: state.rebarCage.reviewer, reviewerLabel: "營造廠複核人" })}
     <section class="print-section"><h2>鋼筋籠資料</h2><div class="print-meta-grid three compact-meta">
-      <div><span>單元編號</span><strong>${esc(display(wallUnitLabel()))}</strong></div>
+      <div><span>軸線／方向編號</span><strong>${esc(display(wallUnitLabel()))}</strong></div>
       <div><span>鋼筋籠編號</span><strong>${esc(display(state.rebarCage.cageNo))}</strong></div>
       <div><span>複核意見</span><strong>${esc(display(state.rebarCage.note))}</strong></div>
     </div></section>
-    <section class="print-section compact-print-section"><h2>配筋複核明細</h2><table class="print-table rebar-cage-print-table"><thead><tr><th>項次</th><th>位置／用途</th><th>設計號數</th><th>設計數量／間距</th><th>實際號數</th><th>實際數量／間距</th><th>結果</th></tr></thead><tbody>${rebarRows}</tbody></table></section>
+    <section class="print-section compact-print-section"><h2>配筋抽查明細</h2>${rebarCagePrintTableHtml(state.rebarCage)}</section>
     <section class="print-section compact-print-section"><h2>組裝與吊放條件</h2><table class="print-table rebar-cage-check-print-table"><thead><tr><th>項次</th><th>複核項目</th><th>確認基準</th><th>現場紀錄／實測</th><th>結果</th></tr></thead><tbody>${rebarCageRows}</tbody></table></section>${printFooter()}`;
 }
 
@@ -1081,7 +1065,7 @@ function exportData() {
 
   return {
     app_version: APP_VERSION,
-    schema_version: "1.3",
+    schema_version: "1.4",
     record_type: "diaphragm_wall_field_record",
     exported_at: new Date().toISOString(),
     export_context: {
@@ -1164,15 +1148,8 @@ function exportData() {
       cage_no: state.rebarCage.cageNo || null,
       reviewer: state.rebarCage.reviewer || null,
       note: state.rebarCage.note || null,
-      rebar_items: state.rebarCage.rebars.map((rebar, index) => ({
-        item_no: index + 1,
-        part: rebar.part || null,
-        design_bar_size: rebar.designNo || null,
-        design_quantity_spacing: rebar.designQty || null,
-        actual_bar_size: rebar.actualNo || null,
-        actual_quantity_spacing: rebar.actualQty || null,
-        result: rebar.result
-      })),
+      mode: state.rebarCage.mode,
+      parts: exportRebarCageParts(state.rebarCage),
       inspection_items: state.rebarCage.checks.map((check, index) => ({
         item_no: index + 1,
         item: check.item,
@@ -1234,7 +1211,7 @@ function exportMarkdown() {
     `| 欄位 | 內容 |`,
     `| --- | --- |`,
     `| 單元類型 | ${markdownCell(wall.unit_type)} |`,
-    `| 單元編號 | ${markdownCell(wall.unit_no)} |`,
+    `| 軸線／方向編號 | ${markdownCell(wall.unit_no)} |`,
     `| 順序編號 | ${markdownCell(wall.sequence_no)} |`,
     `| 設計深度（m） | ${markdownCell(wall.design_depth_m)} |`,
     `| 頂端高程（m） | ${markdownCell(wall.top_elevation_m)} |`,
@@ -1296,15 +1273,13 @@ function exportMarkdown() {
     ``,
     `## Guide Wall／導溝複核`,
     ``,
-    ...data.guide_wall_review.items.map(item => `- ${item.item_no}. ${item.item}：${item.result}；現場紀錄：${markdownCell([item.actual, item.bar_size ? `號數 ${item.bar_size}` : "", item.bar_spacing_cm !== null && item.bar_spacing_cm !== undefined ? `間距 ${item.bar_spacing_cm} cm` : ""].filter(Boolean).join("；"))}`),
+    ...data.guide_wall_review.items.map(item => `- ${item.item_no}. ${item.item}：${item.result}；現場紀錄：${markdownCell([item.actual, item.bar_size ? `號數 ${barSizeMark(item.bar_size)}` : "", item.bar_spacing_cm !== null && item.bar_spacing_cm !== undefined ? `間距 ${item.bar_spacing_cm} cm` : ""].filter(Boolean).join("；"))}`),
     ``,
     `## Rebar Cage／鋼筋籠複核`,
     ``,
     `### 配筋明細`,
     ``,
-    `| 項次 | 位置／用途 | 設計號數 | 設計數量／間距 | 實際號數 | 實際數量／間距 | 結果 |`,
-    `| ---: | --- | --- | --- | --- | --- | --- |`,
-    ...data.rebar_cage_review.rebar_items.map(item => `| ${item.item_no} | ${markdownCell(item.part)} | ${markdownCell(item.design_bar_size)} | ${markdownCell(item.design_quantity_spacing)} | ${markdownCell(item.actual_bar_size)} | ${markdownCell(item.actual_quantity_spacing)} | ${markdownCell(item.result)} |`),
+    ...rebarCageMarkdownRows(state.rebarCage),
     ``,
     `### 組裝與吊放條件`,
     ``,
@@ -1344,10 +1319,16 @@ function importChecklistItems(definitions, items) {
 }
 
 const GUIDE_WALL_LEGACY_ALIASES = {
-  "放樣與單元中心線": ["單元位置與中心線"],
-  "導溝寬度／淨寬": ["導溝寬度與淨寬", "導溝內面淨寬實測"],
-  "導溝深度與底高程": ["導溝頂高程／深度", "導溝頂基準高程實測"],
-  "壁面與底部完整性": ["壁面與底部完整性"]
+  "放樣": ["放樣與單元中心線", "單元位置與中心線"],
+  "地下管線": ["地下管線位置確認"],
+  "位置與淨寬": ["導溝寬度／淨寬", "導溝寬度與淨寬", "導溝內面淨寬實測"],
+  "深度": ["導溝深度與底高程", "導溝頂高程／深度"],
+  "牆厚": ["導溝牆壁厚度"],
+  "鋼筋": ["導溝鋼筋號數與間距"],
+  "回撐木": ["回撐木配置與間距"],
+  "混凝土強度": ["導溝混凝土強度"],
+  "頂部基準高程": ["導溝頂基準高程實測"],
+  "壁面順直度": ["導溝壁面垂直與順直度", "導溝垂直與壁面完整性"]
 };
 
 function importGuideWallItems(items) {
@@ -1443,20 +1424,13 @@ function importJsonPayload(payload) {
     checks: importGuideWallItems(guideWall.items)
   };
 
-  const importedRebars = Array.isArray(rebarCage.rebar_items) ? rebarCage.rebar_items : [];
   state.rebarCage = {
     date: importText(rebarCage.review_date),
     cageNo: importText(rebarCage.cage_no),
     reviewer: importText(rebarCage.reviewer),
     note: importText(rebarCage.note),
-    rebars: importedRebars.length ? importedRebars.map(record => ({
-      part: importText(record.part),
-      designNo: importText(record.design_bar_size),
-      designQty: importText(record.design_quantity_spacing),
-      actualNo: importText(record.actual_bar_size),
-      actualQty: importText(record.actual_quantity_spacing),
-      result: importResult(record.result)
-    })) : REBAR_CAGE_PARTS.map(part => ({ part, designNo: "", designQty: "", actualNo: "", actualQty: "", result: "待確認" })),
+    mode: rebarCage.mode === "detailed" ? "detailed" : "simple",
+    parts: importRebarCageParts(rebarCage.parts),   // 1.3 以前的 rebar_items 直接略過
     checks: importChecklistItems(REBAR_CAGE_CHECKS, rebarCage.inspection_items)
   };
 
@@ -1563,12 +1537,13 @@ function initialize() {
     }
   });
 
+  bindRebarCageUi({ getCage: () => state.rebarCage, onChange: renderRebars });
   draft.watch();
 
-  $$('[role="tab"]').forEach(button => {
+  $$('.tab-row [role="tab"]').forEach(button => {
     button.addEventListener("click", () => showTab(button.dataset.tab));
     button.addEventListener("keydown", event => {
-      const tabs = $$('[role="tab"]', button.closest("[data-tool-view]"));
+      const tabs = $$('.tab-row [role="tab"]', button.closest("[data-tool-view]"));
       const index = tabs.indexOf(button);
       const direction = ["ArrowRight", "ArrowDown"].includes(event.key) ? 1 : ["ArrowLeft", "ArrowUp"].includes(event.key) ? -1 : 0;
       if (!direction) return;
@@ -1600,7 +1575,6 @@ function initialize() {
   $("#add-soil").addEventListener("click", () => openSoilDialog());
   $("#add-depth").addEventListener("click", () => openDepthDialog());
   $("#add-truck").addEventListener("click", () => openTruckDialog());
-  $("#add-rebar").addEventListener("click", () => openRebarDialog());
 
   $("#soil-form").addEventListener("submit", event => {
     event.preventDefault();
@@ -1640,22 +1614,6 @@ function initialize() {
     renderPouring();
   });
 
-  $("#rebar-form").addEventListener("submit", event => {
-    event.preventDefault();
-    if (!validateDialogForm(event.currentTarget)) return;
-    const record = {
-      part: $("#rebar-part").value.trim(),
-      designNo: $("#rebar-design-no").value.trim(),
-      designQty: $("#rebar-design-qty").value.trim(),
-      actualNo: $("#rebar-actual-no").value.trim(),
-      actualQty: $("#rebar-actual-qty").value.trim(),
-      result: document.querySelector('input[name="rebar-result"]:checked')?.value || "待確認"
-    };
-    if (editIndex.rebar === null) state.rebarCage.rebars.push(record);
-    else state.rebarCage.rebars[editIndex.rebar] = record;
-    $("#rebar-dialog").close();
-    renderRebars();
-  });
 
   $("#phase-select").addEventListener("change", renderPhaseEditor);
   $("#confirm-phase").addEventListener("click", () => {
@@ -1671,16 +1629,12 @@ function initialize() {
     const deleteDepth = event.target.closest("[data-delete-depth]");
     const editTruck = event.target.closest("[data-edit-truck]");
     const deleteTruck = event.target.closest("[data-delete-truck]");
-    const editRebar = event.target.closest("[data-edit-rebar]");
-    const deleteRebar = event.target.closest("[data-delete-rebar]");
     if (editSoil) openSoilDialog(Number(editSoil.dataset.editSoil));
     else if (deleteSoil) removeRecord("soil", Number(deleteSoil.dataset.deleteSoil));
     else if (editDepth) openDepthDialog(Number(editDepth.dataset.editDepth));
     else if (deleteDepth) removeRecord("depth", Number(deleteDepth.dataset.deleteDepth));
     else if (editTruck) openTruckDialog(Number(editTruck.dataset.editTruck));
     else if (deleteTruck) removeRecord("trucks", Number(deleteTruck.dataset.deleteTruck));
-    else if (editRebar) openRebarDialog(Number(editRebar.dataset.editRebar));
-    else if (deleteRebar) removeRebar(Number(deleteRebar.dataset.deleteRebar));
   });
 
   $("#undo-button").addEventListener("click", () => {

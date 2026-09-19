@@ -324,17 +324,19 @@ function exportJson() {
   downloadText(`${JSON.stringify(exportData(), null, 2)}\n`, "application/json;charset=utf-8", `steel-structure-${date}.json`);
 }
 
+// 範例日期固定，重產 examples/ 時才不會每天都出現只有日期不同的假差異
 function loadExample() {
-  state.overview = { project: "Example Construction Project", contractor: "Example Steel Co.", date: today, reviewer: "Site Engineer" };
-  state.delivery = { date: today, batch: "ST-2026-0811", reviewer: "Site Engineer", note: "材料證明與進場照片已核對。", records: [
+  const EXAMPLE_DATE = "2026-08-11";
+  state.overview = { project: "Example Construction Project", contractor: "Example Steel Co.", date: EXAMPLE_DATE, reviewer: "Site Engineer" };
+  state.delivery = { date: EXAMPLE_DATE, batch: "ST-2026-0811", reviewer: "Site Engineer", note: "材料證明與進場照片已核對。", records: [
     { type: "鋼柱", memberNo: "C1-03", spec: "BOX-600×600×25／SN490", qty: "1", doc: "MTC-0811-03", appearance: "符合", storage: "符合", result: "符合" },
     { type: "鋼梁", memberNo: "G3-12", spec: "H-600×300×12×20／SN490", qty: "1", doc: "MTC-0811-12", appearance: "符合", storage: "符合", result: "符合" }
   ] };
-  state.anchor = { location: "C1／X3-Y5", date: today, reviewer: "Site Engineer", boltSpec: "M24", designQty: "4", actualQty: "4", designElevation: "12.000", actualElevation: "12.004", eccentricity: "3", note: "柱腳灌漿完成，無明顯缺失。", checks: [] };
-  state.erection = { area: "A區／3F", date: today, reviewer: "Site Engineer", note: "吊裝順序依計畫，臨時支撐完成。", checks: [] };
-  state.hsb = { location: "G3-12／J01", date: today, reviewer: "Site Engineer", spec: "F10T M20", designQty: "12", actualQty: "12", toolDoc: "TORQUE-2026-0810", note: "抽查 3 支，結果符合。", checks: [] };
-  state.welding = { location: "C1-G3 W05", date: today, reviewer: "Site Engineer", welderDoc: "WELD-3021", wpsDoc: "WPS-S-02 Rev.1", wind: "0.8", testDoc: "UT-2026-0811-05", note: "VT／UT 報告已核對，無修補紀錄。", checks: [] };
-  state.accuracy = { area: "A區／3F", date: today, reviewer: "Site Engineer", memberNo: "C1-03", measureType: "鋼柱垂直度", designValue: "0", actualValue: "3", tolerance: "10", note: "調整後複測完成。", checks: [] };
+  state.anchor = { location: "C1／X3-Y5", date: EXAMPLE_DATE, reviewer: "Site Engineer", boltSpec: "M24", designQty: "4", actualQty: "4", designElevation: "12.000", actualElevation: "12.004", eccentricity: "3", note: "柱腳灌漿完成，無明顯缺失。", checks: [] };
+  state.erection = { area: "A區／3F", date: EXAMPLE_DATE, reviewer: "Site Engineer", note: "吊裝順序依計畫，臨時支撐完成。", checks: [] };
+  state.hsb = { location: "G3-12／J01", date: EXAMPLE_DATE, reviewer: "Site Engineer", spec: "F10T M20", designQty: "12", actualQty: "12", toolDoc: "TORQUE-2026-0810", note: "抽查 3 支，結果符合。", checks: [] };
+  state.welding = { location: "C1-G3 W05", date: EXAMPLE_DATE, reviewer: "Site Engineer", welderDoc: "WELD-3021", wpsDoc: "WPS-S-02 Rev.1", wind: "0.8", testDoc: "UT-2026-0811-05", note: "VT／UT 報告已核對，無修補紀錄。", checks: [] };
+  state.accuracy = { area: "A區／3F", date: EXAMPLE_DATE, reviewer: "Site Engineer", memberNo: "C1-03", measureType: "鋼柱垂直度", designValue: "0", actualValue: "3", tolerance: "10", note: "調整後複測完成。", checks: [] };
   Object.entries(CHECK_DEFINITIONS).forEach(([group, definitions]) => {
     state[group].checks = definitions.map(([item, standard], index) => ({ item, standard, actual: index === 0 ? "已確認" : "符合；文件已核對", result: "符合" }));
   });

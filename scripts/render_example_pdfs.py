@@ -33,6 +33,16 @@ TARGETS = [
 ]
 
 
+def normalize_pdf(pdf_path):
+    """Chrome 每次輸出都會寫入新的時間戳與隨機 /ID，內容沒變 git 也會看到 diff；清掉讓重產結果可重現。"""
+    document = fitz.open(pdf_path)
+    document.set_metadata({"creationDate": "", "modDate": ""})
+    document.xref_set_key(-1, "ID", "[<00000000000000000000000000000000> <00000000000000000000000000000000>]")
+    document.save(str(pdf_path) + ".tmp", garbage=0, deflate=False, no_new_id=True)
+    document.close()
+    Path(str(pdf_path) + ".tmp").replace(pdf_path)
+
+
 def render_pages(pdf_path, name):
     """PDF 逐頁轉 WebP，回傳 manifest 需要的頁數與尺寸。"""
     document = fitz.open(pdf_path)
@@ -44,7 +54,7 @@ def render_pages(pdf_path, name):
         width, height = pixmap.width, pixmap.height
     return {"pages": len(document), "width": width, "height": height}
 
-server = subprocess.Popen([sys.executable, "-m", "http.server", "--bind", "127.0.0.1", str(PORT)], cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+server = subprocess.Popen([sys.executable, str(ROOT / "scripts" / "serve.py"), str(PORT)], cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 time.sleep(1.2)
 shutil.rmtree(PAGES, ignore_errors=True)
 PAGES.mkdir()
@@ -59,6 +69,7 @@ try:
             page.emulate_media(media="print")
             page.pdf(path=str(OUT / filename), prefer_css_page_size=True, print_background=True)
             page.close()
+            normalize_pdf(OUT / filename)
             name = filename[:-len(".pdf")]
             manifest[name] = {"title": title, "back": html.removesuffix(".html"), **render_pages(OUT / filename, name)}
             print(f"寫入 examples/{filename}（{manifest[name]['pages']} 頁）與 pages/{name}-*.webp")

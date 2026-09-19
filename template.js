@@ -380,7 +380,9 @@ function exportPdf(scope) {
 
 function clearAll() { draft.clear(); state = createState(); activeTab = "overview"; renderAll(); setTab("overview"); $("#clear-dialog").close(); }
 
+// 範例日期固定，重產 examples/ 時才不會每天都出現只有日期不同的假差異
 function loadExample() {
+  const EXAMPLE_DATE = "2026-08-10";
   const member = createMember();
   member.type = "柱"; member.id = "C1-03"; member.grid = "A-1／B-C"; member.width = "600"; member.height = "800"; member.elevation = "3200"; member.surface = "一般表面";
   ensureMember(member);
@@ -388,9 +390,9 @@ function loadExample() {
   member.measures = Object.fromEntries((TYPE_MEASURES.柱 || []).map(id => [id, { design: id === "sectionWidth" ? "600" : id === "sectionHeight" ? "800" : "0", actual: id === "sectionWidth" ? "602" : id === "sectionHeight" ? "798" : "3" }]));
   member.bars = [{ kind: "主筋", size: "D25", count: "12", spacing: "—", note: "四面配置" }];
   state = createState();
-  state.overview = { project: "Example Construction Project", contractor: "Example Formwork Co.", date: today, inspectionDate: today, reviewer: "Site Engineer", floor: "3F", area: "A～C／1～3 軸", drawing: "S-203 Rev.2", stage: "模板組立完成" };
+  state.overview = { project: "Example Construction Project", contractor: "Example Formwork Co.", date: EXAMPLE_DATE, inspectionDate: EXAMPLE_DATE, reviewer: "Site Engineer", floor: "3F", area: "A～C／1～3 軸", drawing: "S-203 Rev.2", stage: "模板組立完成" };
   state.members = [member]; state.activeMember = 0;
-  state.release.decision = "可澆置"; state.release.pourDate = today; state.release.stripCondition = "符合最少時間"; state.release.reshoring = "已保留";
+  state.release.decision = "可澆置"; state.release.pourDate = EXAMPLE_DATE; state.release.stripCondition = "符合最少時間"; state.release.reshoring = "已保留";
   state.release.checks = Object.fromEntries(RELEASE_CHECKS.map(item => [item[0], { actual: "已確認", result: "合格" }]));
   state.release.decisionNote = "澆置前各項條件已完成複核。"; state.release.postNote = "拆模後外觀無明顯缺失。";
 }

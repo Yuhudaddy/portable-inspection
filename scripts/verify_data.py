@@ -209,7 +209,7 @@ def verify_gc_hold_migration(browser):
       const rec = tag => ({ actual: tag, result: "符合" });
       const old = {
         hold1: ["中心線", "淨寬", "深度", "垂直", "偏擺", "沉泥", "比重", "含砂", "端板刷洗"].map(rec),
-        hold2: ["配筋", "續接器", "滾輪", "樑柱預埋", "地錨", "開口箱", "傾度管", "鋼筋計", "頂高程"].map(rec),
+        hold2: ["配筋", "續接器", "滾輪", "梁柱預埋", "地錨", "開口箱", "傾度管", "鋼筋計", "頂高程"].map(rec),
         hold3: ["坍度", "氯離子", "試體組", "試體編號", "初灌", "埋入", "起訖", "中斷", "總方量", "頂面"].map(rec),
         hold4: ["沉陷", "水位"].map(rec)
       };
@@ -219,7 +219,7 @@ def verify_gc_hold_migration(browser):
     landed = page.evaluate("() => Object.fromEntries(HOLD_POINTS.map(h => [h.id, h.items.map((d, i) => [d.key, state.holds[h.id][i].actual])]))")
     expected = {
         "hold1": ["中心線", "淨寬", "深度", "垂直", "偏擺", "沉泥", "端板刷洗"],
-        "hold2": ["配筋", "續接器", "滾輪", "樑柱預埋", "開口箱", "傾度管", "鋼筋計", "頂高程", "比重", "含砂"],
+        "hold2": ["配筋", "續接器", "滾輪", "梁柱預埋", "開口箱", "傾度管", "鋼筋計", "頂高程", "比重", "含砂"],
         "hold3": ["坍度", "氯離子", "試體組", "試體編號", "初灌", "埋入", "起訖", "總方量", "頂面"],
         "hold4": ["沉陷", "水位"],
     }

@@ -43,28 +43,32 @@ button { font: inherit; }
 .portal-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   padding: 8px 4px 0;
 }
 
-.brand { display: inline-flex; text-decoration: none; }
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
 
 .brand img {
   width: 36px;
   height: 36px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(60, 50, 30, 0.12);
+  border-radius: 10px;
+  box-shadow: none;
 }
 
-.header-tag {
+.brand span {
   font-family: var(--glass-font-num);
   color: var(--glass-muted);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.18em;
+  text-transform: uppercase;
 }
-
-.portal-intro { padding: 52px 4px 28px; }
 
 h1 {
   margin: 0;
@@ -74,18 +78,11 @@ h1 {
   line-height: 1.1;
 }
 
-.intro-copy {
-  max-width: 34em;
-  margin: 14px 0 0;
-  color: var(--glass-soft);
-  font-size: 0.875rem;
-  line-height: 1.6;
-}
-
 .tool-index {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+  margin-top: 44px;
 }
 
 @media (min-width: 720px) {
@@ -189,14 +186,6 @@ h1 {
   font-weight: 700;
 }
 
-.portal-footer {
-  margin: 32px 0 0;
-  padding: 0 6px;
-  color: var(--glass-faint);
-  font-size: 0.6875rem;
-  text-align: center;
-}
-
 .error-page { display: grid; justify-items: start; }
 
 .error-page .portal-header {
@@ -245,4 +234,3 @@ h1 {
     animation-duration: 0.01ms !important;
   }
 }
-

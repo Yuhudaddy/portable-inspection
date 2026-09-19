@@ -37,7 +37,7 @@ button { font: inherit; }
 .portal-shell {
   width: min(100% - 32px, 960px);
   margin: 0 auto;
-  padding: max(20px, env(safe-area-inset-top)) 0 120px;
+  padding: max(28px, calc(env(safe-area-inset-top) + 20px)) 0 120px;
 }
 
 .portal-header {
@@ -82,7 +82,7 @@ h1 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
-  margin-top: 44px;
+  margin-top: clamp(64px, 9vh, 92px);
 }
 
 @media (min-width: 720px) {

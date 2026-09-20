@@ -380,7 +380,7 @@ def open_plan(browser, query):
 
 
 def verify_plan_page(browser):
-    for work in ("diaphragm-wall", "formwork", "rebar", "steel"):
+    for work in ("diaphragm-wall-gc", "diaphragm-wall", "formwork", "rebar", "steel"):
         page = open_plan(browser, f"?work={work}&from=template")
         page.evaluate("() => { try { localStorage.clear(); } catch (e) {} }")
         result = page.evaluate("""() => {
@@ -399,7 +399,7 @@ def verify_plan_page(browser):
     page.evaluate("() => { state.overview.project = '帶入測試工程'; state.overview.contractor = '帶入營造'; draft.schedule(); }")
     page.wait_for_timeout(700)
     page.evaluate("() => { Object.keys(localStorage).filter(k => k.startsWith('project-portal.plan.')).forEach(k => localStorage.removeItem(k)); }")
-    page.goto(f"{BASE}/plan?work=diaphragm-wall&from=diaphragm-wall-gc", wait_until="networkidle")
+    page.goto(f"{BASE}/plan?work=diaphragm-wall-gc&from=diaphragm-wall-gc", wait_until="networkidle")
     page.wait_for_function("typeof renderPlan === 'function'")
     result = page.evaluate("() => ({ project: state.cover.project, contractor: state.cover.contractor, back: document.querySelector('#back-link').getAttribute('href'), title: (setPrintDocumentTitle(planFileName()), document.title) })")
     check("計畫頁：from 工具的工程名稱／廠商帶入封面，返回連結指回工具頁，PDF 檔名含版本", result["project"] == "帶入測試工程" and result["contractor"] == "帶入營造" and result["back"] == "./diaphragm-wall-gc" and "精簡版" in result["title"], result)
@@ -407,7 +407,7 @@ def verify_plan_page(browser):
 
 
 def verify_plan_links(browser):
-    for html, work, back in (("diaphragm-wall-gc", "diaphragm-wall", "diaphragm-wall-gc"), ("diaphragm-wall", "diaphragm-wall", "diaphragm-wall"), ("template", "formwork", "template"), ("rebar", "rebar", "rebar"), ("steel-structure", "steel", "steel-structure")):
+    for html, work, back in (("diaphragm-wall-gc", "diaphragm-wall-gc", "diaphragm-wall-gc"), ("diaphragm-wall", "diaphragm-wall", "diaphragm-wall"), ("template", "formwork", "template"), ("rebar", "rebar", "rebar"), ("steel-structure", "steel", "steel-structure")):
         page = open_clean(browser, html)
         result = page.evaluate("() => ({ href: document.querySelector('.header-plan')?.getAttribute('href'), identity: !!document.querySelector('#record-identity') })")
         check(f"{html}：計畫按鈕指向 plan?work={work}", result["href"] == f"./plan?work={work}&from={back}" and not result["identity"], result)

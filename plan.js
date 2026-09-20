@@ -1,6 +1,6 @@
-// 施工計畫頁：?work=<diaphragm-wall|formwork|rebar|steel>&from=<工具頁>。
+// 施工計畫頁：?work=<diaphragm-wall-gc|diaphragm-wall|formwork|rebar|steel>&from=<工具頁>。
 // 正文來自 plans/<work>.js（PLAN_CONTENT），封面與修訂紀錄存本機草稿；精簡版只取 level "brief" 的章節與區塊。
-const PLAN_WORKS = ["diaphragm-wall", "formwork", "rebar", "steel"];
+const PLAN_WORKS = ["diaphragm-wall-gc", "diaphragm-wall", "formwork", "rebar", "steel"];
 const PLAN_FROM = {
   "diaphragm-wall-gc": { label: "營造廠查驗表", draft: "project-portal.diaphragmWallGc.draft" },
   "diaphragm-wall": { label: "施工紀錄", draft: "project-portal.diaphragmWall.draft" },

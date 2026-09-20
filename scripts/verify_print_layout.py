@@ -67,7 +67,7 @@ try:
                 failed = failed or bool(problems)
                 page.close()
         # 施工計畫頁：完整版 PDF 封面、修訂紀錄、目錄各自一頁
-        for work in ("diaphragm-wall", "formwork", "rebar", "steel"):
+        for work in ("diaphragm-wall-gc", "diaphragm-wall", "formwork", "rebar", "steel"):
             page = browser.new_page()
             page.goto(f"http://127.0.0.1:{PORT}/plan.html?work={work}", wait_until="networkidle")
             page.evaluate("() => { try { localStorage.clear(); } catch (e) {} }")

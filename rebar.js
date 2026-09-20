@@ -38,7 +38,7 @@ const PLACEMENT_CHECKS = {
   梁: [
     ["main", "主筋強度／號數／支數", "梁主筋材質、號數及支數符合配筋圖", "例如：D25 上 3／下 4"],
     ["ties", "箍筋與腰筋", "箍筋、腰筋及增筋號數、間距與位置符合圖說", "填寫號數／間距"],
-    ["sameLayer", "同層淨間距", "同層鋼筋淨間距 ≥ max{2.5 cm、1.5db、1.33dagg}", "填寫實測最小值（cm）"],
+    ["sameLayer", "同層淨間距", "同層鋼筋淨間距 ≥ max{2.5 cm、db、1.33dagg}", "填寫實測最小值（cm）"],
     ["doubleLayer", "雙層鋼筋淨距", "雙層鋼筋上下淨距 > 2.5 cm，排列整齊且無過度下垂", "填寫實測值（cm）"],
     ["lap", "搭接／伸展／彎鉤", "搭接位置、伸展長度及彎鉤符合圖說，避開塑鉸區", "填寫位置／長度（cm）"],
     ["coupler", "機械式續接位置", "續接位置距接頭不小於梁深 h／2，且避開塑鉸區；未使用請選不適用", "填寫位置／距離（cm）"],
@@ -267,4 +267,3 @@ Object.assign(state, draft.load() ?? {});
 if (query.get("example") === "1") loadExample();
 renderAll();
 setTab(Object.prototype.hasOwnProperty.call(TAB_LABELS, query.get("tab") ?? "") ? query.get("tab") : "overview");
-

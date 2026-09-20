@@ -133,10 +133,6 @@ function setBoundInputs() {
   syncDateDisplays();
 }
 
-function updateIdentity() {
-  const parts = [state.accuracy.memberNo || state.anchor.location || state.hsb.location || state.welding.location, state.overview.project].filter(Boolean);
-  $("#record-identity").textContent = parts.length ? parts.join("｜") : "尚未指定構件";
-}
 
 function showTab(tab) {
   if (!TABS[tab]) return;
@@ -187,7 +183,6 @@ function renderAll() {
   Object.keys(CHECK_DEFINITIONS).forEach(renderChecks);
   $("#optional-fields").hidden = !state.optional.enabled;
   $$('[data-optional]').forEach(button => button.classList.toggle("is-enabled", state.optional.enabled === button.dataset.optional));
-  updateIdentity();
   showTab(activeTab);
 }
 
@@ -366,7 +361,6 @@ function initialize() {
     if (bound) {
       const [group, key] = bound.dataset.bind.split(".");
       if (state[group]) state[group][key] = bound.value;
-      updateIdentity();
     }
     const check = event.target.closest("[data-check-group]");
     if (check) state[check.dataset.checkGroup].checks[Number(check.dataset.checkIndex)][check.dataset.checkField] = check.value;
@@ -377,7 +371,6 @@ function initialize() {
     if (bound) {
       const [group, key] = bound.dataset.bind.split(".");
       if (state[group]) state[group][key] = bound.value;
-      updateIdentity();
     }
     const check = event.target.closest("[data-check-group]");
     if (check) {
@@ -403,7 +396,7 @@ function initialize() {
     if (!validateDialogForm(event.currentTarget)) return;
     const record = { type: $("#delivery-type").value, memberNo: $("#delivery-member").value.trim(), spec: $("#delivery-spec").value.trim(), qty: $("#delivery-qty").value, doc: $("#delivery-doc").value.trim(), appearance: document.querySelector('input[name="delivery-appearance"]:checked')?.value || "待確認", storage: document.querySelector('input[name="delivery-storage"]:checked')?.value || "待確認", result: document.querySelector('input[name="delivery-result"]:checked')?.value || "待確認" };
     if (editDeliveryIndex === null) state.delivery.records.push(record); else state.delivery.records[editDeliveryIndex] = record;
-    $("#delivery-dialog").close(); renderDelivery(); updateIdentity();
+    $("#delivery-dialog").close(); renderDelivery();
   });
 
   document.addEventListener("click", event => {

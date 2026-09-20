@@ -37,8 +37,9 @@
 .member-matrix input, .member-matrix select { box-sizing: border-box; width: 100%; min-width: 0; min-height: 34px; padding: 5px 8px; border: 0; border-radius: 8px; background: rgba(60, 50, 30, 0.05); color: var(--glass-ink); font: inherit; font-size: .75rem; }
 .member-matrix input:focus, .member-matrix select:focus, .member-batch-toolbar select:focus, .batch-count input:focus { outline: 2px solid var(--glass-accent); outline-offset: 1px; }
 .member-bars-summary { color: var(--glass-muted); line-height: 1.45; word-break: break-word; }
-.member-actions { text-align: center; }
-.member-actions .compact-button { width: 100%; min-height: 34px; padding: 5px 6px; }
+.member-actions { white-space: nowrap; }
+.member-actions > * { display: inline-flex; vertical-align: middle; }
+.member-actions .compact-button { min-height: 34px; padding: 5px 10px; margin-right: 6px; }
 .member-detail-row > td { padding: 0; background: rgba(60, 50, 30, 0.04); }
 .member-detail-editor { padding: 14px; border-top: 1px solid var(--line); }
 .member-detail-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 4px; color: var(--glass-ink); font-size: .75rem; }

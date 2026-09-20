@@ -59,11 +59,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .header-nav > * { pointer-events: auto; }
 .header-back { color: var(--glass-ink); }
 .header-back svg { display: block; color: var(--glass-icon); }
-.header-identity {
-  max-width: 55%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+.header-plan { gap: 6px; padding-right: 14px; color: var(--glass-ink); }
+.header-plan svg { display: block; color: var(--glass-icon); }
 
 .app-shell {
   width: min(100% - 32px, 880px);
@@ -1019,6 +1016,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .print-meta-grid.three > div:nth-child(2n) { border-right: 0.5pt solid #888; }
   .print-meta-grid.three > div:nth-child(3n) { border-right: 0; }
   .print-meta-grid.three > div:nth-last-child(-n + 3) { border-bottom: 0; }
+  .print-meta-grid.three > div.span-two { grid-column: span 2; border-right: 0; }
+  .print-meta-grid.three > div.span-two + div, .print-meta-grid.three > div:has(+ .span-two:last-child) { border-right: 0.5pt solid #888; }
   .print-meta-grid span { display: block; color: #555; font-size: 6.5pt; }
   .print-meta-grid strong { display: block; margin-top: 1mm; font-size: 9pt; }
   .print-section { margin-top: 4mm; }

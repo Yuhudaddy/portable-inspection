@@ -301,3 +301,10 @@
   body[data-print-scope] .print-page[data-measuring] { min-height: 0 !important; height: auto !important; overflow: visible !important; }
   body[data-print-scope] .print-page[data-paginated] { height: var(--print-page-height, 277mm); min-height: 0; overflow: hidden; }
 }
+
+/* ---- 二階段刪除：第一下變紅底垃圾桶，再點才刪；4 秒沒動作或點到別處就恢復 ------------ */
+.two-step-delete { display: inline-flex; align-items: center; justify-content: center; flex: none; min-width: 32px; height: 32px; padding: 0 10px; border: 0; border-radius: 999px; background: var(--glass-neutral-bg); color: var(--glass-neutral-ink); font: inherit; font-size: 1.125rem; line-height: 1; cursor: pointer; transition: background 160ms ease, color 160ms ease, min-width 160ms ease; }
+.two-step-delete svg { display: none; }
+.two-step-delete.is-armed { min-width: 40px; background: var(--glass-danger); color: #fff; }
+.two-step-delete.is-armed .two-step-x { display: none; }
+.two-step-delete.is-armed svg { display: block; }

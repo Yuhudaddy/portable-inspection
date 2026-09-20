@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Portable Inspection" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./icon-192.png" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link rel="stylesheet" href="./glass.css" />
+    <link rel="stylesheet" href="./plan.css" />
+    <title>施工計畫｜Portable Inspection</title>
+  </head>
+  <body>
+    <header class="app-header">
+      <nav class="header-nav" aria-label="主要功能">
+        <a class="glass-pill header-back" id="back-link" href="./"><svg width="10" height="16" viewBox="0 0 12 20" fill="none" aria-hidden="true"><path d="M10 2L2 10l8 8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="back-label">工具</span></a>
+        <div class="header-actions">
+          <label class="glass-pill version-pill"><span class="sr-only">版本</span><select id="plan-version" aria-label="計畫版本"><option value="brief">精簡版</option><option value="full">完整版</option></select></label>
+          <button class="glass-pill header-print" id="print-button" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z"/></svg>輸出 PDF</button>
+        </div>
+      </nav>
+    </header>
+
+    <main class="plan-shell" id="plan">
+      <p class="plan-missing" id="plan-missing" hidden>找不到這份計畫。<a href="./">回工具首頁</a></p>
+
+      <section class="plan-cover" id="plan-cover" aria-label="封面">
+        <img class="plan-logo" src="./taisei.png" alt="" />
+        <p class="plan-kicker" id="plan-subtitle"></p>
+        <h1 id="plan-title"></h1>
+        <dl class="plan-cover-grid">
+          <div><dt>工程名稱</dt><dd><input type="text" data-cover="project" placeholder="請輸入工程名稱" /></dd></div>
+          <div><dt>施工廠商</dt><dd><input type="text" data-cover="contractor" placeholder="請輸入施工廠商" /></dd></div>
+          <div><dt>編製單位</dt><dd><input type="text" data-cover="author" placeholder="例如：工務所" /></dd></div>
+          <div><dt>編製日期</dt><dd><input type="date" data-cover="date" /></dd></div>
+        </dl>
+        <p class="plan-cover-foot"><span>版次 <input type="text" class="inline-input" data-cover="revision" size="3" /></span><span id="plan-version-label">精簡版</span></p>
+      </section>
+
+      <section class="plan-block" id="plan-revisions" aria-labelledby="revisions-heading">
+        <h2 id="revisions-heading">修訂紀錄</h2>
+        <div class="table-scroll"><table class="plan-table revisions-table"><thead><tr><th>版次</th><th>日期</th><th>修訂內容</th><th>編製</th><th class="no-print"></th></tr></thead><tbody id="revision-rows"></tbody></table></div>
+        <button class="plan-add no-print" id="add-revision" type="button"><span aria-hidden="true">＋</span> 新增一列</button>
+        <h3>參考規範與文件</h3>
+        <ol class="plan-sources" id="plan-sources"></ol>
+      </section>
+
+      <div class="plan-body-wrap">
+        <nav class="plan-toc" id="plan-toc" aria-label="目錄">
+          <details class="plan-toc-details" open><summary>目錄</summary><ol id="toc-list"></ol></details>
+        </nav>
+        <article class="plan-article" id="plan-article"></article>
+      </div>
+    </main>
+
+    <script src="./draft.js" defer></script>
+    <script src="./print-pages.js" defer></script>
+    <script src="./plans/diaphragm-wall.js" defer></script>
+    <script src="./plans/formwork.js" defer></script>
+    <script src="./plans/rebar.js" defer></script>
+    <script src="./plans/steel.js" defer></script>
+    <script src="./plan.js" defer></script>
+    <script src="./sw-client.js" defer></script>
+  </body>
+</html>

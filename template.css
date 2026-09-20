@@ -23,7 +23,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .header-nav > * { pointer-events: auto; }
 .header-back { color: var(--glass-ink); }
 .header-back svg { display: block; color: var(--glass-icon); }
-.header-identity { max-width: 55%; overflow: hidden; text-overflow: ellipsis; }
+.header-plan { gap: 6px; padding-right: 14px; color: var(--glass-ink); }
+.header-plan svg { display: block; color: var(--glass-icon); }
 
 .app-shell { width: min(100% - 32px, 880px); margin: 0 auto; padding: 6px 0 28px; scroll-margin-top: calc(var(--header-height) + env(safe-area-inset-top)); }
 .tool-title { padding: 20px 4px 16px; }
@@ -89,7 +90,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .member-card-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 20px 4px 10px; }
 .member-card:first-child .member-card-header { padding-top: 4px; }
 .member-card-header strong { font-size: 1rem; font-weight: 600; }
-.member-card-header button { border: 0; background: transparent; color: var(--glass-accent); font-size: .75rem; font-weight: 500; }
+.member-card-header button:not(.two-step-delete) { border: 0; background: transparent; color: var(--glass-accent); font-size: .75rem; font-weight: 500; }
 .empty-state { padding: 20px 16px; color: var(--glass-muted); font-size: .8125rem; text-align: center; }
 .member-list > .empty-state { border-radius: var(--glass-radius-lg); background: var(--glass-card-bg); box-shadow: var(--glass-card-shadow); }
 

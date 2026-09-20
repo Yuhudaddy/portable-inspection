@@ -23,7 +23,7 @@
     <header class="app-header">
       <nav class="header-nav" aria-label="主要功能">
         <a class="glass-pill header-back" href="./" aria-label="返回工具首頁"><svg width="10" height="16" viewBox="0 0 12 20" fill="none" aria-hidden="true"><path d="M10 2L2 10l8 8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>工具</a>
-        <span class="glass-tag header-identity" id="record-identity">尚未指定單元</span>
+        <a class="glass-pill header-plan" href="./plan?work=diaphragm-wall&amp;from=diaphragm-wall-gc"><svg width="14" height="16" viewBox="0 0 20 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2h9l5 5v15H4z"/><path d="M13 2v5h5M7 12h6M7 16h6"/></svg>計畫</a>
       </nav>
     </header>
 
@@ -77,7 +77,7 @@
                 <label><input type="radio" name="slurry-type" value="皂土系" data-bind="unit.slurryType" /><span>皂土系</span></label>
                 <label><input type="radio" name="slurry-type" value="高分子系" data-bind="unit.slurryType" /><span>高分子系</span></label>
               </fieldset>
-              <label class="field"><span>軸線／方向編號</span><input type="text" data-bind="unit.unitNo" placeholder="例如：21／C21-U" /></label>
+              <label class="field"><span>單元編號</span><input type="text" data-bind="unit.unitNo" placeholder="例如：21" /></label>
               <label class="field"><span>順序編號</span><input type="text" data-bind="unit.sequenceNo" inputmode="numeric" placeholder="例如：03" /></label>
               <label class="field"><span>導溝頂基準高程（GL, m）</span><input type="number" step="0.01" inputmode="decimal" data-bind="unit.guideTopElevation" placeholder="例如：+0.15" /></label>
               <label class="field"><span>設計混凝土強度（kgf/cm2）</span><input type="text" data-bind="unit.strength" placeholder="例如：350" /></label>
@@ -177,6 +177,7 @@
             <p>成槽前停留點</p>
           </div>
           <div class="form-grid checklist-meta-grid">
+            <label class="field span-two"><span>軸線／方向編號</span><input type="text" data-check-bind="guideWall.axisNo" placeholder="例如：X3～X7／南側" /></label>
             <label class="field span-two"><span>複核日期</span><span class="native-field-wrap"><input type="date" data-check-bind="guideWall.date" /><span class="native-field-display" aria-hidden="true"></span></span></label>
           </div>
           <dl class="check-progress" aria-live="polite">
@@ -208,7 +209,8 @@
             </div>
             <div class="form-grid checklist-meta-grid">
             <label class="field span-two"><span>複核日期</span><span class="native-field-wrap"><input type="date" data-check-bind="rebarCage.date" /><span class="native-field-display" aria-hidden="true"></span></span></label>
-            <label class="field calculated-field"><span>軸線／方向編號<em>同設計基準</em></span><input id="rebar-cage-unit" type="text" readonly tabindex="-1" placeholder="請先填設計基準" /></label>
+            <label class="field"><span>單元編號<em>同連續壁</em></span><input type="text" data-bind="unit.unitNo" placeholder="例如：21" /></label>
+            <label class="field"><span>順序編號<em>同連續壁</em></span><input type="text" data-bind="unit.sequenceNo" inputmode="numeric" placeholder="例如：03" /></label>
             <label class="field"><span>鋼筋籠編號</span><input type="text" data-check-bind="rebarCage.cageNo" /></label>
             <label class="field span-two"><span>核定配筋圖號</span><input type="text" data-check-bind="rebarCage.drawingNo" placeholder="例如：S-21 Rev.C" /></label>
             </div>
@@ -260,6 +262,7 @@
           <li><strong>輸出</strong><span>按右下角 ⬆，選 PDF 或 JSON</span></li>
         </ol>
         <ul class="help-notes">
+          <li>右上角「計畫」可查看本工程施工計畫，可切換精簡／完整版並列印成 PDF</li>
           <li>草稿只存在這支手機的瀏覽器裡，「清空」會一併刪除</li>
           <li>印 PDF 前，在瀏覽器的列印設定關閉「頁首及頁尾」</li>
         </ul>

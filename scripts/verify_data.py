@@ -161,7 +161,7 @@ def verify_roundtrip(browser, html, tool, unit_path):
     second = page.evaluate("""(payload) => { clearAllData(); importJsonPayload(JSON.parse(JSON.stringify(payload))); return exportData(); }""", first)
     check(f"{tool}：JSON 匯出 → 清空 → 匯入 → 再匯出，內容一致", strip_volatile(first) == strip_volatile(second),
           json.dumps({k: (strip_volatile(first).get(k), strip_volatile(second).get(k)) for k in strip_volatile(first) if strip_volatile(first).get(k) != strip_volatile(second).get(k)}, ensure_ascii=False)[:600])
-    check(f"{tool}：schema 1.4，導溝／鋼筋籠不再各帶 unit_no", first["schema_version"] == "1.4" and "unit_no" not in first["guide_wall_review"] and "unit_no" not in first["rebar_cage_review"], first["schema_version"])
+    check(f"{tool}：schema 1.5，導溝／鋼筋籠不再各帶 unit_no", first["schema_version"] == "1.5" and "unit_no" not in first["guide_wall_review"] and "unit_no" not in first["rebar_cage_review"], first["schema_version"])
     unit_no = page.evaluate(f"() => {unit_path}")
     check(f"{tool}：範例單元編號 21 存在壁體", unit_no == "21", unit_no)
 
@@ -194,7 +194,8 @@ def verify_roundtrip(browser, html, tool, unit_path):
       localStorage.setItem(key, JSON.stringify(stored));
     }""")
     page.reload(wait_until="networkidle")
-    migrated = page.evaluate(f"() => ({{ unit: {unit_path}, guide: state.guideWall.unitNo, cage: state.rebarCage.unitNo, field: document.getElementById('rebar-cage-unit')?.value, parts: state.rebarCage.parts.length, mode: state.rebarCage.mode, rebars: 'rebars' in state.rebarCage }})")
+    bind = "unit" if "unit." in unit_path else "wall"
+    migrated = page.evaluate(f"() => ({{ unit: {unit_path}, guide: state.guideWall.unitNo, cage: state.rebarCage.unitNo, field: document.querySelector(\"#tool-rebar-cage input[data-bind='{bind}.unitNo']\")?.value, parts: state.rebarCage.parts.length, mode: state.rebarCage.mode, rebars: 'rebars' in state.rebarCage }})")
     check(f"{tool}：舊草稿的鋼筋籠 unitNo 搬到壁體並顯示在鋼筋籠表單", migrated["unit"] == "37" and migrated["guide"] is None and migrated["cage"] is None and "37" in (migrated["field"] or ""), migrated)
     check(f"{tool}：舊草稿的 rebars 丟棄、parts 重設 13 個、簡易模式", migrated["parts"] == 13 and migrated["mode"] == "simple" and not migrated["rebars"], migrated)
     page.context.close()
@@ -345,7 +346,7 @@ def verify_pdf_content(browser):
     text = pdf_text(page, "all")
     check("廠商版 PDF：不符合項目與實測值都印出", "不符合" in text and "沉泥 35 cm" in text, text[:200])
     check("廠商版 PDF：待確認項目印出", "待確認" in text)
-    check("廠商版 PDF：導溝頁標示「不分單元」，鋼筋籠頁帶壁體單元 21｜C21-U", "不分單元" in text and "21｜C21-U" in text)
+    check("廠商版 PDF：導溝頁表頭印軸線編號，鋼筋籠頁帶壁體單元 21｜C21-U", "X3～X7 南側" in text and "不分單元" not in text and "21｜C21-U" in text)
     check("廠商版 PDF：跨午夜時間以 30 時制印出", "24:" in text or "25:" in text, "找不到 24:xx")
     page.context.close()
 
@@ -357,7 +358,7 @@ def verify_pdf_content(browser):
     }""")
     text = pdf_text(page, "all")
     check("營造廠版 PDF：不符合項目、實測值與結論都印出", "不符合" in text and "28 mm" in text and "限期改善後複驗" in text, text[:200])
-    check("營造廠版 PDF：導溝「不分單元」、鋼筋籠帶單元 21", "不分單元" in text and "21｜C21-U／C21-L" in text)
+    check("營造廠版 PDF：導溝表頭印軸線編號、鋼筋籠帶單元 21", "X3～X7 南側" in text and "不分單元" not in text and "21｜C21-U／C21-L" in text)
     page.context.close()
 
     page = open_clean(browser, "diaphragm-wall-gc", "?example=1")
@@ -367,6 +368,91 @@ def verify_pdf_content(browser):
     page.evaluate("() => { state.rebarCage.mode = 'detailed'; renderAll?.(); }")
     detailed = pdf_text(page, "current")
     check("鋼筋籠 PDF 詳細表：區間、補強、同外側、支數都印出", all(s in detailed for s in ["頂部(m)", "GL-20", "#10@60+#10@30", "✔", "@200"]) and "依設計圖說配置" not in detailed, detailed[:400])
+    page.context.close()
+
+
+# ---------------------------------------------------------------- 施工計畫頁
+def open_plan(browser, query):
+    page = new_page(browser)
+    page.goto(f"{BASE}/plan{query}", wait_until="networkidle")
+    page.wait_for_function("typeof state === 'object' && typeof renderPlan === 'function'")
+    return page
+
+
+def verify_plan_page(browser):
+    for work in ("diaphragm-wall", "formwork", "rebar", "steel"):
+        page = open_plan(browser, f"?work={work}&from=template")
+        page.evaluate("() => { try { localStorage.clear(); } catch (e) {} }")
+        result = page.evaluate("""() => {
+          const count = () => document.querySelectorAll('#plan-article > .plan-section').length;
+          const tocCount = () => document.querySelectorAll('#toc-list > li').length;
+          state.version = 'brief'; renderArticle(); const brief = count(), briefToc = tocCount();
+          state.version = 'full'; renderArticle(); const full = count(), fullToc = tocCount();
+          const html = document.body.innerHTML;
+          return { brief, briefToc, full, fullToc, title: document.querySelector('#plan-title').textContent, placeholders: /Task [678] 補/.test(html) };
+        }""")
+        check(f"計畫頁 {work}：兩版都能彩現、目錄項目數＝章節數、精簡版章節少於完整版", result["brief"] == result["briefToc"] and result["full"] == result["fullToc"] and 0 < result["brief"] < result["full"] and result["title"], result)
+        check(f"計畫頁 {work}：沒有殘留的佔位文字", not result["placeholders"], result)
+        page.context.close()
+
+    page = open_clean(browser, "diaphragm-wall-gc")
+    page.evaluate("() => { state.overview.project = '帶入測試工程'; state.overview.contractor = '帶入營造'; draft.schedule(); }")
+    page.wait_for_timeout(700)
+    page.evaluate("() => { Object.keys(localStorage).filter(k => k.startsWith('project-portal.plan.')).forEach(k => localStorage.removeItem(k)); }")
+    page.goto(f"{BASE}/plan?work=diaphragm-wall&from=diaphragm-wall-gc", wait_until="networkidle")
+    page.wait_for_function("typeof renderPlan === 'function'")
+    result = page.evaluate("() => ({ project: state.cover.project, contractor: state.cover.contractor, back: document.querySelector('#back-link').getAttribute('href'), title: (setPrintDocumentTitle(planFileName()), document.title) })")
+    check("計畫頁：from 工具的工程名稱／廠商帶入封面，返回連結指回工具頁，PDF 檔名含版本", result["project"] == "帶入測試工程" and result["contractor"] == "帶入營造" and result["back"] == "./diaphragm-wall-gc" and "精簡版" in result["title"], result)
+    page.context.close()
+
+
+def verify_plan_links(browser):
+    for html, work, back in (("diaphragm-wall-gc", "diaphragm-wall", "diaphragm-wall-gc"), ("diaphragm-wall", "diaphragm-wall", "diaphragm-wall"), ("template", "formwork", "template"), ("rebar", "rebar", "rebar"), ("steel-structure", "steel", "steel-structure")):
+        page = open_clean(browser, html)
+        result = page.evaluate("() => ({ href: document.querySelector('.header-plan')?.getAttribute('href'), identity: !!document.querySelector('#record-identity') })")
+        check(f"{html}：計畫按鈕指向 plan?work={work}", result["href"] == f"./plan?work={work}&from={back}" and not result["identity"], result)
+        page.context.close()
+
+
+def verify_unit_sync(browser, html, unit_path):
+    page = open_clean(browser, html)
+    result = page.evaluate(f"""() => {{
+      showTool('rebarCage'); showTab('cage-meta');
+      const inputs = [...document.querySelectorAll('[data-bind$=".unitNo"]')];
+      const cage = inputs.find(i => i.closest('#tool-rebar-cage'));
+      const wall = inputs.find(i => !i.closest('#tool-rebar-cage'));
+      cage.value = '77'; cage.dispatchEvent(new Event('input', {{ bubbles: true }}));
+      const seq = [...document.querySelectorAll('[data-bind$=".sequenceNo"]')];
+      const wallSeq = seq.find(i => !i.closest('#tool-rebar-cage')); const cageSeq = seq.find(i => i.closest('#tool-rebar-cage'));
+      wallSeq.value = '05'; wallSeq.dispatchEvent(new Event('input', {{ bubbles: true }}));
+      return {{ state: {unit_path}, wallInput: wall.value, cageSeq: cageSeq.value }};
+    }}""")
+    check(f"{html}：鋼筋籠分頁改單元編號 → state 與連續壁分頁同步；連續壁改順序編號 → 鋼筋籠分頁同步", result == {"state": "77", "wallInput": "77", "cageSeq": "05"}, result)
+    page.evaluate("() => { state.guideWall.axisNo = 'X3～X7'; activeTool = 'guideWall'; renderAll?.(); }")
+    text = pdf_text(page, "current")
+    check(f"{html}：導溝 PDF 表頭與導溝資料印軸線編號", text.count("X3～X7") >= 2 and "不分單元" not in text, text[:200])
+    page.evaluate("() => { activeTool = 'rebarCage'; renderAll?.(); }")
+    text = pdf_text(page, "current")
+    check(f"{html}：鋼筋籠 PDF 印順序編號 05", "順序編號" in text and "05" in text, text[:200])
+    page.context.close()
+
+
+def verify_member_delete(browser, html):
+    page = open_clean(browser, html)
+    result = page.evaluate("""async () => {
+      const add = document.querySelector('#add-member'); add.click(); add.click();
+      const total = state.members.length;
+      const button = () => document.querySelector('[data-remove-member="0"]');
+      button().click(); const armed = button().classList.contains('is-armed'); const afterOne = state.members.length;
+      button().click(); const afterTwo = state.members.length;
+      button().click(); await new Promise(r => setTimeout(r, 4500)); const timedOut = !button().classList.contains('is-armed');
+      button().click(); document.body.click(); const disarmedByClickAway = !button().classList.contains('is-armed');
+      while (state.members.length) { const b = button(); b.click(); b.click(); }
+      window.print = () => {}; preparePrint('all');
+      return { total, armed, afterOne, afterTwo, timedOut, disarmedByClickAway, empty: state.members.length, printText: document.body.innerHTML.includes('尚無構件') };
+    }""")
+    check(f"{html}：點一下只 arm 不刪，再點才刪", result["armed"] and result["afterOne"] == result["total"] and result["afterTwo"] == result["total"] - 1, result)
+    check(f"{html}：arm 後 4 秒逾時或點到別處恢復；可刪到 0 筆且 PDF 印尚無構件", result["timedOut"] and result["disarmedByClickAway"] and result["empty"] == 0 and result["printText"], result)
     page.context.close()
 
 
@@ -384,6 +470,12 @@ try:
         verify_rebar_cage_ui(browser, "diaphragm-wall-gc")
         verify_rebar_cage_ui(browser, "diaphragm-wall")
         verify_pdf_content(browser)
+        verify_plan_page(browser)
+        verify_plan_links(browser)
+        verify_unit_sync(browser, "diaphragm-wall-gc", "state.unit.unitNo")
+        verify_unit_sync(browser, "diaphragm-wall", "state.wall.unitNo")
+        verify_member_delete(browser, "template")
+        verify_member_delete(browser, "rebar")
         browser.close()
 finally:
     server.terminate()

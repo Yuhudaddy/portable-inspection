@@ -1,0 +1,114 @@
+/* 施工計畫頁：白底文件感；顏色只用 glass.css 變數或極淡色。列印用瀏覽器自然分頁（不印頁碼）。 */
+body { margin: 0; background: var(--glass-page-bg); background-image: var(--glass-page-gradient); background-attachment: fixed; color: var(--glass-ink); font-family: var(--glass-font); }
+.app-header { position: sticky; top: 0; z-index: 5; padding: 10px 0 6px; background: linear-gradient(var(--glass-page-bg) 70%, transparent); pointer-events: none; }
+.header-nav { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: min(100% - 32px, 880px); margin: 0 auto; }
+.header-nav > * { pointer-events: auto; }
+.header-actions { display: flex; align-items: center; gap: 8px; }
+.header-back { color: var(--glass-ink); }
+.header-back svg { display: block; color: var(--glass-icon); }
+.version-pill { padding: 0; overflow: hidden; }
+.version-pill select { appearance: none; border: 0; min-height: 44px; padding: 0 30px 0 14px; background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23777' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 12px center; font: inherit; font-weight: 600; color: var(--glass-ink); cursor: pointer; }
+.header-print svg { display: block; color: var(--glass-icon); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.plan-shell { width: min(100% - 32px, 880px); margin: 0 auto 80px; }
+.plan-missing { padding: 40px 0; text-align: center; color: var(--glass-soft); }
+.plan-missing a { color: var(--glass-accent); }
+
+/* ---- 封面 ---- */
+.plan-cover { position: relative; margin: 8px 0 20px; padding: 40px 36px 28px; border-radius: var(--glass-radius-lg); background: var(--glass-card-bg); box-shadow: var(--glass-card-shadow); }
+.plan-logo { display: block; height: 36px; width: auto; }
+.plan-kicker { margin: 28px 0 6px; font-size: 0.6875rem; letter-spacing: 0.18em; color: var(--glass-faint); }
+.plan-cover h1 { margin: 0 0 32px; font-size: clamp(1.6rem, 4vw, 2.2rem); font-weight: 700; letter-spacing: 0.04em; line-height: 1.3; }
+.plan-cover-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 28px; margin: 0; }
+.plan-cover-grid > div { display: grid; gap: 4px; padding-top: 10px; border-top: 1px solid var(--glass-line); }
+.plan-cover-grid dt { font-size: 0.6875rem; color: var(--glass-label); }
+.plan-cover-grid dd { margin: 0; }
+.plan-cover-grid input, .inline-input { width: 100%; border: 0; border-bottom: 1px dashed var(--glass-dash); border-radius: 0; background: transparent; padding: 4px 0; font: inherit; font-size: 1rem; color: var(--glass-ink); }
+.plan-cover-grid input::placeholder { color: var(--glass-placeholder); }
+.plan-cover-grid input:focus, .inline-input:focus { outline: none; border-bottom-color: var(--glass-accent); }
+.inline-input { width: 3em; text-align: center; }
+.plan-cover-foot { display: flex; justify-content: space-between; align-items: baseline; margin: 36px 0 0; font-size: 0.8125rem; color: var(--glass-soft); }
+
+/* ---- 修訂紀錄與正文 ---- */
+.plan-block { margin: 0 0 20px; padding: 24px 36px 28px; border-radius: var(--glass-radius-lg); background: var(--glass-card-bg); box-shadow: var(--glass-card-shadow); }
+.plan-block h2, .plan-article h2 { margin: 0 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--glass-line); font-size: 1.125rem; font-weight: 700; }
+.plan-block h3, .plan-article h3 { margin: 22px 0 8px; font-size: 0.9375rem; font-weight: 700; }
+.plan-number { display: inline-block; min-width: 2.2em; margin-right: 4px; font-family: var(--glass-font-num); font-weight: 600; color: var(--glass-soft); }
+.plan-table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
+.plan-table th, .plan-table td { padding: 8px 10px; border-bottom: 1px solid var(--glass-line); text-align: left; vertical-align: top; line-height: 1.55; }
+.plan-table th { background: var(--glass-sunken); font-weight: 600; color: var(--glass-soft); white-space: nowrap; }
+.plan-table input { width: 100%; min-width: 4em; border: 0; background: transparent; padding: 0; font: inherit; color: var(--glass-ink); }
+.revisions-table th:first-child { width: 4em; }
+.plan-add { display: inline-flex; align-items: center; gap: 4px; margin-top: 10px; min-height: 36px; padding: 0 14px 0 10px; border: 0; border-radius: 999px; background: var(--glass-sunken); font: inherit; font-size: 0.8125rem; font-weight: 600; color: var(--glass-ink); cursor: pointer; }
+.plan-figure { margin: 12px 0 16px; }
+.plan-figure figcaption { margin-bottom: 6px; font-size: 0.8125rem; font-weight: 600; color: var(--glass-soft); }
+.plan-note { margin: 6px 0 0; font-size: 0.75rem; color: var(--glass-faint); }
+.plan-sources { margin: 0; padding-left: 1.4em; font-size: 0.8125rem; line-height: 1.7; color: var(--glass-soft); }
+.link-button { border: 0; background: transparent; padding: 0; font: inherit; font-size: 0.75rem; color: var(--glass-danger-ink); cursor: pointer; }
+
+.plan-body-wrap { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 20px; align-items: start; }
+.plan-body-wrap > * { min-width: 0; }
+.table-scroll, .plan-figure { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.plan-toc { position: sticky; top: 66px; }
+.plan-toc-details { padding: 16px 18px; border-radius: var(--glass-radius-md); background: var(--glass-card-bg); box-shadow: var(--glass-card-shadow); }
+.plan-toc-details summary { font-size: 0.8125rem; font-weight: 700; cursor: pointer; }
+.plan-toc ol { margin: 10px 0 0; padding: 0; list-style: none; }
+.plan-toc ol ol { margin: 2px 0 6px 2.4em; }
+.plan-toc a { display: block; padding: 4px 0; font-size: 0.8125rem; color: var(--glass-soft); text-decoration: none; }
+.plan-toc a:hover { color: var(--glass-ink); }
+.plan-toc .plan-number { min-width: 2em; }
+.plan-article { padding: 24px 36px 32px; border-radius: var(--glass-radius-lg); background: var(--glass-card-bg); box-shadow: var(--glass-card-shadow); font-size: 0.9375rem; line-height: 1.75; }
+.plan-section + .plan-section { margin-top: 28px; }
+.plan-article p { margin: 0 0 10px; }
+.plan-article ul, .plan-article ol { margin: 0 0 12px; padding-left: 1.5em; }
+.plan-article li { margin: 2px 0; }
+.plan-steps { counter-reset: step; list-style: none; padding-left: 0 !important; }
+.plan-steps li { position: relative; padding: 6px 0 6px 2.4em; border-bottom: 1px dashed var(--glass-line); }
+.plan-steps li::before { counter-increment: step; content: counter(step); position: absolute; left: 0; top: 7px; width: 1.7em; height: 1.7em; border-radius: 50%; background: var(--glass-sunken); font-family: var(--glass-font-num); font-size: 0.75rem; font-weight: 700; line-height: 1.7em; text-align: center; color: var(--glass-soft); }
+.plan-callout { margin: 10px 0 14px; padding: 12px 16px; border-left: 2px solid var(--glass-dash); border-radius: 0 var(--glass-radius-sm) var(--glass-radius-sm) 0; background: oklch(97% 0.008 250); }
+.plan-callout strong { display: block; margin-bottom: 4px; font-size: 0.8125rem; }
+.plan-callout p { margin: 0; font-size: 0.875rem; }
+
+@media (max-width: 720px) {
+  .plan-body-wrap { grid-template-columns: 1fr; }
+  .plan-toc { position: static; }
+  .plan-toc-details { padding: 12px 16px; }
+  .plan-toc-details:not([open]) summary::after { content: "　點開查看"; color: var(--glass-faint); font-weight: 400; }
+  .plan-cover, .plan-block, .plan-article { padding-left: 20px; padding-right: 20px; }
+  .plan-cover-grid { grid-template-columns: 1fr; }
+  .plan-table { min-width: 480px; }
+  .revisions-table { min-width: 420px; }
+  .header-print { padding-right: 10px; }
+  .header-print svg + * { display: none; }
+}
+
+@media print {
+  @page { size: A4 portrait; margin: 18mm 16mm; }
+  body { background: #fff; color: #000; }
+  .app-header, .plan-toc-details summary, .no-print, #add-revision { display: none !important; }
+  .plan-shell { width: auto; margin: 0; }
+  .plan-cover, .plan-block, .plan-article, .plan-toc-details { padding: 0; border-radius: 0; background: transparent; box-shadow: none; }
+  .plan-cover { min-height: 240mm; display: flex; flex-direction: column; margin: 0; break-after: page; }
+  .plan-logo { align-self: flex-start; height: 14mm; }
+  .plan-cover-grid input::placeholder, .plan-table input::placeholder, .inline-input::placeholder { color: transparent; }
+  input[type="date"]::-webkit-calendar-picker-indicator { display: none; }
+  .plan-cover-foot { margin-top: auto; }
+  .plan-cover-grid input, .inline-input, .plan-table input { border: 0 !important; }
+  .plan-block { break-after: page; }
+  .plan-body-wrap { display: block; }
+  .plan-toc { position: static; break-after: page; }
+  .plan-toc ol ol { margin-left: 2.4em; }
+  .plan-toc a { padding: 3px 0; font-size: 10.5pt; color: #000; }
+  .plan-toc-details::before { content: "目錄"; display: block; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #999; font-size: 13pt; font-weight: 700; }
+  .plan-article { font-size: 10.5pt; line-height: 1.65; }
+  .plan-article h2 { font-size: 13pt; break-after: avoid; }
+  .plan-article h3 { font-size: 11pt; break-after: avoid; }
+  .plan-table { font-size: 9.5pt; min-width: 0; }
+  .table-scroll, .plan-figure { overflow: visible; }
+  .plan-table th, .plan-table td { border-bottom: 0.5pt solid #999; }
+  .plan-table th { background: #f2f2f2; }
+  thead { display: table-header-group; }
+  tr, .plan-callout, .plan-figure figcaption { break-inside: avoid; }
+  .plan-callout { background: #f6f6f6; border-left-color: #999; }
+}

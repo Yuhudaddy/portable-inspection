@@ -153,6 +153,32 @@ function toleranceFor(member, id, design) {
   return { lower: -20, upper: 25, label: "-20～+25 mm" };
 }
 
+
+// 二階段刪除：第一下只 arm，4 秒內再點才刪；點到別處或逾時就解除
+const deleteButtonHtml = index => `<button class="two-step-delete" type="button" data-remove-member="${index}" aria-label="刪除構件"><span class="two-step-x" aria-hidden="true">×</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 10v6M14 10v6"/></svg></button>`;
+let armedDelete = null;
+function disarmDelete() {
+  if (!armedDelete) return;
+  clearTimeout(armedDelete.timer);
+  armedDelete.button.classList.remove("is-armed");
+  armedDelete.button.setAttribute("aria-label", "刪除構件");
+  armedDelete = null;
+}
+function handleDeleteClick(button) {
+  if (armedDelete?.button === button) {
+    const index = Number(button.dataset.removeMember);
+    disarmDelete();
+    state.members.splice(index, 1);
+    state.activeMember = Math.min(Math.max(0, index - 1), Math.max(0, state.members.length - 1));
+    renderAll();
+    return;
+  }
+  disarmDelete();
+  button.classList.add("is-armed");
+  button.setAttribute("aria-label", "再點一次確認刪除");
+  armedDelete = { button, timer: setTimeout(disarmDelete, 4000) };
+}
+
 function activeMember() { return state.members[state.activeMember] || null; }
 
 function syncDateDisplay(input) {
@@ -164,11 +190,6 @@ function syncDateDisplay(input) {
 
 function syncDateDisplays() { $$('input[type="date"]').forEach(syncDateDisplay); }
 
-function updateIdentity() {
-  const member = activeMember();
-  const identity = member && (member.id || member.type) ? [state.overview.floor, member.type, member.id].filter(Boolean).join("｜") : "尚未指定構件";
-  $("#record-identity").textContent = identity;
-}
 
 function bindGeneralInputs() {
   $$('[data-bind]').forEach(input => {
@@ -184,7 +205,7 @@ function renderMembers() {
   $("#member-list").innerHTML = state.members.length ? state.members.map((member, index) => {
     ensureMember(member);
     return `<article class="member-card" data-member-card="${index}">
-      <div class="member-card-header"><strong>構件 ${index + 1}</strong>${state.members.length > 1 ? `<button type="button" data-remove-member="${index}">移除</button>` : ""}</div>
+      <div class="member-card-header"><strong>構件 ${index + 1}</strong>${deleteButtonHtml(index)}</div>
       <div class="form-grid">
         <label class="field"><span>構件類型</span><select data-member-field="type" data-member-index="${index}">${["柱", "牆", "梁", "板", "樓梯", "其他"].map(type => `<option value="${type}" ${member.type === type ? "selected" : ""}>${type}</option>`).join("")}</select></label>
         <label class="field"><span>構件編號</span><input type="text" data-member-field="id" data-member-index="${index}" value="${esc(member.id)}" placeholder="例如：C1-03" /></label>
@@ -197,7 +218,6 @@ function renderMembers() {
     </article>`;
   }).join("") : `<div class="empty-state">尚未新增構件，請按右上角「新增構件」。</div>`;
   renderMemberSelectors();
-  updateIdentity();
 }
 
 function renderMemberSelectors() {
@@ -337,7 +357,7 @@ function renderPrint() {
   const overviewMeta = [["工程名稱", state.overview.project], ["施工廠商", state.overview.contractor], ["施工日期", state.overview.date], ["檢查日期", state.overview.inspectionDate], ["填表人", state.overview.reviewer], ["檢查樓層", state.overview.floor], ["施工區域／軸線", state.overview.area], ["施工圖／版次", state.overview.drawing], ["檢查階段", state.overview.stage]];
   $("#print-template-overview").innerHTML = `${printHeader("模板工程施工複核表", "01")}
     <section class="print-section"><h2>01｜工程概要</h2><div class="print-meta-grid three">${overviewMeta.map(([label, value]) => `<div><span>${label}</span><strong>${printValue(value)}</strong></div>`).join("")}</div></section>
-    <section class="print-section"><h2>02｜構件資訊</h2><table class="print-table"><thead><tr><th>項次</th><th>類型</th><th>構件編號</th><th>軸線／位置</th><th>設計寬度<br />mm</th><th>設計高度／厚度<br />mm</th><th>設計高程<br />mm</th><th>表面類型</th></tr></thead><tbody>${state.members.map((m, i) => `<tr><td>${i + 1}</td><td>${printValue(m.type)}</td><td>${printValue(m.id)}</td><td class="text-left">${printValue(m.grid)}</td><td>${printValue(m.width)}</td><td>${printValue(m.height)}</td><td>${printValue(m.elevation)}</td><td>${printValue(m.surface)}</td></tr>`).join("")}</tbody></table></section>${printFooter()}`;
+    <section class="print-section"><h2>02｜構件資訊</h2><table class="print-table"><thead><tr><th>項次</th><th>類型</th><th>構件編號</th><th>軸線／位置</th><th>設計寬度<br />mm</th><th>設計高度／厚度<br />mm</th><th>設計高程<br />mm</th><th>表面類型</th></tr></thead><tbody>${state.members.length ? state.members.map((m, i) => `<tr><td>${i + 1}</td><td>${printValue(m.type)}</td><td>${printValue(m.id)}</td><td class="text-left">${printValue(m.grid)}</td><td>${printValue(m.width)}</td><td>${printValue(m.height)}</td><td>${printValue(m.elevation)}</td><td>${printValue(m.surface)}</td></tr>`).join("") : `<tr><td colspan="5" class="print-empty">尚無構件</td></tr>`}</tbody></table></section>${printFooter()}`;
 
   const installRows = state.members.flatMap((member, memberIndex) => {
     ensureMember(member);
@@ -399,17 +419,16 @@ function loadExample() {
 
 function handleEvent(event) {
   const target = event.target;
-  if (target.matches("[data-bind]")) { const [group, key] = target.dataset.bind.split("."); state[group][key] = target.value; if (key === "floor") updateIdentity(); }
+  if (target.matches("[data-bind]")) { const [group, key] = target.dataset.bind.split("."); state[group][key] = target.value; }
   if (target.matches("[data-release-bind]")) state.release[target.dataset.releaseBind] = target.value;
-  if (target.matches("[data-member-field]")) { setMemberField(Number(target.dataset.memberIndex), target.dataset.memberField, target.value); if (target.dataset.memberField === "type") { renderMembers(); renderInstall(); renderMeasurements(); } else { updateIdentity(); } }
+  if (target.matches("[data-member-field]")) { setMemberField(Number(target.dataset.memberIndex), target.dataset.memberField, target.value); if (target.dataset.memberField === "type") { renderMembers(); renderInstall(); renderMeasurements(); } else { } }
   if (target.matches("[data-check-actual]")) { updateCheck(target.dataset.checkCollection, target.dataset.checkId, "actual", target.value); if (event.type === "change") renderInstall(); }
   if (target.matches("[data-check-result]")) { updateCheck(target.dataset.checkResult, target.dataset.checkId, "result", target.value); renderInstall(); }
   if (target.matches("[data-release-actual]")) { updateCheck("release", target.dataset.releaseActual, "actual", target.value); if (event.type === "change") renderRelease(); }
   if (target.matches("[data-release-result]")) { updateCheck("release", target.dataset.releaseResult, "result", target.value); renderRelease(); }
   if (target.matches("[data-measure-field]")) { const member = activeMember(); if (member) { member.measures[target.dataset.measureId] ||= { design: "", actual: "" }; member.measures[target.dataset.measureId][target.dataset.measureField] = target.value; if (event.type === "change") renderMeasurements(); } }
   if (target.matches("[data-tab]")) setTab(target.dataset.tab);
-  if (target.matches("#active-member, #measure-member")) { state.activeMember = Number(target.value) || 0; renderInstall(); renderMeasurements(); updateIdentity(); renderMemberSelectors(); }
-  if (target.matches("[data-remove-member]")) { const index = Number(target.dataset.removeMember); state.members.splice(index, 1); state.activeMember = Math.min(state.activeMember, Math.max(0, state.members.length - 1)); renderAll(); }
+  if (target.matches("#active-member, #measure-member")) { state.activeMember = Number(target.value) || 0; renderInstall(); renderMeasurements(); renderMemberSelectors(); }
   if (target.matches("[data-export]")) { const option = target.dataset.export; if (option === "current-pdf") exportPdf("current"); if (option === "all-pdf") exportPdf("all"); if (option === "json") { fileDownload(`template-review-${today}.json`, JSON.stringify(exportObject(), null, 2), "application/json;charset=utf-8"); $("#export-dialog").close(); } if (option === "markdown") { fileDownload(`template-review-${today}.md`, markdownExport(), "text/markdown;charset=utf-8"); $("#export-dialog").close(); } }
   if (target.matches("[data-close-dialog]")) target.closest("dialog")?.close();
 }
@@ -418,7 +437,10 @@ document.addEventListener("input", handleEvent);
 document.addEventListener("change", handleEvent);
 draft.watch();
 document.addEventListener("click", event => {
-  const target = event.target.closest("button, [data-remove-member], [data-export], [data-close-dialog]");
+  const removeButton = event.target.closest("[data-remove-member]");
+  if (removeButton) { handleDeleteClick(removeButton); return; }
+  disarmDelete();
+  const target = event.target.closest("button, [data-export], [data-close-dialog]");
   if (!target) return;
   if (target.matches("[data-tab]")) setTab(target.dataset.tab);
   if (target.matches("[data-export]")) {

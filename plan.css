@@ -3,6 +3,9 @@ body { margin: 0; background: var(--glass-page-bg); background-image: var(--glas
 .app-header { position: sticky; top: 0; z-index: 5; padding: 10px 0 6px; background: linear-gradient(var(--glass-page-bg) 70%, transparent); pointer-events: none; }
 .header-nav { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: min(100% - 32px, 880px); margin: 0 auto; }
 .header-nav > * { pointer-events: auto; }
+@media (min-width: 900px) {
+  .header-nav { width: calc(100% - 32px); }
+}
 .header-actions { display: flex; align-items: center; gap: 8px; }
 .header-back { color: var(--glass-ink); }
 .header-back svg { display: block; color: var(--glass-icon); }
@@ -11,12 +14,12 @@ body { margin: 0; background: var(--glass-page-bg); background-image: var(--glas
 .header-print svg { display: block; color: var(--glass-icon); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-.plan-shell { width: min(100% - 32px, 880px); margin: 0 auto 80px; }
+.plan-shell { width: min(100% - 32px, 1320px); margin: 0 auto 80px; }
 .plan-missing { padding: 40px 0; text-align: center; color: var(--glass-soft); }
 .plan-missing a { color: var(--glass-accent); }
 
 /* ---- 封面 ---- */
-.plan-cover { position: relative; margin: 8px 0 20px; padding: 40px 36px 28px; border-radius: var(--glass-radius-lg); background: var(--glass-card-bg); box-shadow: var(--glass-card-shadow); }
+.plan-cover { position: relative; margin: 8px 0 20px; padding: 44px 44px 32px; border-radius: var(--glass-radius-lg); background: var(--glass-card-bg); box-shadow: var(--glass-card-shadow); }
 .plan-logo { display: block; height: 36px; width: auto; }
 .plan-kicker { margin: 28px 0 6px; font-size: 0.6875rem; letter-spacing: 0.18em; color: var(--glass-faint); }
 .plan-cover h1 { margin: 0 0 32px; font-size: clamp(1.6rem, 4vw, 2.2rem); font-weight: 700; letter-spacing: 0.04em; line-height: 1.3; }
@@ -31,11 +34,11 @@ body { margin: 0; background: var(--glass-page-bg); background-image: var(--glas
 .plan-cover-foot { display: flex; justify-content: space-between; align-items: baseline; margin: 36px 0 0; font-size: 0.8125rem; color: var(--glass-soft); }
 
 /* ---- 修訂紀錄與正文 ---- */
-.plan-block { margin: 0 0 20px; padding: 24px 36px 28px; border-radius: var(--glass-radius-lg); background: var(--glass-card-bg); box-shadow: var(--glass-card-shadow); }
+.plan-block { margin: 0 0 20px; padding: 28px 44px 32px; border-radius: var(--glass-radius-lg); background: var(--glass-card-bg); box-shadow: var(--glass-card-shadow); }
 .plan-block h2, .plan-article h2 { margin: 0 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--glass-line); font-size: 1.125rem; font-weight: 700; }
 .plan-block h3, .plan-article h3 { margin: 22px 0 8px; font-size: 0.9375rem; font-weight: 700; }
 .plan-number { display: inline-block; min-width: 2.2em; margin-right: 4px; font-family: var(--glass-font-num); font-weight: 600; color: var(--glass-soft); }
-.plan-table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
+.plan-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
 .plan-table th, .plan-table td { padding: 8px 10px; border-bottom: 1px solid var(--glass-line); text-align: left; vertical-align: top; line-height: 1.55; }
 .plan-table th { background: var(--glass-sunken); font-weight: 600; color: var(--glass-soft); white-space: nowrap; }
 .plan-table input { width: 100%; min-width: 4em; border: 0; background: transparent; padding: 0; font: inherit; color: var(--glass-ink); }
@@ -47,7 +50,7 @@ body { margin: 0; background: var(--glass-page-bg); background-image: var(--glas
 .plan-sources { margin: 0; padding-left: 1.4em; font-size: 0.8125rem; line-height: 1.7; color: var(--glass-soft); }
 .link-button { border: 0; background: transparent; padding: 0; font: inherit; font-size: 0.75rem; color: var(--glass-danger-ink); cursor: pointer; }
 
-.plan-body-wrap { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 20px; align-items: start; }
+.plan-body-wrap { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 24px; align-items: start; }
 .plan-body-wrap > * { min-width: 0; }
 .table-scroll, .plan-figure { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .plan-toc { position: sticky; top: 66px; }
@@ -55,10 +58,10 @@ body { margin: 0; background: var(--glass-page-bg); background-image: var(--glas
 .plan-toc-details summary { font-size: 0.8125rem; font-weight: 700; cursor: pointer; }
 .plan-toc ol { margin: 10px 0 0; padding: 0; list-style: none; }
 .plan-toc ol ol { margin: 2px 0 6px 2.4em; }
-.plan-toc a { display: block; padding: 4px 0; font-size: 0.8125rem; color: var(--glass-soft); text-decoration: none; }
+.plan-toc a { display: block; padding: 5px 0; font-size: 0.875rem; color: var(--glass-soft); text-decoration: none; }
 .plan-toc a:hover { color: var(--glass-ink); }
 .plan-toc .plan-number { min-width: 2em; }
-.plan-article { padding: 24px 36px 32px; border-radius: var(--glass-radius-lg); background: var(--glass-card-bg); box-shadow: var(--glass-card-shadow); font-size: 0.9375rem; line-height: 1.75; }
+.plan-article { padding: 28px 44px 36px; border-radius: var(--glass-radius-lg); background: var(--glass-card-bg); box-shadow: var(--glass-card-shadow); font-size: 1rem; line-height: 1.8; }
 .plan-section + .plan-section { margin-top: 28px; }
 .plan-article p { margin: 0 0 10px; }
 .plan-article ul, .plan-article ol { margin: 0 0 12px; padding-left: 1.5em; }

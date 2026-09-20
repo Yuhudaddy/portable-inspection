@@ -21,6 +21,11 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .app-header { position: sticky; top: 0; z-index: 200; padding-top: max(8px, env(safe-area-inset-top)); pointer-events: none; }
 .header-nav { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: min(100% - 32px, 880px); margin: 0 auto; }
 .header-nav > * { pointer-events: auto; }
+
+/* 桌機：header 的「‹ 工具」與「計畫」貼到視窗兩角，內容欄寬不變 */
+@media (min-width: 900px) {
+  .header-nav { width: calc(100% - 32px); max-width: none; }
+}
 .header-back { color: var(--glass-ink); }
 .header-back svg { display: block; color: var(--glass-icon); }
 .header-plan { gap: 6px; padding-right: 14px; color: var(--glass-ink); }

@@ -57,6 +57,11 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   margin: 0 auto;
 }
 .header-nav > * { pointer-events: auto; }
+
+/* 桌機：header 的「‹ 工具」與「計畫」貼到視窗兩角，內容欄寬不變 */
+@media (min-width: 900px) {
+  .header-nav { width: calc(100% - 32px); max-width: none; }
+}
 .header-back { color: var(--glass-ink); }
 .header-back svg { display: block; color: var(--glass-icon); }
 .header-plan { gap: 6px; padding-right: 14px; color: var(--glass-ink); }

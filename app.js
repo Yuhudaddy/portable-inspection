@@ -52,15 +52,15 @@ const REBAR_CAGE_CHECKS = [
 
 const QUALITY_CHECKS = [
   ["連續壁單元位置、刀法順序確認", "單元位置、順序與核定圖說相符", "例如：位置及順序符合"],
-  ["底部沉渣及泥屑清除確認", "底部沉泥小於 20 cm", "例如：沉泥 12 cm"],
+  ["底部沉渣及泥屑清除確認", "依本公司標準值（預設 15 cm 以內）", "例如：沉泥 12 cm"],
   ["端板接頭清洗（公及公母單元時）", "以大小鋼刷確實清洗", "填寫清洗狀況"],
   ["穩定液新鮮液之貯存量是否充裕", "依照施工計畫", "填寫液量或確認說明"],
-  ["槽溝穩定液面高度控制", "鋪面下 50 cm～100 cm 以內", "例如：鋪面下 70 cm"],
+  ["槽溝穩定液面高度控制", "高於地下水位 1.0 m 以上，且不低於導溝頂下 80 cm", "例如：導溝頂下 60 cm，高於水位 1.5 m"],
   ["廢土清運是否正常", "不致影響挖掘進度", "填寫異常說明"],
   ["施工動線及運土車輛之安排", "不致延遲澆置時間", "填寫異常說明"],
   ["壁體坍塌處是否需作補強", "若需補強，說明方式", "填寫補強方式或無需補強"],
   ["帆布是否破損（母單元時）", "單元起吊前及下放時檢查", "填寫檢查狀況"],
-  ["開挖深度與特密管長度之配合", "管底與槽溝底部距離 ≤30 cm", "填寫距離"],
+  ["開挖深度與特密管長度之配合", "初灌管底離槽溝底 30～50 cm", "填寫距離"],
   ["特密管之檢查（變形、破裂、堵塞、水密性）", "下放前及過程中目視檢查", "填寫檢查狀況"],
   ["特密管插入位置、深度、組合記錄", "位置符合圖面；長度配合挖掘深度", "填寫左／中／右位置與管長"],
   ["放置橡皮碗", "澆置前放置於漏斗內", "填寫是／否"],
@@ -75,13 +75,13 @@ const QUALITY_CHECKS = [
 // 介面不顯示外部規範名稱；預設值可直接作為公司內部起始值，
 // 並保留下拉選單，讓公司日後能依核定施工計畫調整。
 const QUALITY_STANDARD_CONFIG = [
-  { key: "slump", label: "混凝土坍度", unit: "cm", options: Array.from({ length: 10 }, (_, i) => String(15 + i)), default: "18" },
+  { key: "slump", label: "混凝土坍度", unit: "cm", options: Array.from({ length: 10 }, (_, i) => String(15 + i)), default: "20" },
   { key: "slumpTolerance", label: "坍度允許誤差", unit: "cm", options: ["0", "1", "2", "3", "4", "5"], default: "2" },
-  { key: "sediment", label: "沉泥厚度上限", unit: "cm", options: ["5", "10", "15", "20", "25"], default: "10" },
+  { key: "sediment", label: "沉泥厚度上限", unit: "cm", options: ["5", "10", "15", "20", "25"], default: "15" },
   { key: "sandContent", label: "含砂量上限", unit: "%", options: ["0.5", "1", "1.5", "2"], default: "1" },
   { key: "settlingTime", label: "靜置時間下限", unit: "hr", options: ["0.5", "1", "1.5", "2"], default: "0.5" },
   { key: "verticalDenominator", label: "垂直精度（10／D）", unit: "1/n", options: ["100", "200", "300", "400", "500", "10/D"], default: "300" },
-  { key: "tremieClearance", label: "特密管端距上限", unit: "cm", options: ["20", "30", "40", "50"], default: "20" },
+  { key: "tremieClearance", label: "特密管端距上限", unit: "cm", options: ["20", "30", "40", "50"], default: "50" },
   { key: "embedmentMale", label: "公單元埋入深度下限", unit: "m", options: ["0.5", "1.0", "1.5", "2.0"], default: "1.5" },
   { key: "embedmentFemale", label: "母單元埋入深度下限", unit: "m", options: ["0.5", "1.0", "1.5", "2.0"], default: "1.5" },
   { key: "embedmentBoth", label: "公母單元埋入深度下限", unit: "m", options: ["0.5", "1.0", "1.5", "2.0"], default: "1.5" },
@@ -90,10 +90,10 @@ const QUALITY_STANDARD_CONFIG = [
   { key: "chloride", label: "氯離子含量上限", unit: "kg/m³", options: ["0.15", "0.30"], default: "0.15" },
   { key: "centerlineTolerance", label: "導溝中心線偏差上限", unit: "cm", options: ["1", "2", "3", "5"], default: "2" },
   { key: "wallThicknessTolerance", label: "壁厚偏差上限", unit: "cm", options: ["3", "5", "7.5", "10"], default: "5" },
-  { key: "cageLongitudinalTolerance", label: "鋼筋籠縱向偏差上限", unit: "cm", options: ["±5", "±7.5", "±10"], default: "±7.5" },
+  { key: "cageLongitudinalTolerance", label: "鋼筋籠縱向偏差上限", unit: "cm", options: ["±2.5", "±5", "±7.5", "±10"], default: "±2.5" },
   { key: "cageTopTolerance", label: "鋼筋籠頂高程偏差上限", unit: "cm", options: ["±3", "±5", "±7.5", "±10"], default: "±5" },
-  { key: "cover", label: "保護層厚度下限", unit: "cm", options: ["5", "7.5", "10", "12.5"], default: "7.5" },
-  { key: "volumeDifference", label: "實際／設計數量差異上限", unit: "%", options: ["5", "10", "15", "20"], default: "10" }
+  { key: "cover", label: "保護層厚度下限", unit: "cm", options: ["5", "7.5", "10", "12.5"], default: "10" },
+  { key: "volumeDifference", label: "實際／設計數量差異上限", unit: "%", options: ["5", "10", "15", "20"], default: "5" }
 ];
 
 const QUALITY_STANDARD_DEFAULTS = Object.fromEntries(QUALITY_STANDARD_CONFIG.map(item => [item.key, item.default]));

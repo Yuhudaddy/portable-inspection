@@ -38,24 +38,24 @@ const STANDARD_CONFIG = [
   { key: "guideClearMax", label: "導溝淨寬加大上限", unit: "cm", options: ["4", "5", "6", "8"], default: "5" },
   { key: "verticalDenominator", label: "槽壁垂直精度（10／D）", unit: "1/n", options: ["100", "200", "300", "400", "500", "10/D"], default: "300" },
   { key: "deflection", label: "最大偏擺位移上限", unit: "cm", options: ["5", "10", "15", "20"], default: "10" },
-  { key: "sediment", label: "孔底沉泥厚度上限", unit: "cm", options: ["5", "10", "15", "20"], default: "10" },
+  { key: "sediment", label: "孔底沉泥厚度上限", unit: "cm", options: ["5", "10", "15", "20"], default: "15" },
   { key: "slurryDensityMin", label: "穩定液比重下限", unit: "－", options: ["0.95", "1.00", "1.05"], default: "1.00" },
   { key: "slurryDensityMax", label: "穩定液比重上限", unit: "－", options: ["1.05", "1.10", "1.15", "1.20"], default: "1.10" },
   { key: "sandContentBentonite", label: "含砂量上限（皂土系）", unit: "%", options: ["1", "2", "3", "4"], default: "3" },
   { key: "sandContentPolymer", label: "含砂量上限（高分子系）", unit: "%", options: ["0.5", "1", "1.5", "2"], default: "1" },
-  { key: "rollerSpacing", label: "保護層護耳縱向間距上限", unit: "m", options: ["3", "4", "5"], default: "4" },
-  { key: "cover", label: "土側保護層厚度下限", unit: "cm", options: ["5", "7.5", "10", "12.5"], default: "7.5" },
+  { key: "rollerSpacing", label: "保護層護耳縱向間距上限", unit: "m", options: ["3", "4", "5"], default: "3" },
+  { key: "cover", label: "土側保護層厚度下限", unit: "cm", options: ["5", "7.5", "10", "12.5"], default: "10" },
   { key: "cageTopTolerance", label: "籠頂高程偏差上限", unit: "±cm", options: ["3", "5", "7.5", "10"], default: "5" },
   { key: "slump", label: "混凝土坍度", unit: "cm", options: Array.from({ length: 10 }, (_, i) => String(15 + i)), default: "20" },
   { key: "slumpTolerance", label: "坍度允許誤差", unit: "±cm", options: ["1", "2", "3", "4"], default: "2" },
   { key: "chloride", label: "氯離子含量上限", unit: "kg/m³", options: ["0.15", "0.30"], default: "0.15" },
   { key: "specimenSets", label: "試體取樣組數下限", unit: "組", options: ["1", "2", "3"], default: "1" },
-  { key: "tremieInitialMin", label: "初灌管底離底下限", unit: "cm", options: ["5", "10", "15"], default: "10" },
-  { key: "tremieInitialMax", label: "初灌管底離底上限", unit: "cm", options: ["20", "25", "30"], default: "20" },
+  { key: "tremieInitialMin", label: "初灌管底離底下限", unit: "cm", options: ["5", "10", "15", "30"], default: "30" },
+  { key: "tremieInitialMax", label: "初灌管底離底上限", unit: "cm", options: ["20", "25", "30", "50"], default: "50" },
   { key: "tremieEmbedBentonite", label: "管底埋深下限（皂土系）", unit: "m", options: ["1.5", "2.0", "2.5"], default: "2.0" },
   { key: "tremieEmbedPolymer", label: "管底埋深下限（高分子系）", unit: "m", options: ["1.0", "1.5", "2.0"], default: "1.5" },
-  { key: "overbreakMin", label: "合理超方率下限", unit: "%", options: ["0", "3", "5"], default: "5" },
-  { key: "overbreakMax", label: "合理超方率上限", unit: "%", options: ["10", "15", "20"], default: "15" },
+  { key: "overbreakMin", label: "合理超方率下限", unit: "%", options: ["-5", "0", "3", "5"], default: "-5" },
+  { key: "overbreakMax", label: "合理超方率上限", unit: "%", options: ["5", "10", "15", "20"], default: "5" },
   { key: "overpourMin", label: "壁頂超打高度下限", unit: "m", options: ["0.5", "0.8", "1.0"], default: "0.5" }
 ];
 
@@ -189,16 +189,17 @@ const HOLD_POINTS = [
         key: "finalDepth", item: "槽溝最終實測深度", mode: "number", unit: "GL, m", placeholder: "例如：-39.80",
         standard: value => {
           const design = number(state.unit.designDepth);
-          if (design === null) return "以測錘實測槽溝底最頂部深度，須達設計深度";
+          if (design === null) return "以測錘實測槽溝底最頂部深度，須達設計深度且超挖不超過 50 cm";
           const base = `設計 GL ${fixed(design)} m`;
-          if (value === null) return `${base}；以測錘實測並簽認`;
+          if (value === null) return `${base}；以測錘實測並簽認，超挖不超過 0.5 m`;
           return `${base}；實測差異 ${signed(Math.abs(value) - Math.abs(design))} m`;
         },
         evaluate: value => {
           const design = number(state.unit.designDepth);
           if (value === null || design === null) return null;
           const short = Math.abs(design) - Math.abs(value);
-          return short > 0 ? `實測深度較設計淺 ${short.toFixed(2)} m，未達設計深度` : null;
+          if (short > 0) return `實測深度較設計淺 ${short.toFixed(2)} m，未達設計深度`;
+          return short < -0.5 ? `超挖 ${(-short).toFixed(2)} m，超過 0.5 m 上限` : null;
         }
       },
       {
@@ -346,9 +347,9 @@ const HOLD_POINTS = [
       },
       {
         key: "specimenSets", item: "抗壓強度試體取樣組數", mode: "number", unit: "組", placeholder: "例如：1",
-        standard: () => `每澆置 100 m³ 至少 ${state.standards.specimenSets} 組（每組 5 顆或依合約），送第三方實驗室`,
+        standard: () => `每單元至少 ${state.standards.specimenSets} 組（7、28 天齡期），每增 100 m³ 加 1 組（每組 5 顆或依合約），送第三方實驗室`,
         evaluate: value => value !== null && S("specimenSets") !== null && value < S("specimenSets")
-          ? `取樣 ${value} 組，少於每澆置 100 m³ ${state.standards.specimenSets} 組`
+          ? `取樣 ${value} 組，少於每單元 ${state.standards.specimenSets} 組`
           : null
       },
       {
@@ -390,7 +391,8 @@ const HOLD_POINTS = [
         key: "actualVolume", item: "實際澆置總方量", mode: "number", unit: "m³", placeholder: "例如：96.20",
         standard: value => {
           const designVolume = calculatedDesignVolume();
-          const range = `合理超方率 +${state.standards.overbreakMin}% ～ +${state.standards.overbreakMax}%`;
+          const rate = value => `${Number(value) >= 0 ? "+" : ""}${value}%`;
+          const range = `合理超方率 ${rate(state.standards.overbreakMin)} ～ ${rate(state.standards.overbreakMax)}`;
           if (designVolume === null) return `${range}（請先於設計基準填入壁厚、長度與高程）`;
           const base = `設計 ${fixed(designVolume)} m³；${range}`;
           if (value === null) return base;
@@ -410,8 +412,8 @@ const HOLD_POINTS = [
         standard: value => {
           const design = number(state.unit.topElevation);
           const limit = state.standards.overpourMin;
-          if (design === null) return `超打高度 ≥ ${limit} m，以利打除劣質層`;
-          const base = `設計頂 GL ${fixed(design)} m；超打高度 ≥ ${limit} m`;
+          if (design === null) return `澆置至設計高程並超打 ≥ ${limit} m，硬化後打除劣質層`;
+          const base = `設計頂 GL ${fixed(design)} m；超打 ≥ ${limit} m，硬化後打除劣質層`;
           if (value === null) return base;
           return `${base}；實測超打 ${fixed(value - design)} m`;
         },
@@ -840,7 +842,7 @@ function loadExample() {
   state.overview = { project: "Example Construction Project — North Lot", contractor: "○○營造股份有限公司", reviewer: "Site Engineer" };
   state.holdDates = { hold1: "2026-08-10", hold2: "2026-08-11", hold3: "2026-08-11", hold4: "2026-08-12" };
   Object.assign(state.unit, { unitType: "公母單元", unitNo: "21", sequenceNo: "03", slurryType: "皂土系", guideTopElevation: "0.15", strength: "350", thickness: "1.00", length: "2.80", designDepth: "-35.80", topElevation: "-0.50", designVolume: "98.84" });
-  state.holds = Object.fromEntries(HOLD_POINTS.map((hold, holdIndex) => [hold.id, hold.items.map((definition, index) => ({ actual: holdIndex === 2 && index === 7 ? "107.46 m³；超方約 8.72%" : holdIndex === 0 && index === 0 ? "12 mm" : holdIndex === 2 && index === 0 ? "20 cm" : "已確認", result: "符合" }))]));
+  state.holds = Object.fromEntries(HOLD_POINTS.map((hold, holdIndex) => [hold.id, hold.items.map((definition, index) => ({ actual: holdIndex === 2 && index === 7 ? "102.26 m³；超方約 3.46%" : holdIndex === 0 && index === 0 ? "12 mm" : holdIndex === 2 && index === 0 ? "20 cm" : "已確認", result: "符合" }))]));
   state.conclusion = { verdict: "合格放行", note: "各停檢點均完成查驗，相關專業分包商紀錄列入附件保存。" };
   state.guideWall = { date: "2026-08-10", axisNo: "X3～X7 南側", note: "中心線偏差 1.6 cm；導溝施工條件符合。", checks: GUIDE_WALL_CHECKS.map(([item, standard], index) => ({ item, standard, actual: index === 0 ? "中心線偏差 1.6 cm" : "已確認", barNo: index === 5 ? "D16" : "", barSpacing: index === 5 ? "19.5" : "", result: "符合" })) };
   state.rebarCage = { date: "2026-08-10", cageNo: "C21-U／C21-L", drawingNo: "S-21 Rev.C", note: "配筋圖逐項核對；吊放條件完成。", mode: "detailed", parts: exampleRebarCageParts(), checks: REBAR_CAGE_CHECKS.map(([item, standard], index) => ({ item, standard, actual: index === 7 ? "3 組成對安裝；線路已保護至孔口" : "已確認", result: "符合" })) };

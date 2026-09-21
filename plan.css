@@ -47,8 +47,13 @@ body { margin: 0; background: var(--glass-page-bg); background-image: var(--glas
 .plan-figure { margin: 12px 0 16px; }
 .plan-figure figcaption { margin-bottom: 6px; font-size: 0.8125rem; font-weight: 600; color: var(--glass-soft); }
 .plan-note { margin: 6px 0 0; font-size: 0.75rem; color: var(--glass-faint); }
-.plan-diagram-body { max-width: 640px; }
+/* 示意圖置中：圖說、圖、附註同寬並置中，附註與圖之間留一點距離 */
+.plan-diagram { display: flex; flex-direction: column; align-items: center; }
+.plan-diagram figcaption, .plan-diagram .plan-note { width: 100%; max-width: 640px; }
+.plan-diagram figcaption { text-align: center; }
+.plan-diagram-body { width: 100%; max-width: 640px; margin: 0 auto; }
 .plan-diagram-body svg { display: block; width: 100%; height: auto; }
+.plan-diagram .plan-note { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--glass-line); line-height: 1.6; }
 .plan-sources { margin: 0; padding-left: 1.4em; font-size: 0.8125rem; line-height: 1.7; color: var(--glass-soft); }
 .link-button { border: 0; background: transparent; padding: 0; font: inherit; font-size: 0.75rem; color: var(--glass-danger-ink); cursor: pointer; }
 

@@ -4,3 +4,6 @@ tmp/
 output/playwright/
 scripts/__pycache__/
 *.pyc
+
+# 參考用的書頁掃描 PDF（版權，只留本機）
+docs/reference/

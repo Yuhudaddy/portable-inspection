@@ -8,6 +8,36 @@
 // 寫入採 400ms 尾端去抖，一連串輸入只落地一次；換頁或退到背景時立即 flush，iOS 也不會漏掉
 // 最後一筆。範例模式（enabled: false）不讀也不寫，避免範例資料蓋掉真正的草稿。
 // 寫入失敗（隱私模式、容量滿）一律靜默，不影響填表與輸出。
+//
+//   state.standards = mergeStandardDefaults(state.standards, STANDARD_CONFIG);   // 還原草稿後
+//
+// 本公司標準值的預設改版時，舊草稿裡存的仍是「當時的預設值」：這些項目視同使用者沒改過，換成
+// 新預設（config 的 legacy 列出歷次舊預設）；使用者自己選的其他值保留，草稿缺的鍵補上預設。
+function mergeStandardDefaults(saved, config) {
+  const standards = Object.fromEntries(config.map(item => [item.key, item.default]));
+  Object.entries(saved || {}).forEach(([key, value]) => {
+    if (Object.prototype.hasOwnProperty.call(standards, key)) standards[key] = value;
+  });
+  config.forEach(item => {
+    if ((item.legacy || []).includes(standards[item.key])) standards[item.key] = item.default;
+  });
+  return standards;
+}
+
+//   state.quality.checks = refreshCheckItems(state.quality.checks, QUALITY_CHECKS.map(createQualityCheck));
+//
+// 檢查項目的名稱、判定標準與 placeholder 以程式定義為準，草稿只保留使用者填的值（actual、result、號數、
+// 間距…），依項目名稱對回新定義；名稱改掉或刪掉的項目，其填值不再帶入。改了判定標準文字時舊草稿才會跟著換。
+function refreshCheckItems(saved, fresh) {
+  const byItem = new Map((Array.isArray(saved) ? saved : []).filter(Boolean).map(check => [check.item, check]));
+  return fresh.map(check => {
+    const previous = byItem.get(check.item);
+    if (!previous) return check;
+    const { item, standard, placeholder, ...values } = previous;
+    return { ...check, ...values };
+  });
+}
+
 function createDraftStore(key, getState, { enabled = true, delay = 400 } = {}) {
   const SCHEMA = "project-portal.draft.v1";
   let timer = 0;

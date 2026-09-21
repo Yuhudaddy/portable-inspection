@@ -142,6 +142,11 @@
   cursor: pointer;
 }
 
+/* 數字欄位一律不顯示瀏覽器的上下微調按鈕：現場都是直接鍵入，按鈕只會誤觸。 */
+input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
 .glass-tag {
   display: inline-flex;
   align-items: center;

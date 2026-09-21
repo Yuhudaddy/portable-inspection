@@ -52,6 +52,10 @@ function blockHtml(block) {
     case "ul": return `<ul>${block.items.map(item => `<li>${esc(item)}</li>`).join("")}</ul>`;
     case "ol": return `<ol class="plan-steps">${block.items.map(item => `<li>${esc(item)}</li>`).join("")}</ol>`;
     case "callout": return `<aside class="plan-callout"><strong>${esc(block.title)}</strong><p>${esc(block.text)}</p></aside>`;
+    case "figure": {
+      const drawn = window.PLAN_FIGURES?.[block.figure]?.() || "";
+      return `<figure class="plan-figure plan-diagram">${block.caption ? `<figcaption>${esc(block.caption)}</figcaption>` : ""}<div class="plan-diagram-body">${drawn}</div>${block.note ? `<p class="plan-note">${esc(block.note)}</p>` : ""}</figure>`;
+    }
     case "table": return `<figure class="plan-figure">${block.caption ? `<figcaption>${esc(block.caption)}</figcaption>` : ""}<table class="plan-table"><thead><tr>${block.head.map(cell => `<th>${esc(cell)}</th>`).join("")}</tr></thead><tbody>${block.rows.map(row => `<tr>${row.map(cell => `<td>${esc(cell)}</td>`).join("")}</tr>`).join("")}</tbody></table>${block.note ? `<p class="plan-note">${esc(block.note)}</p>` : ""}</figure>`;
     default: return "";
   }

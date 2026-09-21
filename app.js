@@ -50,6 +50,10 @@ const REBAR_CAGE_CHECKS = [
   ["外觀與吊放前狀態", "無顯著變形、鬆脫、污染或妨礙吊放之雜物"]
 ];
 
+const STRENGTH_UNITS = ["kgf/cm²", "psi"];
+const STRENGTH_PLACEHOLDER = { "kgf/cm²": "例如：350", "psi": "例如：5000" };
+const createQualityCheck = ([item, standard, placeholder]) => ({ item, standard, placeholder, actual: "", result: "待確認" });
+
 const QUALITY_CHECKS = [
   ["連續壁單元位置、刀法順序確認", "單元位置、順序與核定圖說相符", "例如：位置及順序符合"],
   ["底部沉渣及泥屑清除確認", "依本公司標準值（預設 15 cm 以內）", "例如：沉泥 12 cm"],
@@ -66,7 +70,7 @@ const QUALITY_CHECKS = [
   ["放置橡皮碗", "澆置前放置於漏斗內", "填寫是／否"],
   ["穩定液回收池容積是否足夠", "同時間無挖掘，容積大於回收量", "填寫是／否或容積"],
   ["混凝土坍度之確認", "依本公司標準值確認坍度及允許誤差", "例如：實測 18 cm"],
-  ["混凝土是否合乎設計強度", "記錄空打段、實打段 GL 與強度", "填寫 GL／psi"],
+  ["混凝土是否合乎設計強度", "記錄空打段、實打段 GL 與強度", "填寫 GL／強度"],
   ["特密管埋入混凝土內之確認", "依單元類型套用本公司標準值", "填寫埋入深度"],
   ["超音波記錄結果說明", "依單元型式及圖說完成檢測記錄", "填寫位置與垂直精度"]
 ];
@@ -75,13 +79,13 @@ const QUALITY_CHECKS = [
 // 介面不顯示外部規範名稱；預設值可直接作為公司內部起始值，
 // 並保留下拉選單，讓公司日後能依核定施工計畫調整。
 const QUALITY_STANDARD_CONFIG = [
-  { key: "slump", label: "混凝土坍度", unit: "cm", options: Array.from({ length: 10 }, (_, i) => String(15 + i)), default: "20" },
+  { key: "slump", label: "混凝土坍度", unit: "cm", options: Array.from({ length: 10 }, (_, i) => String(15 + i)), default: "20", legacy: ["18"] },
   { key: "slumpTolerance", label: "坍度允許誤差", unit: "cm", options: ["0", "1", "2", "3", "4", "5"], default: "2" },
-  { key: "sediment", label: "沉泥厚度上限", unit: "cm", options: ["5", "10", "15", "20", "25"], default: "15" },
+  { key: "sediment", label: "沉泥厚度上限", unit: "cm", options: ["5", "10", "15", "20", "25"], default: "15", legacy: ["10"] },
   { key: "sandContent", label: "含砂量上限", unit: "%", options: ["0.5", "1", "1.5", "2"], default: "1" },
   { key: "settlingTime", label: "靜置時間下限", unit: "hr", options: ["0.5", "1", "1.5", "2"], default: "0.5" },
   { key: "verticalDenominator", label: "垂直精度（10／D）", unit: "1/n", options: ["100", "200", "300", "400", "500", "10/D"], default: "300" },
-  { key: "tremieClearance", label: "特密管端距上限", unit: "cm", options: ["20", "30", "40", "50"], default: "50" },
+  { key: "tremieClearance", label: "特密管端距上限", unit: "cm", options: ["20", "30", "40", "50"], default: "50", legacy: ["20"] },
   { key: "embedmentMale", label: "公單元埋入深度下限", unit: "m", options: ["0.5", "1.0", "1.5", "2.0"], default: "1.5" },
   { key: "embedmentFemale", label: "母單元埋入深度下限", unit: "m", options: ["0.5", "1.0", "1.5", "2.0"], default: "1.5" },
   { key: "embedmentBoth", label: "公母單元埋入深度下限", unit: "m", options: ["0.5", "1.0", "1.5", "2.0"], default: "1.5" },
@@ -90,10 +94,10 @@ const QUALITY_STANDARD_CONFIG = [
   { key: "chloride", label: "氯離子含量上限", unit: "kg/m³", options: ["0.15", "0.30"], default: "0.15" },
   { key: "centerlineTolerance", label: "導溝中心線偏差上限", unit: "cm", options: ["1", "2", "3", "5"], default: "2" },
   { key: "wallThicknessTolerance", label: "壁厚偏差上限", unit: "cm", options: ["3", "5", "7.5", "10"], default: "5" },
-  { key: "cageLongitudinalTolerance", label: "鋼筋籠縱向偏差上限", unit: "cm", options: ["±2.5", "±5", "±7.5", "±10"], default: "±2.5" },
+  { key: "cageLongitudinalTolerance", label: "鋼筋籠縱向偏差上限", unit: "cm", options: ["±2.5", "±5", "±7.5", "±10"], default: "±2.5", legacy: ["±7.5"] },
   { key: "cageTopTolerance", label: "鋼筋籠頂高程偏差上限", unit: "cm", options: ["±3", "±5", "±7.5", "±10"], default: "±5" },
-  { key: "cover", label: "保護層厚度下限", unit: "cm", options: ["5", "7.5", "10", "12.5"], default: "10" },
-  { key: "volumeDifference", label: "實際／設計數量差異上限", unit: "%", options: ["5", "10", "15", "20"], default: "5" }
+  { key: "cover", label: "保護層厚度下限", unit: "cm", options: ["5", "7.5", "10", "12.5"], default: "10", legacy: ["7.5"] },
+  { key: "volumeDifference", label: "混凝土實際與設計數量差異上限", unit: "%", options: ["5", "10", "15", "20"], default: "5", legacy: ["10"], current: () => volumeDifferenceSummary() }
 ];
 
 const QUALITY_STANDARD_DEFAULTS = Object.fromEntries(QUALITY_STANDARD_CONFIG.map(item => [item.key, item.default]));
@@ -151,7 +155,10 @@ function qualityStandardText(key) {
     cageLongitudinalTolerance: `縱向偏差 ${value} cm`,
     cageTopTolerance: `頂高程偏差 ${value} cm`,
     cover: `保護層厚度 ≥ ${value} cm`,
-    volumeDifference: `實際／設計數量差異 ≤ ${value}%`
+    embedmentMale: `埋入深度 ≥ ${value} m`,
+    embedmentFemale: `埋入深度 ≥ ${value} m`,
+    embedmentBoth: `埋入深度 ≥ ${value} m`,
+    volumeDifference: `混凝土實際與設計數量差異 ≤ ${value}%`
   };
   return format[key] || `${value}`;
 }
@@ -162,9 +169,59 @@ function qualityCheckStandard(index, fallback) {
     1: qualityStandardText("sediment"),
     9: qualityStandardText("tremieClearance"),
     14: `${qualityStandardText("slump")}；${qualityStandardText("slumpTolerance")}`,
-    16: state.wall.unitType ? `${state.wall.unitType}：${qualityStandardText(state.wall.unitType === "公單元" ? "embedmentMale" : state.wall.unitType === "母單元" ? "embedmentFemale" : "embedmentBoth")}` : "請先選擇單元類型，再填寫埋入深度"
+    16: state.wall.unitType
+      ? `${state.wall.unitType}：${qualityStandardText(embedmentKeyFor(state.wall.unitType))}`
+      : `依壁體資訊的單元類型套用：公單元 ≥ ${state.quality.standards.embedmentMale} m／母單元 ≥ ${state.quality.standards.embedmentFemale} m／公母單元 ≥ ${state.quality.standards.embedmentBoth} m`
   };
   return dynamic[index] || fallback;
+}
+
+const embedmentKeyFor = unitType => ({ "公單元": "embedmentMale", "母單元": "embedmentFemale", "公母單元": "embedmentBoth" })[unitType] || null;
+const strengthUnit = () => STRENGTH_UNITS.includes(state.wall.strengthUnit) ? state.wall.strengthUnit : STRENGTH_UNITS[0];
+
+function qualityCheckPlaceholder(index, fallback) {
+  return index === 15 ? `填寫 GL／${strengthUnit()}` : fallback;
+}
+
+// 混凝土實際與設計數量差異：|實際 − 設計| ／ 設計。實際數量以澆置紀錄的累積方量為準（有車次時自動帶入壁體資訊），
+// 沒有車次時才用壁體資訊手填的實際數量。
+function pouredVolume() {
+  const cumulative = state.trucks.reduce((sum, truck) => sum + (number(truck.volume) ?? 0), 0);
+  return cumulative > 0 ? cumulative : number(state.wall.actualVolume);
+}
+
+function volumeDifferenceRate() {
+  const design = number(state.wall.designVolume) ?? calculatedDesignVolume();
+  const actual = pouredVolume();
+  return design && actual !== null ? Math.abs(actual - design) / design * 100 : null;
+}
+
+const pourLogHasVolume = () => state.trucks.some(truck => (number(truck.volume) ?? 0) > 0);
+
+// 澆置中累積方量一定少於設計，少方只在澆置看起來已完成時才判定：最後一車實測高度到達設計澆置高度
+// （容許 0.3 m，與高度差異提醒同一門檻），或實際數量是手填的完工值；超方則隨時判定。
+function pourLooksComplete() {
+  if (!pourLogHasVolume()) return true;
+  const height = designHeight();
+  const measured = calculatedTrucks().at(-1)?.measured ?? null;
+  return height !== null && measured !== null && measured >= height - 0.3;
+}
+
+const volumeDifferenceExceeded = () => {
+  const rate = volumeDifferenceRate();
+  const limit = number(state.quality.standards.volumeDifference);
+  if (rate === null || limit === null || rate <= limit) return false;
+  const design = number(state.wall.designVolume) ?? calculatedDesignVolume();
+  return pouredVolume() > design || pourLooksComplete();
+};
+
+function volumeDifferenceSummary() {
+  const rate = volumeDifferenceRate();
+  if (rate === null) return "";
+  const design = number(state.wall.designVolume) ?? calculatedDesignVolume();
+  const source = pourLogHasVolume() ? "澆置紀錄累積" : "壁體資訊實際數量";
+  const pouring = pourLogHasVolume() && pouredVolume() < design && !pourLooksComplete() ? "，澆置中" : "";
+  return `目前 ${rate.toFixed(2)}%（${source} ${fixed(pouredVolume())} ／ 設計 ${fixed(design)} m³${pouring}）`;
 }
 
 const PHASES = [
@@ -189,6 +246,7 @@ const state = {
     sequenceNo: "",
     designDepth: "",
     strength: "",
+    strengthUnit: "kgf/cm²",
     thickness: "",
     length: "",
     topElevation: "",
@@ -209,7 +267,8 @@ const state = {
     date: today, cageNo: "", reviewer: "", note: "",
     mode: "simple",
     parts: createRebarCageParts(),
-    checks: REBAR_CAGE_CHECKS.map(([item, standard]) => ({ item, standard, actual: "", result: "待確認" }))
+    checks: REBAR_CAGE_CHECKS.map(([item, standard]) => ({ item, standard, actual: "", result: "待確認" })),
+    photos: []
   },
   quality: {
     note: "",
@@ -241,6 +300,16 @@ function normalizeLoadedState(loaded) {
   state.rebarCage.mode = state.rebarCage.mode === "detailed" ? "detailed" : "simple";
   state.rebarCage.parts = normalizeRebarCageParts(state.rebarCage.parts);
   delete state.rebarCage.rebars;
+  // 本公司標準值預設改版（坍度、沉泥、特密管端距、籠縱向偏差、保護層、數量差異）：舊草稿仍是舊預設的項目換成新預設
+  state.quality.standards = mergeStandardDefaults(state.quality.standards, QUALITY_STANDARD_CONFIG);
+  // 檢查項目文字以程式定義為準：判定標準改版後，舊草稿只留使用者填的值
+  state.quality.checks = refreshCheckItems(state.quality.checks, QUALITY_CHECKS.map(createQualityCheck));
+  state.guideWall.checks = refreshCheckItems(state.guideWall.checks, GUIDE_WALL_CHECKS.map(createGuideWallCheck));
+  state.rebarCage.checks = refreshCheckItems(state.rebarCage.checks, REBAR_CAGE_CHECKS.map(([item, standard]) => ({ item, standard, actual: "", result: "待確認" })));
+  // 1.6：鋼筋籠照片（最多 3 張 data URL）
+  state.rebarCage.photos = normalizeCagePhotos(state.rebarCage.photos);
+  // 1.6：混凝土強度加單位（舊草稿一律 kgf/cm²）
+  if (!STRENGTH_UNITS.includes(state.wall.strengthUnit)) state.wall.strengthUnit = STRENGTH_UNITS[0];
 }
 
 let activeTab = "wall";
@@ -420,9 +489,30 @@ function updateWallCalculation() {
   if (volumeInput) volumeInput.value = state.wall.designVolume;
   const heightInput = $("#design-height-value");
   if (heightInput) heightInput.value = height === null ? "" : height.toFixed(2);
-  renderQualityStandards();
+  syncActualVolume();
+  syncStrengthUnit();
+  renderQuality();
   renderExcavation();
   renderPouring();
+}
+
+// 有澆置車次時，壁體資訊的實際數量＝澆置紀錄累積方量（欄位轉為唯讀「自動」）；沒有車次時維持手填。
+function syncActualVolume() {
+  const cumulative = state.trucks.reduce((sum, truck) => sum + (number(truck.volume) ?? 0), 0);
+  const auto = cumulative > 0;
+  if (auto) state.wall.actualVolume = cumulative.toFixed(2);
+  const input = $('[data-bind="wall.actualVolume"]');
+  if (!input) return;
+  input.value = state.wall.actualVolume ?? "";
+  input.readOnly = auto;
+  input.closest(".field")?.classList.toggle("calculated-field", auto);
+  const tag = input.closest(".field")?.querySelector("em");
+  if (tag) tag.hidden = !auto;
+}
+
+function syncStrengthUnit() {
+  const input = $('[data-bind="wall.strength"]');
+  if (input) input.placeholder = STRENGTH_PLACEHOLDER[strengthUnit()];
 }
 
 function currentExportLabel(tool = activeTool, tab = activeTab) {
@@ -537,6 +627,8 @@ function renderPrework() {
 }
 
 function renderPouring() {
+  syncActualVolume();           // 車次增刪改後，壁體資訊的實際數量與品質自檢的數量差異提示跟著更新
+  renderQualityStandards();
   const rows = calculatedTrucks();
   const last = rows.at(-1);
   $("#truck-count").innerHTML = `${rows.length} <small>車</small>`;
@@ -545,6 +637,9 @@ function renderPouring() {
   $("#pour-measured").innerHTML = `${fixed(last?.measured ?? null)} <small>m</small>`;
   $("#pour-difference").innerHTML = `${fixed(last?.difference ?? null)} <small>m</small>`;
   $("#pour-difference-cell").classList.toggle("is-warning", Boolean(last && last.difference !== null && last.difference < -0.3));
+  const volumeRate = volumeDifferenceRate();
+  $("#pour-volume-difference").innerHTML = `${volumeRate === null ? "—" : volumeRate.toFixed(2)} <small>%</small>`;
+  $("#pour-volume-difference-cell").classList.toggle("is-warning", volumeDifferenceExceeded());
 
   $("#truck-list").innerHTML = rows.length ? rows.map(row => `
     <article class="record-item">
@@ -566,10 +661,13 @@ function renderPouring() {
       </div>
     </article>`).join("") : emptyState("尚無澆置車次，請按＋新增車次。");
 
-  const warnings = rows.flatMap(row => [
+  const volumeWarning = volumeDifferenceExceeded()
+    ? [`<div class="warning-item"><strong>數量差異 ${volumeDifferenceRate().toFixed(2)}%：</strong>累積方量 ${fixed(pouredVolume())} m³ 與設計數量 ${fixed(number(state.wall.designVolume) ?? calculatedDesignVolume())} m³ 的差異超過本公司標準值 ${esc(state.quality.standards.volumeDifference)}%，請確認方量或超挖、坍孔可能性。</div>`]
+    : [];
+  const warnings = volumeWarning.concat(rows.flatMap(row => [
     ...(row.difference !== null && row.difference < -0.3 ? [`<div class="warning-item"><strong>第 ${row.index + 1} 車差異 ${fixed(row.difference)} m：</strong>請確認量測基準、實際方量、超挖或坍孔可能性。</div>`] : []),
     ...row.flags.map(flag => `<div class="warning-item"><strong>第 ${row.index + 1} 車：</strong>${esc(flag)}</div>`)
-  ]);
+  ]));
   $("#pour-warnings").innerHTML = warnings.join("");
 }
 
@@ -621,6 +719,7 @@ function renderRebars() {
   $("#rebar-cage-rebar-list").innerHTML = rebarCageCardsHtml(cage, resultSegmented);
   $("#rebar-cage-rebar-progress").textContent = `${cage.parts.filter(part => part.result !== "待確認").length} / ${cage.parts.length}`;
   syncRebarCageModeTabs(cage.mode);
+  renderCagePhotos(cage.photos || []);
 }
 
 function setChecklistInputs() {
@@ -641,9 +740,12 @@ function renderQualityStandards() {
   const selectedEmbedmentKey = unitType === "公單元" ? "embedmentMale" : unitType === "母單元" ? "embedmentFemale" : unitType === "公母單元" ? "embedmentBoth" : null;
   const rows = QUALITY_STANDARD_CONFIG.map(config => {
     const disabled = config.key.startsWith("embedment") && selectedEmbedmentKey && config.key !== selectedEmbedmentKey;
+    const current = config.current ? config.current() : "";
+    const exceeded = config.key === "volumeDifference" && volumeDifferenceExceeded();
     return `<label class="quality-standard-field ${disabled ? "is-disabled" : ""}">
       <span>${esc(config.label)}（${esc(config.unit)}）</span>
       <select data-quality-standard="${esc(config.key)}" ${disabled ? "disabled" : ""}>${qualityStandardOptions(state.quality.standards[config.key], config.options)}</select>
+      ${current ? `<small class="quality-standard-current ${exceeded ? "is-exceeded" : ""}">${esc(current)}${exceeded ? "，超過標準" : ""}</small>` : ""}
     </label>`;
   });
   $("#quality-standard-list").innerHTML = rows.join("");
@@ -658,9 +760,9 @@ function renderQuality() {
   $("#quality-check-list").innerHTML = state.quality.checks.map((check, index) => `
     <article class="quality-card ${check.result === "不符合" ? "is-failed" : ""}">
       <div class="quality-card-head"><span>${String(index + 1).padStart(2, "0")}</span><strong>${esc(check.item)}</strong></div>
-      <p>${esc(check.standard)}</p>
+      <p>${esc(qualityCheckStandard(index, check.standard))}</p>
       <div class="quality-card-fields">
-        <label class="field"><span>現場紀錄／實測</span><input type="text" value="${esc(check.actual)}" placeholder="${esc(check.placeholder)}" data-quality-item="${index}" data-quality-field="actual" /></label>
+        <label class="field"><span>現場紀錄／實測</span><input type="text" value="${esc(check.actual)}" placeholder="${esc(qualityCheckPlaceholder(index, check.placeholder))}" data-quality-item="${index}" data-quality-field="actual" /></label>
         <div class="field result-field"><span id="quality-${index}-result-label">檢查結果</span>${resultSegmented(`quality-${index}-result`, check.result, `data-quality-item="${index}" data-quality-field="result"`)}</div>
       </div>
     </article>`).join("");
@@ -708,13 +810,13 @@ function exampleRebarCageParts() {
 function loadExample() {
   state.overview = { project: "Example Construction Project — North Lot", contractor: "○○營造股份有限公司", reviewer: "Site Engineer" };
   state.dates = { excavationStart: "2026-08-10", excavationEnd: "2026-08-11", pouring: "2026-08-11" };
-  Object.assign(state.wall, { unitType: "公單元", unitNo: "21", sequenceNo: "03", designDepth: "-35.80", strength: "350", thickness: "1.00", length: "2.80", topElevation: "-0.50", designVolume: "98.84", actualVolume: "107.46" });
+  Object.assign(state.wall, { unitType: "公單元", unitNo: "21", sequenceNo: "03", designDepth: "-35.80", strength: "350", strengthUnit: "kgf/cm²", thickness: "1.00", length: "2.80", topElevation: "-0.50", designVolume: "98.84", actualVolume: "" });
   state.soil = ["07:40", "08:20", "09:05"].map(time => ({ time }));
   state.depth = [{ time: "12:10", value: "-35.80" }, { time: "12:35", value: "-35.82" }];
   state.prework = Object.fromEntries(PHASES.map((phase, index) => [phase.id, { date: "2026-08-11", start: `0${8 + index}:00`, end: `0${8 + index}:30` }]));
-  state.trucks = Array.from({ length: 8 }, (_, index) => ({ truckNo: `C${String(index + 1).padStart(2, "0")}`, dispatch: `${12 + Math.floor(index / 2)}:${index % 2 ? "50" : "28"}`, unload: `${13 + Math.floor(index / 2)}:${index % 2 ? "42" : "20"}`, finish: `${13 + Math.floor(index / 2)}:${index % 2 ? "55" : "33"}`, volume: index === 7 ? "9.46" : "12", measured: (3.9 + index * 4.1).toFixed(2), slump: index === 0 ? "18" : "" }));
+  state.trucks = Array.from({ length: 8 }, (_, index) => ({ truckNo: `C${String(index + 1).padStart(2, "0")}`, dispatch: `${12 + Math.floor(index / 2)}:${index % 2 ? "50" : "28"}`, unload: `${13 + Math.floor(index / 2)}:${index % 2 ? "42" : "20"}`, finish: `${13 + Math.floor(index / 2)}:${index % 2 ? "55" : "33"}`, volume: index === 7 ? "11.26" : "13", measured: index === 7 ? "36.30" : (4.62 + index * 4.64).toFixed(2), slump: index === 0 ? "18" : "" }));
   state.guideWall = { date: "2026-08-10", axisNo: "X3～X7 南側", reviewer: "Site Engineer", note: "中心線偏差 1.6 cm；順序符合；導溝條件完成複核。", checks: GUIDE_WALL_CHECKS.map(([item, standard], index) => ({ item, standard, actual: index === 0 ? "中心線偏差 1.6 cm" : "已確認", barNo: index === 5 ? "D16" : "", barSpacing: index === 5 ? "19.5" : "", result: "符合" })) };
-  state.rebarCage = { date: "2026-08-10", cageNo: "C21-U／C21-L", reviewer: "Site Engineer", note: "配筋圖逐項核對；吊放條件完成。", mode: "detailed", parts: exampleRebarCageParts(), checks: REBAR_CAGE_CHECKS.map(([item, standard], index) => ({ item, standard, actual: index === 7 ? "3 組成對安裝；線路已保護至孔口" : "已確認", result: "符合" })) };
+  state.rebarCage = { date: "2026-08-10", cageNo: "C21-U／C21-L", reviewer: "Site Engineer", note: "配筋圖逐項核對；吊放條件完成。", mode: "detailed", parts: exampleRebarCageParts(), checks: REBAR_CAGE_CHECKS.map(([item, standard], index) => ({ item, standard, actual: index === 7 ? "3 組成對安裝；線路已保護至孔口" : "已確認", result: "符合" })), photos: [] };
   state.quality = { note: "各項檢查完成，未發現影響施工之缺失。", standards: { ...QUALITY_STANDARD_DEFAULTS }, checks: QUALITY_CHECKS.map(([item, standard, placeholder]) => ({ item, standard, placeholder, actual: "已確認", result: "符合" })) };
 }
 
@@ -723,7 +825,7 @@ function clearAllData() {
   state.overview = { project: "", contractor: "", reviewer: "" };
   state.dates = { excavationStart: "", excavationEnd: "", pouring: "" };
   state.wall = {
-    unitType: "", unitNo: "", sequenceNo: "", designDepth: "", strength: "", thickness: "", length: "",
+    unitType: "", unitNo: "", sequenceNo: "", designDepth: "", strength: "", strengthUnit: "kgf/cm²", thickness: "", length: "",
     topElevation: "", designVolume: "", actualVolume: ""
   };
   state.soil = [];
@@ -738,7 +840,8 @@ function clearAllData() {
     date: "", cageNo: "", reviewer: "", note: "",
     mode: "simple",
     parts: createRebarCageParts(),
-    checks: REBAR_CAGE_CHECKS.map(([item, standard]) => ({ item, standard, actual: "", result: "待確認" }))
+    checks: REBAR_CAGE_CHECKS.map(([item, standard]) => ({ item, standard, actual: "", result: "待確認" })),
+    photos: []
   };
   state.quality = {
     note: "",
@@ -861,12 +964,12 @@ function printWallInfo() {
     <div><span>單元類型</span><strong>${esc(display(state.wall.unitType))}</strong></div>
     <div><span>單元編號</span><strong>${esc(display(state.wall.unitNo))}</strong></div>
     <div><span>順序編號</span><strong>${esc(display(state.wall.sequenceNo))}</strong></div>
-    <div><span>混凝土強度(kgf/cm²)</span><strong>${esc(display(state.wall.strength))}</strong></div>
+    <div><span>混凝土強度(${esc(strengthUnit())})</span><strong>${esc(display(state.wall.strength))}</strong></div>
     <div><span>設計深度(GL,m)</span><strong>GL ${esc(display(state.wall.designDepth))} m</strong></div>
     <div><span>壁厚／單元長度(m)</span><strong>${esc(display(state.wall.thickness))} ／ ${esc(display(state.wall.length))}</strong></div>
     <div><span>澆置頂端高程(GL,m)</span><strong>GL ${number(state.wall.topElevation) !== null && number(state.wall.topElevation) >= 0 ? "+" : ""}${esc(display(state.wall.topElevation))}</strong></div>
     <div><span>設計澆置高度(m)</span><strong>${fixed(height)}</strong></div>
-    <div><span>設計／實際數量(m³)</span><strong>${designVolume === null ? "" : fixed(designVolume)} ／ ${esc(display(state.wall.actualVolume))}</strong></div>
+    <div><span>設計／實際數量(m³)／差異</span><strong>${designVolume === null ? "" : fixed(designVolume)} ／ ${esc(display(state.wall.actualVolume))}${volumeDifferenceRate() === null ? "" : ` ／ ${volumeDifferenceRate().toFixed(2)}%`}</strong></div>
   </div></section>`;
 }
 
@@ -965,7 +1068,7 @@ function renderPrint() {
       <div class="pouring-main-layout"><div class="pouring-table-column"><section class="print-section"><h2>澆置主控摘要</h2><div class="print-summary">
         <div><span>車次(車)</span><strong>${truckRows.length}</strong></div>
         <div><span>逐車累積量(m³)</span><strong>${fixed(lastTruck?.cumulative ?? 0)}</strong></div>
-        <div><span>設計／實際數量(m³)</span><strong>${esc(display(state.wall.designVolume))} ／ ${esc(display(state.wall.actualVolume))}</strong></div>
+        <div><span>設計／實際數量(m³)／差異</span><strong>${esc(display(state.wall.designVolume))} ／ ${esc(display(state.wall.actualVolume))}${volumeDifferenceRate() === null ? "" : ` ／ ${volumeDifferenceRate().toFixed(2)}%`}</strong></div>
         <div><span>預估／實測／差異(m)</span><strong>${fixed(lastTruck?.expected ?? null)} ／ ${fixed(lastTruck?.measured ?? null)} ／ ${fixed(lastTruck?.difference ?? null)}</strong></div>
       </div></section><section class="print-section pouring-table-section"><h2>逐車混凝土澆置紀錄</h2><table class="print-table"><thead><tr><th>車次</th><th>車號</th><th>出廠</th><th>卸料</th><th>結束</th><th>坍度(cm)</th><th>方量(m³)</th><th>累積(m³)</th><th>預估高(m)</th><th>實際高(m)</th><th>澆置時間(分)</th></tr></thead><tbody>${pouringRows}</tbody></table><p class="print-table-note">跨午夜的時間以 24 時以後接續表示（例：25:30＝翌日 01:30）；澆置時間＝結束 − 出廠。</p></section></div><section class="print-section pouring-chart-section"><h2>澆置高度曲線</h2>${pouringChartSvg(truckRows)}</section></div></div>${printFooter()}`;
 
@@ -987,6 +1090,11 @@ function renderPrint() {
     </div></section>
     <section class="print-section compact-print-section"><h2>配筋抽查明細</h2>${rebarCagePrintTableHtml(state.rebarCage)}</section>
     <section class="print-section compact-print-section"><h2>組裝與吊放條件</h2><table class="print-table rebar-cage-check-print-table"><thead><tr><th>項次</th><th>複核項目</th><th>確認基準</th><th>現場紀錄／實測</th><th>結果</th></tr></thead><tbody>${rebarCageRows}</tbody></table></section>${printFooter()}`;
+  // 鋼筋籠照片另起一頁（有照片才印）：同一份表頭，三列各占頁高 1/3，簽名欄在頁底
+  const cagePhotos = state.rebarCage.photos || [];
+  const photoPage = $("#print-rebar-cage-photos");
+  photoPage.style.display = cagePhotos.length ? "" : "none";
+  photoPage.innerHTML = cagePhotos.length ? `${printHeader({ title: "鋼筋籠複核照片", sequence: "08", identity: [state.wall.unitNo, state.rebarCage.cageNo].filter(Boolean).join("｜") || "未指定鋼筋籠", date: state.rebarCage.date, dateLabel: "複核日期", reviewer: state.rebarCage.reviewer, reviewerLabel: "營造廠複核人" })}${cagePhotosPrintHtml(cagePhotos)}${printFooter()}` : "";
 }
 
 function setPdfDocumentTitle(scope) {
@@ -1056,11 +1164,11 @@ function exportData() {
   const selectedEmbedmentKey = embedmentKeys[state.wall.unitType] || null;
   const qualityStandards = Object.fromEntries(Object.entries(state.quality.standards)
     .filter(([key]) => !key.startsWith("embedment") || key === selectedEmbedmentKey)
-    .map(([key, value]) => [key, { value, calculated_value: qualityStandardValue(key), display: qualityStandardText(key) }]));
+    .map(([key, value]) => [key, { value, calculated_value: key === "volumeDifference" && volumeDifferenceRate() !== null ? volumeDifferenceRate().toFixed(2) : qualityStandardValue(key), display: qualityStandardText(key) }]));
 
   return {
     app_version: APP_VERSION,
-    schema_version: "1.5",
+    schema_version: "1.6",
     record_type: "diaphragm_wall_field_record",
     exported_at: new Date().toISOString(),
     export_context: {
@@ -1083,10 +1191,12 @@ function exportData() {
       top_elevation_m: toNumberOrNull(state.wall.topElevation),
       thickness_m: toNumberOrNull(state.wall.thickness),
       length_m: toNumberOrNull(state.wall.length),
-      concrete_strength_kgf_cm2: toNumberOrText(state.wall.strength),
+      concrete_strength: toNumberOrText(state.wall.strength),
+      concrete_strength_unit: strengthUnit(),
       design_pour_height_m: height,
       design_volume_m3: designVolume,
-      actual_volume_m3: toNumberOrNull(state.wall.actualVolume)
+      actual_volume_m3: toNumberOrNull(state.wall.actualVolume),
+      volume_difference_pct: volumeDifferenceRate() === null ? null : Number(volumeDifferenceRate().toFixed(2))
     },
     excavation: {
       start_date: state.dates.excavationStart || null,
@@ -1146,6 +1256,7 @@ function exportData() {
       note: state.rebarCage.note || null,
       mode: state.rebarCage.mode,
       parts: exportRebarCageParts(state.rebarCage),
+      photos: exportCagePhotos(state.rebarCage.photos),
       inspection_items: state.rebarCage.checks.map((check, index) => ({
         item_no: index + 1,
         item: check.item,
@@ -1213,7 +1324,7 @@ function exportMarkdown() {
     `| 頂端高程（m） | ${markdownCell(wall.top_elevation_m)} |`,
     `| 壁厚（m） | ${markdownCell(wall.thickness_m)} |`,
     `| 單元長度（m） | ${markdownCell(wall.length_m)} |`,
-    `| 混凝土強度（kgf/cm²） | ${markdownCell(wall.concrete_strength_kgf_cm2)} |`,
+    `| 混凝土強度（${wall.concrete_strength_unit || "kgf/cm²"}） | ${markdownCell(wall.concrete_strength ?? wall.concrete_strength_kgf_cm2)} |`,
     `| 設計澆置高度（m） | ${markdownCell(wall.design_pour_height_m)} |`,
     `| 設計數量（m³） | ${markdownCell(wall.design_volume_m3)} |`,
     `| 實際數量（m³） | ${markdownCell(wall.actual_volume_m3)} |`,
@@ -1281,6 +1392,8 @@ function exportMarkdown() {
     `### 組裝與吊放條件`,
     ``,
     ...data.rebar_cage_review.inspection_items.map(item => `- ${item.item_no}. ${item.item}：${item.result}；現場紀錄：${markdownCell(item.actual)}`),
+    ``,
+    `照片：${data.rebar_cage_review.photos.length} 張${data.rebar_cage_review.photos.map(photo => `；${photo.no}. ${markdownCell(photo.caption)}`).join("")}（影像僅在 JSON 與 PDF）`,
     ``,
     `> 本 Markdown 由施工紀錄工具依同一份結構化資料產生；資料庫匯入請優先使用同次輸出的 JSON。`
   ];
@@ -1377,7 +1490,8 @@ function importJsonPayload(payload) {
     unitNo: importText(wall.unit_no) || importText(rebarCage.unit_no), // 1.2 以前鋼筋籠自己帶單元編號
     sequenceNo: importText(wall.sequence_no),
     designDepth: importText(wall.design_depth_m),
-    strength: importText(wall.concrete_strength_kgf_cm2),
+    strength: importText(wall.concrete_strength ?? wall.concrete_strength_kgf_cm2), // 1.5 以前只有 kgf/cm²
+    strengthUnit: STRENGTH_UNITS.includes(wall.concrete_strength_unit) ? wall.concrete_strength_unit : STRENGTH_UNITS[0],
     thickness: importText(wall.thickness_m),
     length: importText(wall.length_m),
     topElevation: importText(wall.top_elevation_m),
@@ -1429,7 +1543,8 @@ function importJsonPayload(payload) {
     note: importText(rebarCage.note),
     mode: rebarCage.mode === "detailed" ? "detailed" : "simple",
     parts: importRebarCageParts(rebarCage.parts),   // 1.3 以前的 rebar_items 直接略過
-    checks: importChecklistItems(REBAR_CAGE_CHECKS, rebarCage.inspection_items)
+    checks: importChecklistItems(REBAR_CAGE_CHECKS, rebarCage.inspection_items),
+    photos: importCagePhotos(rebarCage.photos)
   };
 
   const context = payload.export_context || {};
@@ -1511,7 +1626,7 @@ function initialize() {
     if (input?.type === "radio") {
       const [group, key] = input.dataset.bind.split(".");
       state[group][key] = input.value;
-      if (group === "wall" && key === "unitType") renderQualityStandards();
+      if (group === "wall" && key === "unitType") renderQuality();
       return;
     }
     const check = event.target.closest("[data-check-item]");
@@ -1528,11 +1643,13 @@ function initialize() {
     const qualityStandard = event.target.closest("[data-quality-standard]");
     if (qualityStandard) {
       state.quality.standards[qualityStandard.dataset.qualityStandard] = qualityStandard.value;
-      renderQualityStandards();
+      renderQuality();
+      renderPouring();
     }
   });
 
   bindRebarCageUi({ getCage: () => state.rebarCage, onChange: renderRebars });
+  bindCagePhotosUi({ getPhotos: () => state.rebarCage.photos, onChange: () => { renderRebars(); draft.schedule(); } }); // 壓縮是非同步的，事件冒泡時草稿還沒有照片
   draft.watch();
 
   $$('.tab-row [role="tab"]').forEach(button => {

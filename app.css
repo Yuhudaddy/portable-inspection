@@ -380,7 +380,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 .control-board > div:nth-child(2n) { border-right: 0; }
 .control-board > div:nth-last-child(-n + 2) { border-bottom: 0; }
-.pouring-board > div:last-child { grid-column: span 2; border-right: 0; border-top: 1px solid var(--line); }
 .control-board dt { color: var(--glass-label); font-size: 0.6875rem; font-weight: 500; }
 .control-board dd {
   margin: 2px 0 0;
@@ -814,6 +813,39 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .quality-standard-field > span { color: var(--glass-label); font-size: 0.69rem; line-height: 1.3; }
 .quality-standard-field select { min-height: 38px; padding: 0 12px; border-radius: 999px; font-size: 0.875rem; }
 .quality-standard-field.is-disabled { opacity: 0.45; }
+
+/* ---- 鋼筋籠照片：沒照片時是一個虛線匯入框；有照片後三張並排，× 浮在右上角，點照片補備註 ---- */
+.photo-panel { padding: 0 4px; }
+#cage-photo-add:disabled { opacity: 0.4; cursor: default; box-shadow: none; }
+.photo-upload-box { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 200px; padding: 24px; border: 2px dashed var(--glass-dash); border-radius: var(--glass-radius-lg); background: var(--glass-sunken); color: var(--glass-muted); font: inherit; cursor: pointer; transition: border-color 160ms ease, background 160ms ease; }
+.photo-upload-box:hover, .photo-upload-box:focus-visible { border-color: var(--glass-accent); background: var(--glass-card-bg); }
+.photo-upload-box svg { color: var(--glass-icon); }
+.photo-upload-box strong { color: var(--glass-ink); font-size: 0.9375rem; letter-spacing: 0.02em; }
+.photo-upload-box span { font-size: 0.75rem; }
+/* 手機直向一張一張上下排（整張看得到，不裁切）；640px 以上才三張左右並排 */
+.photo-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.photo-item { position: relative; margin: 0; min-width: 0; }
+.photo-item-image { display: block; width: 100%; aspect-ratio: 4 / 3; padding: 0; border: 0; border-radius: var(--glass-radius-md); overflow: hidden; background: var(--glass-sunken); box-shadow: var(--glass-card-shadow); cursor: pointer; }
+.photo-item-image img { display: block; width: 100%; height: 100%; object-fit: contain; }
+@media (min-width: 640px) {
+  .photo-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .photo-item-image { aspect-ratio: 3 / 4; }
+}
+.photo-item { display: flex; flex-direction: column; gap: 6px; }
+.photo-item figcaption { display: flex; gap: 6px; align-items: baseline; min-width: 0; font-size: 0.75rem; color: var(--glass-ink); }
+.photo-item-wrap { position: relative; }
+.photo-delete { position: absolute; top: 6px; right: 6px; box-shadow: var(--glass-pill-shadow); }
+.photo-no { flex: none; font-family: var(--glass-font-num); font-weight: 600; color: var(--glass-accent); }
+.photo-caption { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.photo-caption.is-empty { color: var(--glass-placeholder); }
+.photo-dialog-preview { display: block; width: 100%; max-height: 40vh; margin-bottom: 12px; border-radius: var(--glass-radius-md); background: var(--glass-sunken); object-fit: contain; }
+.quality-standard-current { color: var(--glass-muted); font-size: 0.6875rem; line-height: 1.35; }
+.quality-standard-current.is-exceeded { color: var(--glass-danger-ink, #b42318); font-weight: 600; }
+/* 數值＋單位並排：輸入格吃剩餘寬度，單位下拉只佔內容寬。 */
+.field-unit-row { display: flex; gap: 8px; align-items: center; min-width: 0; }
+.form-grid > .field > .field-unit-row > input { flex: 1 1 auto; width: auto; margin: 0 0 0 -10px; }
+.form-grid > .field > .field-unit-row > select { flex: none; width: auto; margin: 0 -10px 0 0; padding: 0 20px 0 8px; }
+.calculated-field > span em[hidden] { display: none; }
 .quality-standard-note { margin-top: 10px; }
 .example-actions { display: grid; width: 100%; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
 .example-button {
@@ -931,7 +963,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .excavation-board > div { border-bottom: 0; }
   .excavation-board > div:nth-child(2n) { border-right: 1px solid var(--line); }
   .excavation-board > div:last-child { border-right: 0; }
-  .pouring-board { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .pouring-board { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .pouring-board > div, .pouring-board > div:last-child { grid-column: auto; border-top: 0; border-bottom: 0; border-right: 1px solid var(--line); }
   .pouring-board > div:last-child { border-right: 0; }
   /* 前置紀錄編輯列：工序、日期、起迄時間排成一列；寬度不夠放按鈕時，按鈕自己一列靠右 */
@@ -1023,6 +1055,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .print-meta-grid.three > div:nth-last-child(-n + 3) { border-bottom: 0; }
   .print-meta-grid.three > div.span-two { grid-column: span 2; border-right: 0; }
   .print-meta-grid.three > div.span-two + div, .print-meta-grid.three > div:has(+ .span-two:last-child) { border-right: 0.5pt solid #888; }
+  /* 最後一列是「一格＋span-two」時只有兩個 cell：倒數第 3 格其實在上一列，底線要留著。 */
+  .print-meta-grid.three > div:nth-last-child(3):has(+ div + .span-two:last-child) { border-bottom: 0.5pt solid #888; }
   .print-meta-grid span { display: block; color: #555; font-size: 6.5pt; }
   .print-meta-grid strong { display: block; margin-top: 1mm; font-size: 9pt; }
   .print-section { margin-top: 4mm; }
@@ -1056,6 +1090,18 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .print-signature-grid > div > span:last-child { display: block; }
   .print-page { break-inside: auto; }
   .print-table tr, .print-footer { break-inside: avoid; }
+  /* ---- 鋼筋籠照片頁：分頁後頁盒是固定高度，照片區 flex:1 吃掉表頭與簽名欄之間的高度，三列各 1/3；
+     量測時（data-measuring）頁高放開，照片區改固定高度，才不會被三張原尺寸圖撐爆而被分頁器搬走。 ---- */
+  .print-photo-section { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; }
+  .print-photo-grid { flex: 1 1 auto; display: grid; grid-template-columns: 14mm minmax(0, 1fr); grid-template-rows: repeat(3, minmax(0, 1fr)); min-height: 0; border: 0.5pt solid #888; border-top: 0; }
+  body[data-print-scope] .print-page[data-measuring] .print-photo-grid { flex: 0 0 auto; height: 160mm; }
+  .print-photo-grid > div { min-height: 0; border-bottom: 0.5pt solid #888; }
+  .print-photo-grid > div:nth-last-child(-n + 2) { border-bottom: 0; }
+  .print-photo-no { display: flex; align-items: center; justify-content: center; border-right: 0.5pt solid #888; font-family: var(--glass-font-num); font-size: 12pt; font-weight: 600; color: #333; }
+  .print-photo-cell { display: flex; flex-direction: column; padding: 2mm; overflow: hidden; }
+  .print-photo-caption { flex: 0 0 auto; margin-bottom: 1.5mm; font-size: 8.5pt; }
+  .print-photo-image { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; min-height: 0; }
+  .print-photo-image img { max-width: 100%; max-height: 100%; object-fit: contain; }
   .pouring-wall-full { width: 100%; }
   .pouring-wall-full .print-meta-grid.three { grid-template-columns: repeat(9, minmax(0, 1fr)); }
   .pouring-wall-full .print-meta-grid > div { min-height: 8mm; padding: .8mm .8mm; }

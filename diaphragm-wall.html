@@ -75,11 +75,11 @@
             <label class="field"><span>單元編號</span><input type="text" data-bind="wall.unitNo" placeholder="例如：21" /></label>
             <label class="field"><span>順序編號</span><input type="text" data-bind="wall.sequenceNo" inputmode="numeric" placeholder="例如：03" /></label>
             <label class="field"><span>設計深度（GL, m）</span><input type="number" step="0.01" inputmode="decimal" data-bind="wall.designDepth" placeholder="例如：-39.5" /></label>
-            <label class="field"><span>混凝土強度（kgf/cm2）</span><input type="text" data-bind="wall.strength" placeholder="例如：350" /></label>
+            <label class="field field-with-unit"><span>混凝土強度</span><span class="field-unit-row"><input type="text" inputmode="decimal" data-bind="wall.strength" placeholder="例如：350" /><select data-bind="wall.strengthUnit" aria-label="混凝土強度單位"><option value="kgf/cm²">kgf/cm²</option><option value="psi">psi</option></select></span></label>
             <label class="field"><span>壁厚（m）</span><input type="number" min="0" step="0.01" inputmode="decimal" data-bind="wall.thickness" /></label>
             <label class="field"><span>單元長度（m）</span><input type="number" min="0" step="0.01" inputmode="decimal" data-bind="wall.length" /></label>
             <label class="field"><span>澆置頂端高程（GL, m）</span><input type="number" step="0.01" inputmode="decimal" data-bind="wall.topElevation" placeholder="例如：-0.50" /></label>
-            <label class="field"><span>實際數量（m³）</span><input type="number" min="0" step="0.01" inputmode="decimal" data-bind="wall.actualVolume" /></label>
+            <label class="field"><span>實際數量（m³）<em hidden>自動（澆置紀錄）</em></span><input type="number" min="0" step="0.01" inputmode="decimal" data-bind="wall.actualVolume" /></label>
             <label class="field calculated-field"><span>設計澆置高度（m）<em>自動</em></span><input id="design-height-value" type="number" min="0" step="0.01" inputmode="decimal" readonly /></label>
             <label class="field calculated-field"><span>設計數量（m³）<em>自動</em></span><input type="number" min="0" step="0.01" inputmode="decimal" data-bind="wall.designVolume" readonly /></label>
           </div>
@@ -158,6 +158,7 @@
             <div><dt>預估高度</dt><dd id="pour-expected">— <small>m</small></dd></div>
             <div><dt>最後實測</dt><dd id="pour-measured">— <small>m</small></dd></div>
             <div id="pour-difference-cell"><dt>高度差異</dt><dd id="pour-difference">— <small>m</small></dd></div>
+            <div id="pour-volume-difference-cell"><dt>數量差異</dt><dd id="pour-volume-difference">— <small>%</small></dd></div>
           </dl>
           <div class="record-heading pouring-record-heading"><div><span>逐車</span><h3>混凝土車次</h3></div><button class="add-button" id="add-truck" type="button" aria-label="新增混凝土車次"><span aria-hidden="true">＋</span> 新增車次</button></div>
           <div class="record-list truck-list" id="truck-list"></div>
@@ -195,6 +196,7 @@
             <button id="tab-cage-meta" role="tab" type="button" data-tab="cage-meta" aria-controls="panel-cage-meta" aria-selected="true" tabindex="0">基本資料</button>
             <button id="tab-cage-rebar" role="tab" type="button" data-tab="cage-rebar" aria-controls="panel-cage-rebar" aria-selected="false" tabindex="-1">配筋抽查明細</button>
             <button id="tab-cage-check" role="tab" type="button" data-tab="cage-check" aria-controls="panel-cage-check" aria-selected="false" tabindex="-1">組裝與吊放條件</button>
+            <button id="tab-cage-photos" role="tab" type="button" data-tab="cage-photos" aria-controls="panel-cage-photos" aria-selected="false" tabindex="-1">匯入照片</button>
           </div>
         </nav>
 
@@ -237,6 +239,15 @@
             <div class="check-card-list" id="rebar-cage-check-list"></div>
             <label class="field note-field"><span>複核意見／備註</span><textarea data-check-bind="rebarCage.note" rows="3"></textarea></label>
           </section>
+
+          <section class="tab-panel" id="panel-cage-photos" role="tabpanel" aria-labelledby="tab-cage-photos" hidden>
+            <div class="panel-heading">
+              <div><span>03</span><h2>匯入照片</h2></div>
+              <button class="add-button" id="cage-photo-add" type="button" aria-label="匯入照片"><span aria-hidden="true">＋</span> 匯入</button>
+            </div>
+            <div class="photo-panel" id="cage-photo-list"></div>
+            <input type="file" id="cage-photo-input" accept="image/*" multiple hidden />
+          </section>
         </section>
       </section>
     </main>
@@ -269,6 +280,17 @@
           <a class="example-button" href="./example?file=rebar-cage-example"><span>鋼筋籠</span><small>範例 PDF</small></a>
         </div></section>
       </div>
+    </dialog>
+
+    <dialog class="sheet-dialog" id="cage-photo-dialog">
+      <form id="cage-photo-form" novalidate>
+        <div class="dialog-header"><div><span class="dialog-eyebrow">PHOTO NOTE</span><h2>照片備註</h2></div><button type="button" data-close-dialog aria-label="關閉">×</button></div>
+        <div class="dialog-body">
+          <img class="photo-dialog-preview" id="cage-photo-preview" alt="" />
+          <label class="field"><span>備註（輸出 PDF 時印在照片上方）</span><input type="text" id="cage-photo-caption" maxlength="60" placeholder="例如：上段籠吊放前全景" /></label>
+        </div>
+        <div class="dialog-actions"><button class="secondary-button" type="button" data-close-dialog>取消</button><button class="confirm-button" type="submit">儲存備註</button></div>
+      </form>
     </dialog>
 
     <dialog class="sheet-dialog" id="clear-dialog">
@@ -351,6 +373,7 @@
       <article class="print-page" data-print-tab="pouring" data-print-orientation="landscape" id="print-pouring"></article>
       <article class="print-page" data-print-tab="guideWall" id="print-guide-wall"></article>
       <article class="print-page" data-print-tab="rebarCage" id="print-rebar-cage"></article>
+      <article class="print-page" data-print-tab="rebarCage" id="print-rebar-cage-photos" style="display: none"></article>
     </section>
 
     <script src="./draft.js" defer></script>
@@ -358,6 +381,7 @@
     <script src="./dialog-forms.js" defer></script>
     <script src="./bar-sizes.js" defer></script>
     <script src="./rebar-cage.js" defer></script>
+    <script src="./cage-photos.js" defer></script>
     <script src="./app.js" defer></script>
     <script src="./sw-client.js" defer></script>
   </body>

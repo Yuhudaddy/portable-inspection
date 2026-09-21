@@ -161,7 +161,7 @@ def verify_roundtrip(browser, html, tool, unit_path):
     second = page.evaluate("""(payload) => { clearAllData(); importJsonPayload(JSON.parse(JSON.stringify(payload))); return exportData(); }""", first)
     check(f"{tool}：JSON 匯出 → 清空 → 匯入 → 再匯出，內容一致", strip_volatile(first) == strip_volatile(second),
           json.dumps({k: (strip_volatile(first).get(k), strip_volatile(second).get(k)) for k in strip_volatile(first) if strip_volatile(first).get(k) != strip_volatile(second).get(k)}, ensure_ascii=False)[:600])
-    check(f"{tool}：schema 1.5，導溝／鋼筋籠不再各帶 unit_no", first["schema_version"] == "1.5" and "unit_no" not in first["guide_wall_review"] and "unit_no" not in first["rebar_cage_review"], first["schema_version"])
+    check(f"{tool}：schema 1.6，導溝／鋼筋籠不再各帶 unit_no", first["schema_version"] == "1.6" and "unit_no" not in first["guide_wall_review"] and "unit_no" not in first["rebar_cage_review"], first["schema_version"])
     unit_no = page.evaluate(f"() => {unit_path}")
     check(f"{tool}：範例單元編號 21 存在壁體", unit_no == "21", unit_no)
 
@@ -198,6 +198,173 @@ def verify_roundtrip(browser, html, tool, unit_path):
     migrated = page.evaluate(f"() => ({{ unit: {unit_path}, guide: state.guideWall.unitNo, cage: state.rebarCage.unitNo, field: document.querySelector(\"#tool-rebar-cage input[data-bind='{bind}.unitNo']\")?.value, parts: state.rebarCage.parts.length, mode: state.rebarCage.mode, rebars: 'rebars' in state.rebarCage }})")
     check(f"{tool}：舊草稿的鋼筋籠 unitNo 搬到壁體並顯示在鋼筋籠表單", migrated["unit"] == "37" and migrated["guide"] is None and migrated["cage"] is None and "37" in (migrated["field"] or ""), migrated)
     check(f"{tool}：舊草稿的 rebars 丟棄、parts 重設 13 個、簡易模式", migrated["parts"] == 13 and migrated["mode"] == "simple" and not migrated["rebars"], migrated)
+    page.context.close()
+
+
+# ---------------------------------------------------------------- 本公司標準值預設改版後的舊草稿
+def verify_standard_default_migration(browser, html, tool, standards_path, json_path, seed, expected):
+    """2026-09-21 預設值改版（沉泥 15、保護層 10、籠縱向 ±2.5…）：舊草稿裡仍是舊預設的項目換成新預設，
+    使用者自己選的值保留，草稿缺的鍵補上預設；匯入 JSON 不套用（紀錄檔照原值）。"""
+    page = open_clean(browser, html)
+    page.evaluate("() => { loadExample(); draft.schedule(); }")
+    page.wait_for_timeout(700)
+    page.evaluate(f"""(seed) => {{
+      const key = Object.keys(localStorage).find(k => k.endsWith('.draft'));
+      const stored = JSON.parse(localStorage.getItem(key));
+      const standards = stored.data.{standards_path};
+      Object.assign(standards, seed);
+      delete standards.chloride;
+      localStorage.setItem(key, JSON.stringify(stored));
+    }}""", seed)
+    page.reload(wait_until="networkidle")
+    keys = list(expected)
+    after = page.evaluate(f"(keys) => Object.fromEntries(keys.map(k => [k, state.{standards_path}[k]]))", keys)
+    check(f"{tool}：舊草稿仍是舊預設的標準值換成新預設、自選值保留、缺鍵補預設", after == expected, after)
+    selector_prefix = "quality-standard" if "quality" in standards_path else "standard"
+    dropdown = page.evaluate(f"(keys) => Object.fromEntries(keys.map(k => [k, document.querySelector(`select[data-{selector_prefix}='${{k}}']`)?.value]))", keys)
+    check(f"{tool}：標準值下拉顯示遷移後的值", dropdown == expected, dropdown)
+    legacy_keys = page.evaluate("() => (typeof QUALITY_STANDARD_CONFIG === 'object' ? QUALITY_STANDARD_CONFIG : STANDARD_CONFIG).filter(i => i.legacy).map(i => i.key)")
+    file_values = {k: v for k, v in seed.items() if k in legacy_keys}
+    imported = page.evaluate(f"""(fileValues) => {{
+      clearAllData(); loadExample();
+      const data = exportData();
+      Object.entries(fileValues).forEach(([k, v]) => {{ data.{json_path}[k] = {{ value: v }}; }});
+      clearAllData(); importJsonPayload(data);
+      return Object.fromEntries(Object.keys(fileValues).map(k => [k, state.{standards_path}[k]]));
+    }}""", file_values)
+    check(f"{tool}：匯入 JSON 時標準值照檔案原值，不套用預設遷移", imported == file_values, imported)
+    page.context.close()
+
+
+# ---------------------------------------------------------------- 廠商版：澆置紀錄 ↔ 數量差異、混凝土強度單位
+def verify_vendor_links(browser):
+    """2026-09-21：混凝土實際與設計數量差異＝|實際 − 設計|／設計，實際數量由澆置紀錄累積方量帶入；
+    混凝土強度可選 kgf/cm²／psi，品質自檢第 16 項 placeholder 跟著單位。"""
+    page = open_clean(browser, "diaphragm-wall")
+    linked = page.evaluate("""() => { loadExample(); renderAll(); return {
+      actual: state.wall.actualVolume, readonly: document.querySelector('[data-bind="wall.actualVolume"]').readOnly,
+      rate: volumeDifferenceRate().toFixed(2), board: document.querySelector('#pour-volume-difference').textContent.trim(),
+      hint: document.querySelector('.quality-standard-current')?.textContent, warning: document.querySelector('#pour-warnings').textContent,
+      label: [...document.querySelectorAll('.quality-standard-field > span')].map(s => s.textContent).find(t => t.includes('數量差異')) }; }""")
+    check("廠商版：範例 8 車累積 102.26 m³ 自動帶入實際數量（唯讀），差異 3.46% 顯示在澆置看板與標準值下方", linked["actual"] == "102.26" and linked["readonly"] and linked["rate"] == "3.46" and linked["board"].startswith("3.46") and "3.46%" in (linked["hint"] or "") and "澆置紀錄累積" in linked["hint"] and "數量差異" not in linked["warning"], linked)
+    check("廠商版：標準值改名為「混凝土實際與設計數量差異上限」", linked["label"] == "混凝土實際與設計數量差異上限（%）", linked["label"])
+    exceeded = page.evaluate("""() => { state.trucks[0].volume = "20"; renderAll(); return { rate: volumeDifferenceRate().toFixed(2), warning: document.querySelector('#pour-warnings').textContent, cell: document.querySelector('#pour-volume-difference-cell').classList.contains('is-warning'), hint: document.querySelector('.quality-standard-current').className }; }""")
+    check("廠商版：累積方量超過設計 5% 時澆置看板轉警示、警示清單與標準值提示標示超過標準", exceeded["rate"] == "10.54" and "超過本公司標準值 5%" in exceeded["warning"] and exceeded["cell"] and "is-exceeded" in exceeded["hint"], exceeded)
+    manual = page.evaluate("""() => { state.trucks = []; state.wall.actualVolume = "95.00"; renderAll(); return { rate: volumeDifferenceRate().toFixed(2), readonly: document.querySelector('[data-bind="wall.actualVolume"]').readOnly, hint: document.querySelector('.quality-standard-current').textContent }; }""")
+    check("廠商版：沒有車次時用壁體資訊手填的實際數量算差異，欄位恢復可編輯", manual["rate"] == "3.89" and not manual["readonly"] and "壁體資訊實際數量" in manual["hint"], manual)
+    page.evaluate("() => { clearAllData(); loadExample(); renderAll(); showTab('pouring'); }")
+    text = pdf_text(page, "current")
+    check("廠商版：澆置紀錄 PDF 印出設計／實際數量與差異 3.46%", "102.26" in text and "3.46%" in text, text[:300])
+
+    unit = page.evaluate("""() => {
+      const select = document.querySelector('[data-bind="wall.strengthUnit"]');
+      select.value = "psi"; select.dispatchEvent(new Event("input", { bubbles: true })); select.dispatchEvent(new Event("change", { bubbles: true }));
+      const data = exportData();
+      return { placeholder: document.querySelector('[data-bind="wall.strength"]').placeholder, quality: document.querySelector('[data-quality-item="15"]').placeholder,
+        exported: [data.wall_unit.concrete_strength, data.wall_unit.concrete_strength_unit, "concrete_strength_kgf_cm2" in data.wall_unit] }; }""")
+    check("廠商版：強度單位選 psi → 強度欄與品質自檢第 16 項 placeholder 同步、JSON 帶 concrete_strength_unit", unit["placeholder"] == "例如：5000" and unit["quality"] == "填寫 GL／psi" and unit["exported"] == [350, "psi", False], unit)
+    page.evaluate("() => showTab('wall')")
+    text = pdf_text(page, "current")
+    check("廠商版：PDF 壁體資訊的強度單位跟著選項", "混凝土強度(psi)" in text.replace(" ", ""), text[:200])
+    legacy = page.evaluate("""() => { const data = exportData(); delete data.wall_unit.concrete_strength; delete data.wall_unit.concrete_strength_unit; data.wall_unit.concrete_strength_kgf_cm2 = 280; clearAllData(); importJsonPayload(data); return [state.wall.strength, state.wall.strengthUnit]; }""")
+    check("廠商版：1.5 以前的 JSON（concrete_strength_kgf_cm2）匯入後單位為 kgf/cm²", legacy == ["280", "kgf/cm²"], legacy)
+    page.context.close()
+
+    page = open_clean(browser, "diaphragm-wall-gc")
+    gc = page.evaluate("""() => {
+      loadExample(); state.unit.strengthUnit = "psi"; state.unit.strength = "5000"; updateUnitCalculation();
+      const data = exportData();
+      return { placeholder: document.querySelector('[data-bind="unit.strength"]').placeholder, exported: [data.wall_unit.concrete_strength, data.wall_unit.concrete_strength_unit] }; }""")
+    check("營造廠版：強度單位 psi → placeholder 與 JSON 同步", gc["placeholder"] == "例如：5000" and gc["exported"] == [5000, "psi"], gc)
+    text = pdf_text(page, "all")
+    check("營造廠版：查驗表 PDF 印出設計強度(psi)", "設計強度(psi)" in text.replace(" ", ""), text[:200])
+    page.context.close()
+
+
+# ---------------------------------------------------------------- 鋼筋籠照片（01／06 共用 cage-photos.js）
+def verify_cage_photos(browser, html, tool):
+    """最多 3 張、長邊縮到 1600、備註、兩段式刪除、草稿與 JSON 來回、PDF 另起一頁三列各 1/3。"""
+    page = open_clean(browser, html)
+    result = page.evaluate("""async () => {
+      const make = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; c.getContext('2d').fillStyle = '#8ab'; c.getContext('2d').fillRect(0, 0, w, h); return c; };
+      const blob = await new Promise(resolve => make(4000, 3000).toBlob(resolve, 'image/png'));
+      const data = await compressCagePhoto(new File([blob], 'big.png', { type: 'image/png' }));
+      const image = new Image(); image.src = data; await image.decode();
+      loadExample(); showTool('rebarCage'); showTab('cage-photos');
+      state.rebarCage.photos = [{ data, caption: '' }, { data: make(600, 800).toDataURL('image/jpeg', 0.8), caption: '第二張' }];
+      renderRebars();
+      const items = document.querySelectorAll('#cage-photo-list .photo-item').length;
+      document.querySelector('[data-photo-caption="0"]').click();
+      const dialogOpen = document.querySelector('#cage-photo-dialog').open;
+      document.querySelector('#cage-photo-caption').value = '上段籠全景';
+      document.querySelector('#cage-photo-form').requestSubmit();
+      state.rebarCage.photos.push({ data, caption: '' }); renderRebars();
+      const full = document.querySelector('#cage-photo-add').disabled;
+      const remove = document.querySelector('[data-photo-remove="2"]'); remove.click(); const armed = remove.classList.contains('is-armed'); remove.click();
+      const exported = exportData().rebar_cage_review.photos;
+      draft.schedule(); await new Promise(r => setTimeout(r, 700));
+      return { type: data.slice(0, 15), width: image.width, height: image.height, items, dialogOpen, caption: state.rebarCage.photos[0].caption, full, armed, after: state.rebarCage.photos.length,
+        exported: exported.map(p => [p.no, p.caption, p.image_data_url.slice(0, 15)]) };
+    }""")
+    check(f"{tool}：4000×3000 的 PNG 縮成 1600×1200 JPEG；三張時「＋匯入」停用；× 兩段式刪除", result["type"] == "data:image/jpeg" and (result["width"], result["height"]) == (1600, 1200) and result["items"] == 2 and result["full"] and result["armed"] and result["after"] == 2, result)
+    check(f"{tool}：點照片開備註對話框並存回；JSON 帶編號、備註與 data URL", result["dialogOpen"] and result["caption"] == "上段籠全景" and result["exported"] == [[1, "上段籠全景", "data:image/jpeg"], [2, "第二張", "data:image/jpeg"]], result["exported"])
+    page.reload(wait_until="networkidle")
+    restored = page.evaluate("() => ({ n: state.rebarCage.photos.length, caption: state.rebarCage.photos[0]?.caption, items: document.querySelectorAll('#cage-photo-list .photo-item').length })")
+    check(f"{tool}：草稿重新載入後照片與備註都在", restored == {"n": 2, "caption": "上段籠全景", "items": 2}, restored)
+    roundtrip = page.evaluate("() => { const data = exportData(); clearAllData(); const cleared = state.rebarCage.photos.length; importJsonPayload(data); return { cleared, n: state.rebarCage.photos.length, caption: state.rebarCage.photos[1].caption, page: document.querySelector('#print-rebar-cage-photos').style.display }; }")
+    check(f"{tool}：清空後照片歸零，匯入 JSON 回復兩張", roundtrip["cleared"] == 0 and roundtrip["n"] == 2 and roundtrip["caption"] == "第二張", roundtrip)
+    page.evaluate("() => showTool('rebarCage')")
+    text_pages = None
+    page.evaluate("() => { window.print = () => {}; return preparePrint('current'); }")
+    page.emulate_media(media="print")
+    path = OUT / f"{html}-cage-photos.pdf"
+    page.pdf(path=str(path), prefer_css_page_size=True, print_background=True)
+    doc = fitz.open(path)
+    last = doc[-1]
+    rows = [fitz.Rect(line["bbox"]) for block in last.get_text("dict")["blocks"] for line in block.get("lines", []) if "".join(sp["text"] for sp in line["spans"]).strip() in ("1", "2", "3")]
+    gaps = [round((rows[i + 1].y0 - rows[i].y0) * 25.4 / 72) for i in range(len(rows) - 1)] if len(rows) == 3 else []
+    check(f"{tool}：PDF 照片另起最後一頁，兩張圖＋簽名欄，編號 1／2／3 等距（三列各 1/3）", len(doc) >= 2 and len(last.get_images()) == 3 and "擔當者" in last.get_text() and "鋼筋籠複核照片" in last.get_text() and len(gaps) == 2 and abs(gaps[0] - gaps[1]) <= 2, {"pages": len(doc), "images": len(last.get_images()), "gaps_mm": gaps})
+    empty = page.evaluate("() => { state.rebarCage.photos = []; renderRebars(); preparePrint('current'); return { box: !!document.querySelector('.photo-upload-box'), hidden: document.querySelector('#print-rebar-cage-photos').style.display }; }")
+    check(f"{tool}：沒有照片時顯示匯入框，PDF 不印照片頁", empty == {"box": True, "hidden": "none"}, empty)
+    page.context.close()
+
+
+# ---------------------------------------------------------------- 檢查項目文字改版後的舊草稿、動態判定標準
+def verify_check_text_refresh(browser):
+    """判定標準與 placeholder 以程式定義為準：舊草稿只留 actual／result；名稱改掉的項目填值不帶入。
+    品質自檢畫面上的判定標準跟著本公司標準值與單元類型（埋入深度未選單元類型時列出三種）。"""
+    page = open_clean(browser, "diaphragm-wall")
+    page.evaluate("() => { loadExample(); draft.schedule(); }")
+    page.wait_for_timeout(700)
+    page.evaluate("""() => {
+      const key = Object.keys(localStorage).find(k => k.endsWith('.draft'));
+      const stored = JSON.parse(localStorage.getItem(key));
+      stored.data.quality.checks[4].standard = "鋪面下 50 cm～100 cm 以內";
+      stored.data.quality.checks[4].actual = "鋪面下 70 cm";
+      stored.data.quality.checks[1].placeholder = "舊 placeholder";
+      stored.data.guideWall.checks[3].standard = "舊的深度標準";
+      stored.data.guideWall.checks[3].actual = "1.9 m";
+      stored.data.guideWall.checks[0] = { item: "已改名的項目", standard: "x", actual: "不該帶入", result: "符合" };
+      localStorage.setItem(key, JSON.stringify(stored));
+    }""")
+    page.reload(wait_until="networkidle")
+    after = page.evaluate("""() => ({
+      q5: [state.quality.checks[4].standard, state.quality.checks[4].actual], q2: state.quality.checks[1].placeholder,
+      g4: [state.guideWall.checks[3].standard, state.guideWall.checks[3].actual], g1: [state.guideWall.checks[0].item, state.guideWall.checks[0].actual, state.guideWall.checks[0].result],
+      count: [state.quality.checks.length, state.guideWall.checks.length, state.rebarCage.checks.length] })""")
+    check("廠商版：舊草稿的判定標準／placeholder 換成程式定義，actual 保留；改名項目的填值不帶入", after["q5"] == ["高於地下水位 1.0 m 以上，且不低於導溝頂下 80 cm", "鋪面下 70 cm"] and after["q2"] == "例如：沉泥 12 cm" and after["g4"][1] == "1.9 m" and "1.8 m" in after["g4"][0] and after["g1"] == ["放樣", "", "待確認"] and after["count"] == [18, 11, 7], after)
+    dynamic = page.evaluate("""() => {
+      const text = i => document.querySelectorAll('#quality-check-list .quality-card p')[i].textContent;
+      state.wall.unitType = ""; renderQuality();
+      const none = text(16);
+      state.wall.unitType = "母單元"; state.quality.standards.embedmentFemale = "2.0"; renderQuality();
+      return { none, chosen: text(16), sediment: text(1), tremie: text(9), slump: text(14) }; }""")
+    check("廠商版：品質自檢畫面的判定標準跟著本公司標準值（沉泥 15、端距 50、坍度 20±2）", dynamic["sediment"] == "沉泥厚度 ≤ 15 cm" and dynamic["tremie"] == "特密管端距 ≤ 50 cm" and dynamic["slump"].startswith("坍度 20 cm；允許誤差 2 cm"), dynamic)
+    check("廠商版：埋入深度未選單元類型時列出公／母／公母三種標準值，選了就只顯示該類型", dynamic["none"].startswith("依壁體資訊的單元類型套用：公單元 ≥ 1.5 m／母單元 ≥ 1.5 m／公母單元 ≥ 1.5 m") and dynamic["chosen"] == "母單元：埋入深度 ≥ 2.0 m", dynamic)
+    spin = page.evaluate("""() => { const rules = [...document.styleSheets].flatMap(sheet => { try { return [...sheet.cssRules]; } catch (e) { return []; } });
+      const spinRule = rules.find(rule => rule.selectorText?.includes('::-webkit-inner-spin-button'));
+      return [spinRule?.style.getPropertyValue('-webkit-appearance'), getComputedStyle(document.querySelector('input[type="number"]')).getPropertyValue('appearance')]; }""")
+    check("數字欄位不顯示上下微調按鈕（glass.css）", spin == ["none", "textfield"], spin)
     page.context.close()
 
 
@@ -465,6 +632,18 @@ try:
         verify_roundtrip(browser, "diaphragm-wall", "廠商版", "state.wall.unitNo")
         verify_roundtrip(browser, "diaphragm-wall-gc", "營造廠版", "state.unit.unitNo")
         verify_gc_hold_migration(browser)
+        verify_standard_default_migration(
+            browser, "diaphragm-wall", "廠商版", "quality.standards", "quality_self_check.standards",
+            seed={"cageLongitudinalTolerance": "±7.5", "slump": "18", "sediment": "10", "cover": "5", "volumeDifference": "15"},
+            expected={"cageLongitudinalTolerance": "±2.5", "slump": "20", "sediment": "15", "cover": "5", "volumeDifference": "15", "chloride": "0.15"})
+        verify_standard_default_migration(
+            browser, "diaphragm-wall-gc", "營造廠版", "standards", "standards",
+            seed={"sediment": "10", "rollerSpacing": "4", "cover": "7.5", "tremieInitialMin": "10", "tremieInitialMax": "20", "overbreakMin": "5", "overbreakMax": "15", "slump": "19"},
+            expected={"sediment": "15", "rollerSpacing": "3", "cover": "10", "tremieInitialMin": "30", "tremieInitialMax": "50", "overbreakMin": "-5", "overbreakMax": "5", "slump": "19", "chloride": "0.15"})
+        verify_vendor_links(browser)
+        verify_check_text_refresh(browser)
+        verify_cage_photos(browser, "diaphragm-wall", "廠商版")
+        verify_cage_photos(browser, "diaphragm-wall-gc", "營造廠版")
         verify_bar_sizes(browser)
         verify_rebar_cage_helpers(browser)
         verify_rebar_cage_ui(browser, "diaphragm-wall-gc")

@@ -27,7 +27,9 @@ window.PLAN_FIGURES = window.PLAN_FIGURES || {};
     const { fill = "none", stroke = INK, width = 1, dash = null, rx = 0 } = options;
     return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${fill}" stroke="${stroke}" stroke-width="${width}"${dash ? ` stroke-dasharray="${dash}"` : ""} />`;
   };
-  const badge = (x, y, label) => `<circle cx="${x}" cy="${y}" r="8" fill="#fff" stroke="${INK}" stroke-width="1.2" />${text(x, y + 4, label, { size: 10, anchor: "middle", weight: "bold" })}`;
+  const badge = (x, y, label, color = INK) => `<circle cx="${x}" cy="${y}" r="8" fill="#fff" stroke="${color}" stroke-width="1.4" />${text(x, y + 4, label, { size: 10, anchor: "middle", weight: "bold", fill: color })}`;
+  // 五條異常曲線的顏色：固定順序、色盲可分（已跑 dataviz 驗證），線型與字母標記另作第二層辨識，黑白列印也分得開
+  const SERIES = { A: "#2a78d6", B: "#c98500", C: "#d55181", D: "#008300", E: "#4a3aa7" };
   const defs = `<defs>
     <marker id="pf-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="${INK}" /></marker>
     <pattern id="pf-slurry" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="#9a9a9a" stroke-width="1" /></pattern>
@@ -60,8 +62,9 @@ window.PLAN_FIGURES = window.PLAN_FIGURES || {};
     parts.push(text(X(100) + 4, Y(2) + 4, "標準線", { size: 10, weight: "bold" }));
     // A 漏漿：量增加、面不升，之後平行標準線
     const curve = (points, dash, tag, tagAt, note, noteAt) => {
-      parts.push(poly(points.map(([v, d]) => [X(v), Y(d)]), { width: 1.5, dash }));
-      parts.push(badge(X(tagAt[0]), Y(tagAt[1]), tag));
+      const color = SERIES[tag];
+      parts.push(poly(points.map(([v, d]) => [X(v), Y(d)]), { width: 1.8, dash, color }));
+      parts.push(badge(X(tagAt[0]), Y(tagAt[1]), tag, color));
       if (note) parts.push(text(X(noteAt[0]), Y(noteAt[1]), note, { size: 9.5, fill: SOFT }));
     };
     curve([[28.6, 25], [40, 25], parallelTo(40, 25)], "6 3", "A", [22, 25], "量增加、面不升", [41, 26.4]);
@@ -70,12 +73,12 @@ window.PLAN_FIGURES = window.PLAN_FIGURES || {};
     curve([[71.4, 10], [90, 0]], "1 3", "D", [76, 5.2], "斜率變大到地表", [80, 7.6]);
     curve([[62.9, 13], [70, 18], parallelTo(70, 18)], "8 2 2 2 2 2", "E", [76, 16], "面突然下降", [72, 20]);
     // 圖例
-    const legend = [["標準線：無瑕疵時各深度對應的估計累積用量", null, 1.8], ["A 漏漿（母單元）", "6 3", 1.5], ["B 坍孔", "2 3", 1.5], ["C 包穩定液／包空氣", "8 3 2 3", 1.5], ["D 槽壁內縮", "1 3", 1.5], ["E 爆模、端鈑開裂或側移", "8 2 2 2 2 2", 1.5]];
-    legend.forEach(([label, dash, width], index) => {
+    const legend = [["標準線：無瑕疵時各深度對應的估計累積用量", null, 1.8, INK], ["A 漏漿（母單元）", "6 3", 1.8, SERIES.A], ["B 坍孔", "2 3", 1.8, SERIES.B], ["C 包穩定液／包空氣", "8 3 2 3", 1.8, SERIES.C], ["D 槽壁內縮", "1 3", 1.8, SERIES.D], ["E 爆模、端鈑開裂或側移", "8 2 2 2 2 2", 1.8, SERIES.E]];
+    legend.forEach(([label, dash, width, color], index) => {
       const col = index === 0 ? 0 : (index - 1) % 3;
       const row = index === 0 ? 0 : 1 + Math.floor((index - 1) / 3);
       const x = L + col * 182, y = B + 52 + row * 16;
-      parts.push(line(x, y - 4, x + 26, y - 4, { width, dash }));
+      parts.push(line(x, y - 4, x + 26, y - 4, { width, dash, color }));
       parts.push(text(x + 32, y, label, { size: 10 }));
     });
     return svg(W, H, parts.join(""), "澆置曲線判讀示意圖");
@@ -198,9 +201,9 @@ window.PLAN_FIGURES = window.PLAN_FIGURES || {};
     const vAt = y => 250 + (bottom - y) / (bottom - top) * 140;
     const shift = 46;
     const endY = bandTop - (390 - vAt(bandTop) - shift) * (bottom - top) / 140;
-    parts.push(poly([[250, bottom], [vAt(bandBottom), bandBottom], [vAt(bandBottom) + shift, bandTop], [390, Math.max(top, endY)]], { width: 1.6, dash: "5 3" }));
+    parts.push(poly([[250, bottom], [vAt(bandBottom), bandBottom], [vAt(bandBottom) + shift, bandTop], [390, Math.max(top, endY)]], { width: 1.8, dash: "5 3", color: SERIES.B }));
     parts.push(text(372, 60, "設計", { size: 9, anchor: "end", fill: SOFT }));
-    parts.push(text(386, 108, "實際", { size: 9, anchor: "end" }));
+    parts.push(text(386, 108, "實際", { size: 9, anchor: "end", fill: SERIES.B }));
     parts.push(text(268, 148, "用量增加", { size: 9.5 }));
     parts.push(text(268, 160, "（斜率變小）", { size: 9, fill: SOFT }));
     parts.push(text(320, 290, "同一深度段多用了混凝土", { size: 9.5, anchor: "middle", fill: SOFT }));

@@ -17,8 +17,8 @@
 .compact-measure-grid > .field:nth-child(3) { border-top: 1px solid var(--line); }
 .steel-meta-grid > .field > span, .steel-measure-grid > .field > span { font-size: 0.6875rem; font-weight: 500; }
 .steel-meta-grid > .field input, .steel-measure-grid > .field input,
-.steel-meta-grid > .field select, .steel-measure-grid > .field select { width: calc(100% + 20px); min-height: 32px; margin: 0 -10px; padding: 0 10px; border-radius: 10px; background: transparent; font-size: 1rem; }
-.steel-meta-grid > .field select, .steel-measure-grid > .field select { padding-right: 20px; }
+.steel-meta-grid > .field select, .steel-measure-grid > .field select { width: calc(100% + 20px); min-height: 32px; margin: 0 -10px; padding: 0 10px; border-radius: 10px; background-color: transparent; font-size: 1rem; }
+.steel-meta-grid > .field select, .steel-measure-grid > .field select { padding-right: 24px; }
 .steel-meta-grid > .field input[type="date"], .steel-measure-grid > .field input[type="date"] { height: 32px; max-height: 32px; }
 .steel-meta-grid .native-field-display, .steel-measure-grid .native-field-display { height: 32px; padding: 0; font-size: 1rem; }
 

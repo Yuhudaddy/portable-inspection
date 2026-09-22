@@ -61,10 +61,11 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .form-grid > :first-child:not(.span-two) + .field:not(.span-two) { border-top: 0; }
 .field > span { color: var(--glass-label); font-size: .71875rem; font-weight: 600; }
 .form-grid > .field > span { font-size: .6875rem; font-weight: 500; }
-.field input:not([type="radio"]), .field select, .field textarea { width: 100%; min-width: 0; min-height: 44px; padding: 8px 12px; border: 1px solid transparent; border-radius: var(--glass-radius-sm); background: var(--glass-sunken); color: var(--glass-ink); font-size: 1rem; }
+.field input:not([type="radio"]), .field select, .field textarea { width: 100%; min-width: 0; min-height: 44px; padding: 8px 12px; border: 1px solid transparent; border-radius: var(--glass-radius-sm); background-color: var(--glass-sunken); color: var(--glass-ink); font-size: 1rem; }
 /* 清單式欄位：框往兩側各多出 10px，文字位置不變，聚焦時整顆框浮現。 */
-.form-grid > .field input, .form-grid > .field select, .form-grid > .field textarea { width: calc(100% + 20px); min-height: 32px; margin: 0 -10px; padding: 0 10px; border-radius: 10px; background: transparent; }
-.form-grid > .field select { padding-right: 20px; }
+.form-grid > .field input, .form-grid > .field select, .form-grid > .field textarea { width: calc(100% + 20px); min-height: 32px; margin: 0 -10px; padding: 0 10px; border-radius: 10px; background-color: transparent; }
+.field select { padding-right: 26px; }
+.form-grid > .field select { padding-right: 24px; }
 .field textarea { min-height: 76px; resize: vertical; }
 .field input::placeholder, .field textarea::placeholder { color: var(--glass-placeholder); }
 .field input[type="date"] { display: block; width: 100%; max-width: 100%; min-width: 0; height: 44px; max-height: 44px; padding: 0; overflow: hidden; color: transparent; -webkit-text-fill-color: transparent; -webkit-text-size-adjust: 100%; }
@@ -102,7 +103,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .member-selector-row { align-items: center; margin-bottom: 10px; padding: 8px 16px; border-radius: var(--glass-radius-lg); background: var(--glass-card-bg); box-shadow: var(--glass-card-shadow); }
 .member-selector-row .field { flex: 0 1 300px; gap: 2px; }
 .member-selector-row .field > span { font-size: .6875rem; font-weight: 500; }
-.member-selector-row .field select { width: calc(100% + 20px); min-height: 32px; margin: 0 -10px; padding: 0 20px 0 10px; border-radius: 10px; background: transparent; }
+.member-selector-row .field select { width: calc(100% + 20px); min-height: 32px; margin: 0 -10px; padding: 0 24px 0 10px; border-radius: 10px; background-color: transparent; }
 .selection-summary { max-width: 48%; color: var(--glass-muted); font-size: .6875rem; text-align: right; }
 
 /* ---- 統計列 + 查驗項目清單 ------------------------------------------------ */
@@ -129,6 +130,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .check-card > .field { gap: 0; }
 .check-card .field > span,
 .check-card .field input, .check-card .field select { min-height: 42px; padding: 0 14px; border-radius: 999px; font-size: .875rem; }
+.check-card .field select { padding-right: 26px; }
 .check-card .result-field { position: relative; flex: 0 0 auto; }
 .check-card.is-failed { background: var(--glass-danger-wash); }
 .check-card.is-failed .field input { background: #fff; }
@@ -151,8 +153,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .decision-panel { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: 0 12px; margin: 24px 0 0; padding: 6px 16px; border-radius: var(--glass-radius-lg); background: var(--glass-card-bg); box-shadow: var(--glass-card-shadow); }
 .decision-panel > .field { gap: 2px; padding: 10px 0; }
 .decision-panel > .field > span { font-size: .6875rem; font-weight: 500; }
-.decision-panel > .field select, .decision-panel > .field textarea { width: calc(100% + 20px); min-height: 32px; margin: 0 -10px; padding: 0 10px; border-radius: 10px; background: transparent; }
-.decision-panel > .field select { padding-right: 20px; }
+.decision-panel > .field select, .decision-panel > .field textarea { width: calc(100% + 20px); min-height: 32px; margin: 0 -10px; padding: 0 10px; border-radius: 10px; background-color: transparent; }
+.decision-panel > .field select { padding-right: 24px; }
 .demolition-section { padding-top: 0; }
 .danger-button { background: var(--glass-danger); color: #fff; box-shadow: 0 4px 12px oklch(58% 0.13 30 / 0.3); }
 .note-field { display: grid; gap: 4px; margin-top: 10px; padding: 12px 16px 14px; border-radius: var(--glass-radius-lg); background: var(--glass-card-bg); box-shadow: var(--glass-card-shadow); }

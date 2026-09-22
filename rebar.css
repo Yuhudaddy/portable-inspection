@@ -7,6 +7,7 @@
 .bar-entry { display: grid; grid-template-columns: 1.1fr .9fr .9fr .9fr 1.3fr auto; gap: 7px; align-items: end; padding: 10px; border-radius: var(--glass-radius-sm); background: var(--glass-sunken); box-shadow: var(--glass-hairline); }
 .bar-entry .field > span { font-size: .625rem; }
 .bar-entry .field input, .bar-entry .field select { min-height: 40px; padding: 6px 10px; font-size: .875rem; }
+.bar-entry .field select { padding-right: 24px; }
 .bar-remove { min-height: 40px; padding: 5px 10px; border: 0; background: transparent; color: var(--glass-muted); font-size: .6875rem; text-decoration: underline; white-space: nowrap; }
 
 /* 批次配筋明細：桌面以矩陣快速輸入，手機以橫向摘要＋展開編輯 */
@@ -16,7 +17,7 @@
 .batch-count input { width: 66px; min-height: 36px; padding: 6px 8px; border: 0; border-radius: var(--glass-radius-sm); background: var(--glass-sunken); color: var(--glass-ink); font: inherit; }
 .member-batch-toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: -2px 0 12px; padding: 10px 12px; border-radius: var(--glass-radius-sm); background: var(--glass-sunken); color: var(--glass-muted); font-size: .6875rem; }
 .member-batch-toolbar > span:first-child { color: var(--glass-ink); font-weight: 700; }
-.member-batch-toolbar select { min-height: 34px; padding: 5px 8px; border: 0; border-radius: var(--glass-radius-sm); background: #fff; color: var(--glass-ink); font: inherit; }
+.member-batch-toolbar select { min-height: 34px; padding: 5px 22px 5px 8px; border: 0; border-radius: var(--glass-radius-sm); background-color: #fff; color: var(--glass-ink); font: inherit; }
 .batch-hint { margin-left: auto; }
 /* grid-column 佔滿：template.css 在 ≥640px 會把 .member-list 切成兩欄，表格不能只拿一半 */
 .member-table-wrap { grid-column: 1 / -1; overflow-x: auto; border-radius: var(--glass-radius-md); background: #fff; box-shadow: var(--glass-card-shadow); }
@@ -34,7 +35,8 @@
 .member-matrix th:nth-child(9), .member-matrix td:nth-child(9) { width: 240px; }
 .member-matrix th:nth-child(10), .member-matrix td:nth-child(10) { width: 84px; }
 .member-matrix th:nth-child(11), .member-matrix td:nth-child(11) { width: 90px; }
-.member-matrix input, .member-matrix select { box-sizing: border-box; width: 100%; min-width: 0; min-height: 34px; padding: 5px 8px; border: 0; border-radius: 8px; background: rgba(60, 50, 30, 0.05); color: var(--glass-ink); font: inherit; font-size: .75rem; }
+.member-matrix input, .member-matrix select { box-sizing: border-box; width: 100%; min-width: 0; min-height: 34px; padding: 5px 8px; border: 0; border-radius: 8px; background-color: rgba(60, 50, 30, 0.05); color: var(--glass-ink); font: inherit; font-size: .75rem; }
+.member-matrix select { padding-right: 22px; }
 .member-matrix input:focus, .member-matrix select:focus, .member-batch-toolbar select:focus, .batch-count input:focus { outline: 2px solid var(--glass-accent); outline-offset: 1px; }
 .member-bars-summary { color: var(--glass-muted); line-height: 1.45; word-break: break-word; }
 .member-actions { white-space: nowrap; }

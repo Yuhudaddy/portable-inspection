@@ -54,6 +54,11 @@ body { margin: 0; background: var(--glass-page-bg); background-image: var(--glas
 .plan-diagram-body { width: 100%; max-width: 640px; margin: 0 auto; }
 .plan-diagram-body svg { display: block; width: 100%; height: auto; }
 .plan-diagram .plan-note { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--glass-line); line-height: 1.6; }
+/* 許可差表：最後一欄放小示意圖，欄寬固定，圖滿版縮放 */
+.plan-table-figure td { vertical-align: middle; }
+.plan-table-figure .plan-col-figure { width: 200px; }
+.plan-table-figure .plan-cell-figure { padding: 6px 10px; }
+.plan-table-figure .plan-cell-figure svg { display: block; width: 100%; height: auto; }
 .plan-sources { margin: 0; padding-left: 1.4em; font-size: 0.8125rem; line-height: 1.7; color: var(--glass-soft); }
 .link-button { border: 0; background: transparent; padding: 0; font: inherit; font-size: 0.75rem; color: var(--glass-danger-ink); cursor: pointer; }
 
@@ -115,6 +120,7 @@ body { margin: 0; background: var(--glass-page-bg); background-image: var(--glas
   .plan-article h2 { font-size: 13pt; break-after: avoid; }
   .plan-article h3 { font-size: 11pt; break-after: avoid; }
   .plan-table { font-size: 9.5pt; min-width: 0; }
+  .plan-table-figure .plan-col-figure, .plan-table-figure .plan-cell-figure { width: 46mm; }
   .table-scroll, .plan-figure { overflow: visible; }
   .plan-table th, .plan-table td { border-bottom: 0.5pt solid #999; }
   .plan-table th { background: #f2f2f2; }

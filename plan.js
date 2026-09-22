@@ -56,6 +56,11 @@ function blockHtml(block) {
       const drawn = window.PLAN_FIGURES?.[block.figure]?.() || "";
       return `<figure class="plan-figure plan-diagram">${block.caption ? `<figcaption>${esc(block.caption)}</figcaption>` : ""}<div class="plan-diagram-body">${drawn}</div>${block.note ? `<p class="plan-note">${esc(block.note)}</p>` : ""}</figure>`;
     }
+    case "figureTable": {
+      const head = block.head.map(cell => `<th>${esc(cell)}</th>`).join("") + `<th class="plan-col-figure">示意圖</th>`;
+      const rows = block.rows.map(row => `<tr>${row.cells.map(cell => `<td>${esc(cell)}</td>`).join("")}<td class="plan-cell-figure">${window.PLAN_FIGURES?.[row.figure]?.() || ""}</td></tr>`).join("");
+      return `<figure class="plan-figure plan-figure-table">${block.caption ? `<figcaption>${esc(block.caption)}</figcaption>` : ""}<table class="plan-table plan-table-figure"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>${block.note ? `<p class="plan-note">${esc(block.note)}</p>` : ""}</figure>`;
+    }
     case "table": return `<figure class="plan-figure">${block.caption ? `<figcaption>${esc(block.caption)}</figcaption>` : ""}<table class="plan-table"><thead><tr>${block.head.map(cell => `<th>${esc(cell)}</th>`).join("")}</tr></thead><tbody>${block.rows.map(row => `<tr>${row.map(cell => `<td>${esc(cell)}</td>`).join("")}</tr>`).join("")}</tbody></table>${block.note ? `<p class="plan-note">${esc(block.note)}</p>` : ""}</figure>`;
     default: return "";
   }

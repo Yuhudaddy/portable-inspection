@@ -4,7 +4,7 @@ const localDate = new Date();
 const today = `${localDate.getFullYear()}-${String(localDate.getMonth() + 1).padStart(2, "0")}-${String(localDate.getDate()).padStart(2, "0")}`;
 
 const COMMON_CHECKS = [
-  ["setout", "放樣線與標示", "軸線、邊線、中心線及完成面標示完成；一般放樣誤差控制於 ±2 mm 內", "填寫實測偏差（mm）"],
+  ["setout", "放樣線與標示", "軸線、邊線、中心線及完成面標示完成；一般放樣誤差控制於 ±0.2 cm 內", "填寫實測偏差（cm）"],
   ["condition", "模板外觀與使用狀態", "模板無過度破損、翹曲、變形或影響混凝土外觀與尺寸之情形", "填寫模板狀況"],
   ["releaseAgent", "脫模劑", "使用經核准之水性或油性脫模劑，塗布均勻且未污染鋼筋、預埋件及施工縫", "水性／油性／不適用"],
   ["bottomStop", "柱牆底擋板／壓條", "位置、高程及固定方式符合施工圖，無漏漿疑慮", "填寫位置／高程確認"],
@@ -20,14 +20,14 @@ const COMMON_CHECKS = [
 const TYPE_CHECKS = {
   柱: [
     ["cleaningOpening", "柱模清潔口", "澆置前清潔口已預留並完成清理", "填寫清潔口狀況"],
-    ["columnSupport", "柱模側向支撐與槽鋼", "側向支撐、槽鋼固定及間距符合支撐計畫", "填寫實測間距（mm）"],
-    ["columnSection", "柱模斷面尺寸", "柱寬、柱深及位置符合施工圖", "填寫設計／實測尺寸（mm）"]
+    ["columnSupport", "柱模側向支撐與槽鋼", "側向支撐、槽鋼固定及間距符合支撐計畫", "填寫固定狀況；間距記於尺寸複核"],
+    ["columnSection", "柱模斷面尺寸", "柱寬、柱深及位置符合施工圖", "填寫設計／實測尺寸（cm）"]
   ],
   牆: [
     ["vIron", "牆模 V 型鐵擋", "V 型鐵擋方向正確，澆置時不致造成填充不全", "填寫方向確認"],
     ["wallOpening", "牆面預留開孔", "開孔位置、尺寸及防脹隆措施符合圖說", "填寫開孔確認結果"],
     ["wallSupport", "牆／電梯模板支撐", "側向及電梯模板支撐符合安全計畫", "填寫支撐確認結果"],
-    ["wallDimension", "牆厚與垂直度", "牆厚、牆面垂直度及完成面位置符合圖說與許可差", "填寫設計／實測尺寸（mm）"]
+    ["wallDimension", "牆厚與垂直度", "牆厚、牆面垂直度及完成面位置符合圖說與許可差", "填寫設計／實測尺寸（cm）"]
   ],
   梁: [
     ["camber", "梁模預拱", "依圖說或施工計畫確認是否需要預拱", "填寫預拱值或不適用"],
@@ -36,7 +36,8 @@ const TYPE_CHECKS = {
     ["beamBottom", "梁底模與支撐", "梁底模清潔完成，梁底支撐及大、小梁間距符合計畫", "填寫清潔／間距確認"]
   ],
   板: [
-    ["hangingForm", "吊模", "吊模位置、標高及固定方式符合圖說", "填寫吊模確認結果"],
+    ["translucent", "透光模板", "經工程司確認可適當使用透光模板；使用位置與範圍符合核可條件", "可／不可／未使用"],
+    ["hangingForm", "吊模", "吊模位置、標高及固定方式符合圖說", "有／無／二次"],
     ["slabJoint", "施工縫／伸縮縫", "位置、標高及固定方式符合圖說；斷熱材已依詳圖設置", "填寫位置或不適用"],
     ["slabOpening", "板上開口與預留", "開口位置、尺寸及補強需求符合圖說", "填寫開口確認結果"],
     ["slabLoad", "板上材料堆置", "材料堆置符合載重限制與施工計畫", "填寫材料堆置狀況"],
@@ -64,22 +65,25 @@ const RELEASE_CHECKS = [
 ];
 
 const TYPE_MEASURES = {
-  柱: ["vertical", "sectionWidth", "sectionHeight"],
-  牆: ["vertical", "sectionWidth", "sectionHeight"],
-  梁: ["position", "elevation", "sectionWidth", "sectionHeight"],
-  板: ["elevation", "sectionWidth"],
+  柱: ["vertical", "sectionWidth", "sectionHeight", "channelSpacing"],
+  牆: ["vertical", "sectionWidth", "sectionHeight", "channelSpacing"],
+  梁: ["position", "elevation", "sectionWidth", "sectionHeight", "tieSpacing", "channelSpacing", "supportSpacing"],
+  板: ["elevation", "sectionWidth", "supportSpacing"],
   樓梯: ["elevation", "stairRise", "stairRun"],
   其他: ["position", "elevation", "sectionWidth"]
 };
 
 const MEASURE_LABELS = {
-  position: ["構件位置偏差", "mm", "軸線／邊界偏差，預設 ±25 mm"],
-  elevation: ["高程差", "mm", "樓板、梁底或完成面高程，預設 ±20 mm"],
-  vertical: ["垂直度偏差", "mm", "依檢查高度及公司標準調整"],
-  sectionWidth: ["斷面寬度／厚度", "mm", "依設計尺寸區間判定"],
-  sectionHeight: ["斷面高度", "mm", "依設計尺寸區間判定"],
-  stairRise: ["相鄰階高差", "mm", "預設 ±3 mm"],
-  stairRun: ["相鄰階深差", "mm", "預設 ±6 mm"]
+  position: ["構件位置偏差", "cm", "軸線／邊界偏差，預設 ±2.5 cm"],
+  elevation: ["高程差", "cm", "樓板、梁底或完成面高程，預設 ±2.0 cm"],
+  vertical: ["垂直度偏差", "cm", "依檢查高度及公司標準調整"],
+  sectionWidth: ["斷面寬度／厚度", "cm", "依設計尺寸區間判定"],
+  sectionHeight: ["斷面高度", "cm", "依設計尺寸區間判定"],
+  stairRise: ["相鄰階高差", "cm", "預設 ±0.3 cm"],
+  stairRun: ["相鄰階深差", "cm", "預設 ±0.6 cm"],
+  tieSpacing: ["梁側螺桿間距", "cm", "實測不得大於設計間距"],
+  channelSpacing: ["槽鋼間距", "cm", "實測不得大於設計間距"],
+  supportSpacing: ["支撐間距", "cm", "實測不得大於設計間距"]
 };
 
 const TAB_LABELS = { overview: "工程概要", members: "構件資訊", install: "模板安裝", measure: "尺寸複核", release: "放行／拆模" };
@@ -95,6 +99,7 @@ function createState() {
     overview: { project: "", contractor: "", date: today, inspectionDate: today, reviewer: "", floor: "", area: "", drawing: "", stage: "模板組立完成" },
     members: [createMember()],
     activeMember: 0,
+    units: "cm",
     release: {
       checks: {}, decision: "待放行", decisionNote: "", pourDate: today, stripDate: "", stripCondition: "尚未確認", reshoring: "尚未確認", postNote: ""
     }
@@ -133,24 +138,29 @@ function ensureMember(member) {
   (TYPE_MEASURES[member.type] || TYPE_MEASURES.其他).forEach(id => { if (!member.measures[id]) member.measures[id] = { design: defaultDesign(member, id), actual: "" }; });
 }
 
+const SPACING_MEASURES = ["tieSpacing", "channelSpacing", "supportSpacing"];
+
 function defaultDesign(member, id) {
   if (id === "sectionWidth") return member.width || "";
   if (id === "sectionHeight") return member.height || "";
   if (id === "elevation") return member.elevation || "0";
+  if (SPACING_MEASURES.includes(id)) return "";   // 間距的設計值來自支撐設計圖，沒有可推得的預設值
   return "0";
 }
 
 function toleranceFor(member, id, design) {
-  if (id === "vertical") return { lower: -10, upper: 10, label: "±10 mm（依檢查高度調整）" };
-  if (id === "position") return { lower: -25, upper: 25, label: "±25 mm" };
-  if (id === "elevation") return { lower: -20, upper: 20, label: "±20 mm" };
-  if (id === "stairRise") return { lower: -3, upper: 3, label: "±3 mm" };
-  if (id === "stairRun") return { lower: -6, upper: 6, label: "±6 mm" };
+  if (id === "vertical") return { lower: -1, upper: 1, label: "±1.0 cm（依檢查高度調整）" };
+  if (id === "position") return { lower: -2.5, upper: 2.5, label: "±2.5 cm" };
+  if (id === "elevation") return { lower: -2, upper: 2, label: "±2.0 cm" };
+  if (id === "stairRise") return { lower: -0.3, upper: 0.3, label: "±0.3 cm" };
+  if (id === "stairRun") return { lower: -0.6, upper: 0.6, label: "±0.6 cm" };
+  // 間距只能更密、不能更疏：實測大於設計值即不合格，小於設計值不算缺失
+  if (SPACING_MEASURES.includes(id)) return { lower: -Infinity, upper: 0, label: "不得大於設計間距" };
   const designValue = num(design);
-  if (designValue === null) return { lower: -10, upper: 10, label: "依設計尺寸填寫" };
-  if (designValue <= 300) return { lower: -6, upper: 10, label: "-6～+10 mm" };
-  if (designValue <= 1000) return { lower: -10, upper: 13, label: "-10～+13 mm" };
-  return { lower: -20, upper: 25, label: "-20～+25 mm" };
+  if (designValue === null) return { lower: -1, upper: 1, label: "依設計尺寸填寫" };
+  if (designValue <= 30) return { lower: -0.6, upper: 1.0, label: "-0.6～+1.0 cm" };
+  if (designValue <= 100) return { lower: -1.0, upper: 1.3, label: "-1.0～+1.3 cm" };
+  return { lower: -2.0, upper: 2.5, label: "-2.0～+2.5 cm" };
 }
 
 
@@ -211,9 +221,9 @@ function renderMembers() {
         <label class="field"><span>構件編號</span><input type="text" data-member-field="id" data-member-index="${index}" value="${esc(member.id)}" placeholder="例如：C1-03" /></label>
         <label class="field"><span>軸線／位置</span><input type="text" data-member-field="grid" data-member-index="${index}" value="${esc(member.grid)}" placeholder="例如：A-1／B～C" /></label>
         <label class="field"><span>表面類型</span><select data-member-field="surface" data-member-index="${index}">${["一般表面", "外露柱", "清水混凝土"].map(item => `<option value="${item}" ${member.surface === item ? "selected" : ""}>${item}</option>`).join("")}</select></label>
-        <label class="field"><span>設計寬度（mm）</span><input type="number" min="0" step="1" data-member-field="width" data-member-index="${index}" value="${esc(member.width)}" placeholder="例如：600" /></label>
-        <label class="field"><span>設計高度／厚度（mm）</span><input type="number" min="0" step="1" data-member-field="height" data-member-index="${index}" value="${esc(member.height)}" placeholder="例如：800" /></label>
-        <label class="field span-two"><span>設計高程（mm）</span><input type="number" step="1" data-member-field="elevation" data-member-index="${index}" value="${esc(member.elevation)}" placeholder="例如：3200；板／梁可填完成面或底模高程" /></label>
+        <label class="field"><span>設計寬度（cm）</span><input type="number" min="0" step="0.1" data-member-field="width" data-member-index="${index}" value="${esc(member.width)}" placeholder="例如：600" /></label>
+        <label class="field"><span>設計高度／厚度（cm）</span><input type="number" min="0" step="0.1" data-member-field="height" data-member-index="${index}" value="${esc(member.height)}" placeholder="例如：800" /></label>
+        <label class="field span-two"><span>設計高程（cm）</span><input type="number" step="0.1" data-member-field="elevation" data-member-index="${index}" value="${esc(member.elevation)}" placeholder="例如：3200；板／梁可填完成面或底模高程" /></label>
       </div>
     </article>`;
   }).join("") : `<div class="empty-state">尚未新增構件，請按右上角「新增構件」。</div>`;
@@ -331,7 +341,7 @@ function markdownExport() {
   const lines = ["# 模板工程施工複核", "", `- 工程名稱：${display(state.overview.project)}`, `- 施工廠商：${display(state.overview.contractor)}`, `- 檢查日期：${display(state.overview.inspectionDate)}`, `- 檢查樓層：${display(state.overview.floor)}`, "", "## 構件與量測"];
   state.members.forEach((member, index) => {
     lines.push(`\n### ${index + 1}. ${member.type}｜${display(member.id)}`);
-    lines.push(`- 軸線／位置：${display(member.grid)}；設計尺寸：${display(member.width)} × ${display(member.height)} mm`);
+    lines.push(`- 軸線／位置：${display(member.grid)}；設計尺寸：${display(member.width)} × ${display(member.height)} cm`);
     const measures = Object.entries(member.measures).map(([id, record]) => `${MEASURE_LABELS[id]?.[0] || id}：設計 ${display(record.design)}／實測 ${display(record.actual)}`).join("；");
     lines.push(`- 量測：${measures || "—"}`);
   });
@@ -357,7 +367,7 @@ function renderPrint() {
   const overviewMeta = [["工程名稱", state.overview.project], ["施工廠商", state.overview.contractor], ["施工日期", state.overview.date], ["檢查日期", state.overview.inspectionDate], ["填表人", state.overview.reviewer], ["檢查樓層", state.overview.floor], ["施工區域／軸線", state.overview.area], ["施工圖／版次", state.overview.drawing], ["檢查階段", state.overview.stage]];
   $("#print-template-overview").innerHTML = `${printHeader("模板工程施工複核表", "01")}
     <section class="print-section"><h2>01｜工程概要</h2><div class="print-meta-grid three">${overviewMeta.map(([label, value]) => `<div><span>${label}</span><strong>${printValue(value)}</strong></div>`).join("")}</div></section>
-    <section class="print-section"><h2>02｜構件資訊</h2><table class="print-table"><thead><tr><th>項次</th><th>類型</th><th>構件編號</th><th>軸線／位置</th><th>設計寬度<br />mm</th><th>設計高度／厚度<br />mm</th><th>設計高程<br />mm</th><th>表面類型</th></tr></thead><tbody>${state.members.length ? state.members.map((m, i) => `<tr><td>${i + 1}</td><td>${printValue(m.type)}</td><td>${printValue(m.id)}</td><td class="text-left">${printValue(m.grid)}</td><td>${printValue(m.width)}</td><td>${printValue(m.height)}</td><td>${printValue(m.elevation)}</td><td>${printValue(m.surface)}</td></tr>`).join("") : `<tr><td colspan="5" class="print-empty">尚無構件</td></tr>`}</tbody></table></section>${printFooter()}`;
+    <section class="print-section"><h2>02｜構件資訊</h2><table class="print-table"><thead><tr><th>項次</th><th>類型</th><th>構件編號</th><th>軸線／位置</th><th>設計寬度<br />cm</th><th>設計高度／厚度<br />cm</th><th>設計高程<br />cm</th><th>表面類型</th></tr></thead><tbody>${state.members.length ? state.members.map((m, i) => `<tr><td>${i + 1}</td><td>${printValue(m.type)}</td><td>${printValue(m.id)}</td><td class="text-left">${printValue(m.grid)}</td><td>${printValue(m.width)}</td><td>${printValue(m.height)}</td><td>${printValue(m.elevation)}</td><td>${printValue(m.surface)}</td></tr>`).join("") : `<tr><td colspan="5" class="print-empty">尚無構件</td></tr>`}</tbody></table></section>${printFooter()}`;
 
   const installRows = state.members.flatMap((member, memberIndex) => {
     ensureMember(member);
@@ -369,7 +379,7 @@ function renderPrint() {
   })).join("");
   $("#print-template-checks").innerHTML = `${printHeader("模板安裝與尺寸複核", "03–04")}
     <section class="print-section"><h2>03｜模板安裝複核</h2><table class="print-table"><thead><tr><th>構件</th><th>類型／編號</th><th>複核項目</th><th>判定標準</th><th>現場紀錄／實測</th><th>結果</th></tr></thead><tbody>${installRows || `<tr><td colspan="6">尚無構件資料</td></tr>`}</tbody></table></section>
-    <section class="print-section"><h2>04｜尺寸複核</h2><table class="print-table"><thead><tr><th>構件</th><th>類型／編號</th><th>量測項目</th><th>設計／基準<br />mm</th><th>實測<br />mm</th><th>差值<br />mm</th><th>容許差</th><th>結果</th></tr></thead><tbody>${measureRows || `<tr><td colspan="8">尚無量測資料</td></tr>`}</tbody></table></section>${printFooter()}`;
+    <section class="print-section"><h2>04｜尺寸複核</h2><table class="print-table"><thead><tr><th>構件</th><th>類型／編號</th><th>量測項目</th><th>設計／基準<br />cm</th><th>實測<br />cm</th><th>差值<br />cm</th><th>容許差</th><th>結果</th></tr></thead><tbody>${measureRows || `<tr><td colspan="8">尚無量測資料</td></tr>`}</tbody></table></section>${printFooter()}`;
 
   const releaseRows = RELEASE_CHECKS.map(([id, label, standard], index) => { const record = state.release.checks[id] || { actual: "", result: "待確認" }; return `<tr><td>${index + 1}</td><td class="text-left">${label}</td><td class="text-left">${standard}</td><td class="text-left">${printValue(record.actual)}</td><td>${printValue(record.result)}</td></tr>`; }).join("");
   $("#print-template-release").innerHTML = `${printHeader("澆置前放行／拆模後確認", "05")}
@@ -404,10 +414,15 @@ function clearAll() { draft.clear(); state = createState(); activeTab = "overvie
 function loadExample() {
   const EXAMPLE_DATE = "2026-08-10";
   const member = createMember();
-  member.type = "柱"; member.id = "C1-03"; member.grid = "A-1／B-C"; member.width = "600"; member.height = "800"; member.elevation = "3200"; member.surface = "一般表面";
+  member.type = "柱"; member.id = "C1-03"; member.grid = "A-1／B-C"; member.width = "60"; member.height = "80"; member.elevation = "320"; member.surface = "一般表面";
   ensureMember(member);
-  member.checks = Object.fromEntries([...COMMON_CHECKS, ...TYPE_CHECKS.柱].map((item, index) => [item[0], { actual: index === 0 ? "1 mm" : "已確認", result: "合格" }]));
-  member.measures = Object.fromEntries((TYPE_MEASURES.柱 || []).map(id => [id, { design: id === "sectionWidth" ? "600" : id === "sectionHeight" ? "800" : "0", actual: id === "sectionWidth" ? "602" : id === "sectionHeight" ? "798" : "3" }]));
+  member.checks = Object.fromEntries([...COMMON_CHECKS, ...TYPE_CHECKS.柱].map((item, index) => [item[0], { actual: index === 0 ? "0.1 cm" : "已確認", result: "合格" }]));
+  member.measures = {
+    vertical: { design: "0", actual: "0.3" },
+    sectionWidth: { design: "60", actual: "60.2" },
+    sectionHeight: { design: "80", actual: "79.8" },
+    channelSpacing: { design: "60", actual: "58" }
+  };
   member.bars = [{ kind: "主筋", size: "D25", count: "12", spacing: "—", note: "四面配置" }];
   state = createState();
   state.overview = { project: "Example Construction Project", contractor: "Example Formwork Co.", date: EXAMPLE_DATE, inspectionDate: EXAMPLE_DATE, reviewer: "Site Engineer", floor: "3F", area: "A～C／1～3 軸", drawing: "S-203 Rev.2", stage: "模板組立完成" };
@@ -458,8 +473,24 @@ document.addEventListener("click", event => {
   if (target.id === "confirm-clear") clearAll();
 });
 
+// 1.1 以前尺寸複核與構件尺寸都以 mm 記錄；改用 cm 後，沒有 units 標記的舊草稿一律換算，
+// 否則 600 mm 的斷面會被當成 600 cm。自由文字的現場紀錄是敘述，不換算。
+function convertLegacyMillimetres() {
+  const toCm = value => { const n = num(value); return n === null ? value : String(Number((n / 10).toFixed(2))); };
+  state.members.forEach(member => {
+    ["width", "height", "elevation"].forEach(key => { member[key] = toCm(member[key]); });
+    Object.values(member.measures || {}).forEach(record => {
+      record.design = toCm(record.design);
+      record.actual = toCm(record.actual);
+    });
+  });
+}
+
 const query = new URLSearchParams(location.search);
-Object.assign(state, draft.load() ?? {});
+const loadedDraft = draft.load();
+Object.assign(state, loadedDraft ?? {});
+if (loadedDraft && loadedDraft.units !== "cm") convertLegacyMillimetres();
+state.units = "cm";
 if (query.get("example") === "1") loadExample();
 renderAll();
 setTab(Object.prototype.hasOwnProperty.call(TAB_LABELS, query.get("tab") ?? "") ? query.get("tab") : "overview");

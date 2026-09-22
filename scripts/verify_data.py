@@ -329,6 +329,59 @@ def verify_cage_photos(browser, html, tool):
     page.context.close()
 
 
+# ---------------------------------------------------------------- 模板工程：單位 cm、間距單邊判定、舊草稿換算
+def verify_formwork_units(browser):
+    """2026-09-23 尺寸複核由 mm 改為 cm，並新增槽鋼／螺桿／支撐間距三項量測與板的透光模板。
+    間距是單邊判定（只能更密），舊草稿沒有 units 標記時一律除以 10。"""
+    page = open_clean(browser, "template")
+    result = page.evaluate("""() => {
+      loadExample();
+      const member = state.members[0];
+      const spacingTol = toleranceFor(member, "supportSpacing", "90");
+      const sectionTol = toleranceFor(member, "sectionWidth", "60");
+      return { units: state.units, labelUnit: MEASURE_LABELS.sectionWidth[1],
+        width: member.width, design: member.measures.sectionWidth.design, actual: member.measures.sectionWidth.actual,
+        channel: member.measures.channelSpacing,
+        columnMeasures: TYPE_MEASURES.柱, beamMeasures: TYPE_MEASURES.梁, slabMeasures: TYPE_MEASURES.板,
+        slabChecks: TYPE_CHECKS.板.map(item => item[0]),
+        hangingPlaceholder: TYPE_CHECKS.板.find(item => item[0] === "hangingForm")[3],
+        spacingTol: [spacingTol.lower, spacingTol.upper, spacingTol.label], sectionTol: [sectionTol.lower, sectionTol.upper] };
+    }""")
+    check("模板：尺寸複核單位為 cm，範例斷面 60×80 cm、容許差依 cm 區間判定",
+          result["units"] == "cm" and result["labelUnit"] == "cm" and result["width"] == "60" and result["design"] == "60" and result["actual"] == "60.2" and result["sectionTol"] == [-1.0, 1.3], result)
+    check("模板：柱牆加槽鋼間距、梁加螺桿與支撐間距、板加支撐間距",
+          result["columnMeasures"][-1] == "channelSpacing" and result["beamMeasures"][-3:] == ["tieSpacing", "channelSpacing", "supportSpacing"] and result["slabMeasures"][-1] == "supportSpacing", result)
+    check("模板：板新增透光模板項目，吊模現場紀錄提示改為「有／無／二次」",
+          result["slabChecks"][0] == "translucent" and result["hangingPlaceholder"] == "有／無／二次", result)
+    check("模板：間距為單邊判定（實測不得大於設計間距）", result["spacingTol"] == [None, 0, "不得大於設計間距"] or (result["spacingTol"][1] == 0 and result["spacingTol"][2] == "不得大於設計間距"), result["spacingTol"])
+    verdicts = page.evaluate("""() => {
+      const member = state.members[0];
+      const judge = (design, actual) => { const tol = toleranceFor(member, "supportSpacing", design); const diff = Number(actual) - Number(design); return diff >= tol.lower && diff <= tol.upper ? "合格" : "不合格"; };
+      return { tighter: judge("90", "80"), equal: judge("90", "90"), wider: judge("90", "100") };
+    }""")
+    check("模板：間距實測 80／90／100 對設計 90 → 合格／合格／不合格", verdicts == {"tighter": "合格", "equal": "合格", "wider": "不合格"}, verdicts)
+
+    page.evaluate("() => { loadExample(); draft.schedule(); }")
+    page.wait_for_timeout(700)
+    page.evaluate("""() => {
+      const key = Object.keys(localStorage).find(k => k.endsWith('.template.draft'));
+      const stored = JSON.parse(localStorage.getItem(key));
+      delete stored.data.units;                       // 舊草稿沒有 units 標記
+      const member = stored.data.members[0];
+      member.width = "600"; member.height = "800"; member.elevation = "0";
+      member.measures.sectionWidth = { design: "600", actual: "602" };
+      member.measures.sectionHeight = { design: "800", actual: "798" };
+      localStorage.setItem(key, JSON.stringify(stored));
+    }""")
+    page.reload(wait_until="networkidle")
+    migrated = page.evaluate("() => { const m = state.members[0]; return { units: state.units, width: m.width, height: m.height, design: m.measures.sectionWidth.design, actual: m.measures.sectionWidth.actual }; }")
+    check("模板：舊草稿的 mm 數值載入時換算成 cm（600 → 60、602 → 60.2）",
+          migrated == {"units": "cm", "width": "60", "height": "80", "design": "60", "actual": "60.2"}, migrated)
+    text = pdf_text(page, "all")
+    check("模板：PDF 的尺寸欄位標示 cm", "設計／基準" in text and "cm" in text and "mm" not in text.replace("mm 以上", ""), text[:200])
+    page.context.close()
+
+
 # ---------------------------------------------------------------- 檢查項目文字改版後的舊草稿、動態判定標準
 def verify_check_text_refresh(browser):
     """判定標準與 placeholder 以程式定義為準：舊草稿只留 actual／result；名稱改掉的項目填值不帶入。
@@ -644,6 +697,7 @@ try:
         verify_check_text_refresh(browser)
         verify_cage_photos(browser, "diaphragm-wall", "廠商版")
         verify_cage_photos(browser, "diaphragm-wall-gc", "營造廠版")
+        verify_formwork_units(browser)
         verify_bar_sizes(browser)
         verify_rebar_cage_helpers(browser)
         verify_rebar_cage_ui(browser, "diaphragm-wall-gc")

@@ -38,6 +38,9 @@ function refreshCheckItems(saved, fresh) {
   });
 }
 
+// 施工計畫頁的封面會直接改寫工具草稿裡的這兩欄（plan.js writeCoverToTool），兩邊共用這份清單。
+const COVER_SYNC_FIELDS = ["project", "contractor"];
+
 function createDraftStore(key, getState, { enabled = true, delay = 400 } = {}) {
   const SCHEMA = "project-portal.draft.v1";
   let timer = 0;
@@ -57,6 +60,21 @@ function createDraftStore(key, getState, { enabled = true, delay = 400 } = {}) {
 
   window.addEventListener("pagehide", flush);
   document.addEventListener("visibilitychange", () => { if (document.hidden) flush(); });
+
+  // 另一個分頁（施工計畫頁）改了這份草稿的工程名稱／施工廠商：併回目前的 state 與欄位，
+  // 之後這頁再存草稿時才不會用舊值把它蓋回去。只收這兩欄，其他欄位仍以這頁為準。
+  if (enabled) window.addEventListener("storage", event => {
+    if (event.key !== key || !event.newValue) return;
+    let incoming;
+    try { incoming = JSON.parse(event.newValue)?.data?.overview; } catch (error) { return; }
+    const overview = getState()?.overview;
+    if (!incoming || !overview) return;
+    COVER_SYNC_FIELDS.forEach(field => {
+      if (typeof incoming[field] !== "string" || incoming[field] === overview[field]) return;
+      overview[field] = incoming[field];
+      document.querySelectorAll(`[data-bind="overview.${field}"]`).forEach(input => { input.value = incoming[field]; });
+    });
+  });
 
   return {
     load() {
@@ -95,6 +113,11 @@ function createDraftStore(key, getState, { enabled = true, delay = 400 } = {}) {
 // work 對應 plan.html?work=…；匯入時 work 不同（例如營造廠版匯入廠商 JSON）就不動計畫。
 const PLAN_DRAFT_SCHEMA = "project-portal.draft.v1";
 const planDraftKey = work => `project-portal.plan.${work}.draft`;
+
+// 工具頁「還原預設」一併清掉對應施工計畫頁的草稿（封面的編製單位、日期、精簡／完整版）
+function clearPlanDraft(work) {
+  try { localStorage.removeItem(planDraftKey(work)); } catch (error) { /* 靜默 */ }
+}
 
 function exportPlanDraft(work) {
   try {

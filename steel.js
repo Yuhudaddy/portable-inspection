@@ -382,7 +382,7 @@ function initialize() {
 
   $("#help-button").addEventListener("click", () => $("#help-dialog").showModal());
   $("#clear-button").addEventListener("click", () => $("#clear-dialog").showModal());
-  $("#confirm-clear").addEventListener("click", resetState);
+  $("#confirm-clear").addEventListener("click", () => { resetState(); clearPlanDraft("steel"); });
   $$('[data-close-dialog]').forEach(button => button.addEventListener("click", () => button.closest("dialog").close()));
   $$('[data-export-format]').forEach(button => button.addEventListener("click", () => button.dataset.exportFormat === "json" ? exportJson() : exportPdf(button.dataset.exportFormat === "pdf-all" ? "all" : "current")));
   $$('[data-optional]').forEach(button => button.addEventListener("click", () => { state.optional.enabled = state.optional.enabled === button.dataset.optional ? "" : button.dataset.optional; renderAll(); }));

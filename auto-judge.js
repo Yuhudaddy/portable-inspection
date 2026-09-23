@@ -33,9 +33,11 @@ function parseMeasure(value, { ratio = false } = {}) {
     if (ratioMatch) return { value: Number(ratioMatch[1]), empty: false, invalid: false };
   }
   // 可有 GL 前綴；數字後面只能接單位文字（不能再有數字或正負號），「≤ 15」「約 100」這類前面有字的不收
-  const match = text.match(/^(?:GL\s*)?([+-]?\d+(?:\.\d+)?)\s*([^\d]*)$/i);
-  if (!match || /[+-]/.test(match[2])) return { value: null, empty: false, invalid: true };
-  return { value: Number(match[1]), empty: false, invalid: false };
+  // 小數點前可省略 0（「.5」＝0.5）；位數多到超出浮點範圍（Infinity）的也算輸入錯誤
+  const match = text.match(/^(?:GL\s*)?([+-]?(?:\d+(?:\.\d+)?|\.\d+))\s*([^\d]*)$/i);
+  const number = match ? Number(match[1]) : NaN;
+  if (!match || /[+-]/.test(match[2]) || !Number.isFinite(number)) return { value: null, empty: false, invalid: true };
+  return { value: number, empty: false, invalid: false };
 }
 
 // 依判定狀態調整結果。只在「數值或標準值改變」時呼叫；autoPass 的項目合格時自動選 ✓。
@@ -54,9 +56,12 @@ function applyAutoResult(record, status, { autoPass = false } = {}) {
 }
 
 // 不合格或輸入錯誤時「✓」不可選；匯入或舊草稿帶進來的「符合」也一併改掉（不合格改 ✗，輸入錯誤退回待確認）。
+// 數值不合格時的「✗」一律視為自動帶入：匯入的 JSON 與重新載入的草稿不帶 auto 記號，
+// 在這裡補回，數值改好後才會照常退回待確認。
 function autoLockedResults(record, status) {
   if (status !== "fail" && status !== "invalid") return [];
   if (record.result === "符合") record.result = status === "fail" ? "不符合" : "待確認";
+  if (status === "fail" && record.result === "不符合") record.auto ||= "fail";
   return ["符合"];
 }
 

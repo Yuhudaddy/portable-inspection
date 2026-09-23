@@ -26,7 +26,6 @@ const draft = work ? createDraftStore(planDraftKey(work), () => state) : null;
 
 // 工程名稱、施工廠商與工具頁的「工程資訊」同步：開啟時以工具頁草稿為準（工具頁沒填才保留封面自己的值），
 // 在封面修改也寫回工具頁草稿。編製單位、日期、版次只屬於計畫。
-const SYNCED_COVER_FIELDS = ["project", "contractor"];
 
 function readToolDraft() {
   if (!from) return null;
@@ -41,7 +40,7 @@ function readToolDraft() {
 function syncCoverFromTool() {
   const overview = readToolDraft()?.data.overview;
   if (!overview) return;
-  SYNCED_COVER_FIELDS.forEach(field => { if (overview[field]) state.cover[field] = String(overview[field]); });
+  COVER_SYNC_FIELDS.forEach(field => { if (overview[field]) state.cover[field] = String(overview[field]); });
 }
 
 // 工具頁還沒有草稿就不建立：只寫一個 overview 的草稿會讓工具頁以為有資料可還原
@@ -117,7 +116,7 @@ function standardsTableHtml(block) {
   return `<figure class="plan-figure">${captionHtml(block)}<table class="plan-table"><thead><tr><th>項目</th><th>標準值</th><th>單位</th></tr></thead><tbody>${rows}</tbody></table>${noteHtml(block)}</figure>`;
 }
 
-// Mermaid 流程圖：區塊只放原始碼的 key（見 plans/flowcharts-*.js），畫面彩現後才載入 vendor/mermaid.min.js（約 2.5 MB）
+// Mermaid 流程圖：區塊只放原始碼的 key（見 plans/flowcharts-*.js），畫面彩現後才載入 vendor/mermaid-11.4.1.min.js（約 2.5 MB）
 // 轉成 SVG；沒有流程圖的計畫完全不載入。列印前等圖畫完（flowchartsReady）。文字用 SVG text（htmlLabels: false），
 // PDF 裡才抓得到字、也不會因為 foreignObject 在列印時跑版。
 let mermaidLoading = null;
@@ -127,7 +126,7 @@ let flowchartsReady = Promise.resolve();
 function loadMermaid() {
   mermaidLoading ||= new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "./vendor/mermaid.min.js";
+    script.src = "./vendor/mermaid-11.4.1.min.js";   // 換版本時同步改 sw.js 的 VENDOR_FILES
     script.onload = () => {
       window.mermaid.initialize({
         startOnLoad: false,
@@ -273,7 +272,7 @@ function initialize() {
     const cover = event.target.closest("[data-cover]");
     if (cover) {
       state.cover[cover.dataset.cover] = cover.value;
-      if (SYNCED_COVER_FIELDS.includes(cover.dataset.cover)) writeCoverToTool(cover.dataset.cover);
+      if (COVER_SYNC_FIELDS.includes(cover.dataset.cover)) writeCoverToTool(cover.dataset.cover);
     }
   });
   // window.print() 要留在點擊的同步流程裡（await 過 Safari 會擋）；流程圖還沒畫完時按鈕是停用的（setPrintBusy）

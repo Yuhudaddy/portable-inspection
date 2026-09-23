@@ -1239,7 +1239,7 @@ function exportData() {
 
   return {
     app_version: APP_VERSION,
-    schema_version: "1.6",
+    schema_version: "1.7",   // 1.7：導溝設計值、數值單位、construction_plan
     record_type: "diaphragm_wall_field_record",
     exported_at: new Date().toISOString(),
     export_context: {
@@ -1662,7 +1662,7 @@ function initialize() {
   // 「還原預設」連同本工具的施工計畫草稿（封面、修訂紀錄、版本）一起清掉；匯入 JSON 也會呼叫 clearAllData，那時不動計畫
   $("#confirm-clear").addEventListener("click", () => {
     clearAllData();
-    try { localStorage.removeItem(planDraftKey("diaphragm-wall")); } catch (error) { /* 靜默 */ }
+    clearPlanDraft("diaphragm-wall");
   });
   $$('[data-close-dialog]').forEach(button => button.addEventListener("click", () => button.closest("dialog").close()));
   $$('[data-export-format]').forEach(button => button.addEventListener("click", () => handleExport(button.dataset.exportFormat)));

@@ -1,5 +1,5 @@
 // 連續壁施工計畫的流程圖（Mermaid 原始碼），品管版與完整版共用。計畫內容用 { type: "mermaid", flowchart: "<key>" } 引用，
-// plan.js 進到有流程圖的計畫才載入 vendor/mermaid.min.js 把這裡的原始碼畫成 SVG。
+// plan.js 進到有流程圖的計畫才載入 vendor/mermaid-*.min.js 把這裡的原始碼畫成 SVG。
 // 排法：每一段由左往右，段與段往下接。整條排成一列在 A4 寬度會把字縮到看不清楚，所以分段。
 window.PLAN_FLOWCHARTS = window.PLAN_FLOWCHARTS || {};
 

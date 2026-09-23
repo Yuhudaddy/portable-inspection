@@ -161,7 +161,7 @@ def verify_roundtrip(browser, html, tool, unit_path):
     second = page.evaluate("""(payload) => { clearAllData(); importJsonPayload(JSON.parse(JSON.stringify(payload))); return exportData(); }""", first)
     check(f"{tool}：JSON 匯出 → 清空 → 匯入 → 再匯出，內容一致", strip_volatile(first) == strip_volatile(second),
           json.dumps({k: (strip_volatile(first).get(k), strip_volatile(second).get(k)) for k in strip_volatile(first) if strip_volatile(first).get(k) != strip_volatile(second).get(k)}, ensure_ascii=False)[:600])
-    check(f"{tool}：schema 1.6，導溝／鋼筋籠不再各帶 unit_no", first["schema_version"] == "1.6" and "unit_no" not in first["guide_wall_review"] and "unit_no" not in first["rebar_cage_review"], first["schema_version"])
+    check(f"{tool}：schema 1.7，導溝／鋼筋籠不再各帶 unit_no", first["schema_version"] == "1.7" and "unit_no" not in first["guide_wall_review"] and "unit_no" not in first["rebar_cage_review"], first["schema_version"])
     unit_no = page.evaluate(f"() => {unit_path}")
     check(f"{tool}：範例單元編號 21 存在壁體", unit_no == "21", unit_no)
 
@@ -700,6 +700,61 @@ def verify_plan_spot_check(browser):
             page.context.close()
 
 
+# ---------------------------------------------------------------- Codex 審查回報的修正
+def verify_review_fixes(browser):
+    # 跨分頁：計畫頁改工程名稱，已開著的工具頁要收到，之後它自己存草稿也不能蓋回舊值（五個工具都走 draft.js）
+    for tool, work in (("diaphragm-wall-gc", "diaphragm-wall-gc"), ("template", "formwork")):
+        context = browser.new_context(viewport={"width": 1280, "height": 900})
+        tool_page = context.new_page()
+        tool_page.goto(f"{BASE}/{tool}", wait_until="networkidle")
+        tool_page.wait_for_function("typeof state === 'object' && typeof draft === 'object'")
+        tool_page.evaluate("() => { localStorage.clear(); state.overview.project = '舊工程'; draft.schedule(); }")
+        tool_page.wait_for_timeout(600)
+        plan_page = context.new_page()
+        plan_page.goto(f"{BASE}/plan?work={work}&from={tool}", wait_until="networkidle")
+        plan_page.wait_for_function("typeof renderPlan === 'function'")
+        plan_page.evaluate("() => { const input = document.querySelector('[data-cover=\"project\"]'); input.value = '計畫頁改的名稱'; input.dispatchEvent(new Event('input', { bubbles: true })); }")
+        tool_page.wait_for_timeout(300)
+        tool_page.evaluate("() => { state.overview.contractor = '工具頁接著改廠商'; draft.schedule(); }")
+        tool_page.wait_for_timeout(700)
+        result = tool_page.evaluate("() => ({ state: state.overview.project, field: document.querySelector('[data-bind=\"overview.project\"]').value, stored: JSON.parse(localStorage.getItem(Object.keys(localStorage).find(k => k.startsWith('project-portal.') && !k.includes('.plan.')))).data.overview })")
+        check(f"跨分頁同步（{tool}）：計畫頁改的工程名稱併入已開著的工具頁，工具頁之後存草稿不會蓋回舊值",
+              result["state"] == "計畫頁改的名稱" and result["field"] == "計畫頁改的名稱" and result["stored"]["project"] == "計畫頁改的名稱" and result["stored"]["contractor"] == "工具頁接著改廠商", result)
+        context.close()
+
+    page = open_clean(browser, "diaphragm-wall")
+    page.evaluate(SET_VALUE_JS)
+    result = page.evaluate("""() => {
+      const huge = parseMeasure('1'.padEnd(400, '0'));
+      const half = parseMeasure('.5');
+      activeTool = "guideWall"; renderAll?.();
+      const check = state.guideWall.checks.find(c => c.item === '頂部基準高程');
+      check.actual = '-0.30'; const minus = guideCheckActual(check);
+      check.actual = 'GL-0.30'; const prefixed = guideCheckActual(check);
+      // 匯出時是自動判定的 ✗，匯入後 auto 記號不在 JSON 裡；數值改好仍要退回待確認
+      const i = state.guideWall.checks.findIndex(c => c.item === '位置與淨寬');
+      const q = f => `[data-check-item="guideWall"][data-check-index="${i}"][data-check-field="${f}"]`;
+      __set(q('design'), '100'); __set(q('actual'), '110');
+      const payload = exportData(); clearAllData(); importJsonPayload(JSON.parse(JSON.stringify(payload))); renderAll?.();
+      const imported = state.guideWall.checks[i].result;
+      __set(q('actual'), '103');
+      return { huge: huge.invalid, half: half.value, minus, prefixed, imported, afterFix: state.guideWall.checks[i].result, schema: payload.schema_version };
+    }""")
+    check("輸入容錯：超出範圍的長數字算輸入錯誤、「.5」＝0.5", result["huge"] is True and result["half"] == 0.5, result)
+    check("頂部基準高程多打負號不會印成「GL--」", result["minus"] == "GL-0.30 m" and result["prefixed"] == "GL-0.30 m", result)
+    check("自動判定的 ✗ 經 JSON 匯出匯入後，數值改好仍退回待確認", result["imported"] == "不符合" and result["afterFix"] == "待確認", result)
+    page.context.close()
+
+    # 模板、鋼筋、鋼構的「還原預設」也清掉各自的施工計畫草稿
+    for tool, work in (("template", "formwork"), ("rebar", "rebar"), ("steel-structure", "steel")):
+        page = open_clean(browser, tool)
+        cleared = page.evaluate("""(work) => { localStorage.setItem(planDraftKey(work), JSON.stringify({ schema: 'project-portal.draft.v1', data: { cover: { author: '工務所' } } }));
+          document.querySelector('#confirm-clear').click();
+          return { gone: localStorage.getItem(planDraftKey(work)) === null, label: document.querySelector('#confirm-clear').textContent }; }""", work)
+        check(f"{tool}：「還原預設」一併清掉 {work} 施工計畫草稿", cleared == {"gone": True, "label": "還原預設"}, cleared)
+        page.context.close()
+
+
 # ---------------------------------------------------------------- 鋼筋籠部位資料層
 def verify_rebar_cage_helpers(browser):
     page = open_clean(browser, "diaphragm-wall-gc")
@@ -949,6 +1004,7 @@ try:
         verify_plan_page(browser)
         verify_plan_standard_sync(browser)
         verify_plan_spot_check(browser)
+        verify_review_fixes(browser)
         verify_plan_links(browser)
         verify_unit_sync(browser, "diaphragm-wall-gc", "state.unit.unitNo")
         verify_unit_sync(browser, "diaphragm-wall", "state.wall.unitNo")

@@ -257,7 +257,7 @@ document.addEventListener("click", event => {
   if (target.id === "apply-member-result") { const result = $("#member-batch-result")?.value || "待確認"; state.members.forEach(member => { member.reviewResult = result; }); renderMembers(); }
   if (target.id === "help-button") $("#help-dialog").showModal();
   if (target.id === "clear-button") $("#clear-dialog").showModal();
-  if (target.id === "confirm-clear") clearAll();
+  if (target.id === "confirm-clear") { clearAll(); clearPlanDraft("rebar"); }
 });
 
 const query = new URLSearchParams(location.search);

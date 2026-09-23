@@ -164,7 +164,8 @@ function guideMeasureText(check) {
   if (config.kind === "elevation") {
     const actual = trim(check.actual);
     if (!actual) return "";
-    return guideNumber(actual) === null ? actual : `GL-${numberText(actual)} ${config.unit}`;
+    // 欄位前面已經固定「GL-」：使用者多打的負號（-0.30、GL-0.30）不再重複印
+    return guideNumber(actual) === null ? actual : `GL-${numberText(actual.replace(/^(?:GL\s*)?-\s*/i, ""))} ${config.unit}`;
   }
   if (config.kind === "rebar") {
     const bar = (size, spacing) => [trim(size) ? barSizeMark(size) : "", trim(spacing) ? `@${trim(spacing)} cm` : ""].join("");

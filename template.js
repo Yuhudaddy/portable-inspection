@@ -454,7 +454,7 @@ document.addEventListener("click", event => {
   if (target.id === "add-member") { state.members.push(createMember()); state.activeMember = state.members.length - 1; renderAll(); setTab("members"); }
   if (target.id === "help-button") $("#help-dialog").showModal();
   if (target.id === "clear-button") $("#clear-dialog").showModal();
-  if (target.id === "confirm-clear") clearAll();
+  if (target.id === "confirm-clear") { clearAll(); clearPlanDraft("formwork"); }
 });
 
 // 1.1 以前尺寸複核與構件尺寸都以 mm 記錄；改用 cm 後，沒有 units 標記的舊草稿一律換算，

@@ -28,17 +28,17 @@ const PRINT_TAB_GROUPS = {
 const GUIDE_WALL_CHECKS = [
   ["放樣", "點位、單元順序與核定圖說相符"],
   ["地下管線", "未與既有管線衝突"],
-  ["位置與淨寬", "導溝內面淨寬符合設計連續壁厚+施工餘裕(5cm內)"],
-  ["深度", "・深度至少 1.8 m，且回填土層以下至少 30 cm\n・溝底高程符合核定施工圖"],
-  ["牆厚", "導溝牆厚、斷面及結構尺寸符合核定圖說"],
-  ["鋼筋", "鋼筋號數／支數／間距與核定配筋圖一致"],
+  ["位置與淨寬", "導溝內面淨寬在設計值 ±5 cm 以內"],
+  ["深度", "・深度依結構設計圖且至少 1.8 m，實測不小於設計深度\n・回填土層以下至少 30 cm（現場確認）\n・溝底高程符合核定施工圖"],
+  ["牆厚", "導溝牆厚不小於設計值；斷面及結構尺寸符合核定圖說"],
+  ["鋼筋", "號數與設計相同、間距不大於設計間距；支數與核定配筋圖一致"],
   ["回撐木", "間距 @200 cm 或依核定支撐計畫（拆模後未達指定強度時嚴禁重車行駛）"],
-  ["混凝土強度", "混凝土強度符合設計要求"],
+  ["混凝土強度", "實測強度不小於設計強度"],
   ["頂部基準高程", "符合設計圖說"],
   ["壁面順直度", "導溝兩側壁面垂直度 1/300，並保持順直，無明顯扭曲或局部變形"],
   ["壁面與底部完整性", "無鬆動、剝落、裂縫；底部無堆積物"]
 ];
-const createGuideWallCheck = ([item, standard]) => ({ item, standard, actual: "", barNo: "", barSpacing: "", result: "待確認" });
+const createGuideWallCheck = ([item, standard]) => ({ item, standard, design: "", actual: "", designBarNo: "", designBarSpacing: "", barNo: "", barSpacing: "", result: "待確認", auto: "" });
 
 const REBAR_CAGE_CHECKS = [
   ["籠號與單元對應", "籠號、單元號與核定配筋圖一致"],
@@ -56,23 +56,23 @@ const createQualityCheck = ([item, standard, placeholder]) => ({ item, standard,
 
 const QUALITY_CHECKS = [
   ["連續壁單元位置、刀法順序確認", "單元位置、順序與核定圖說相符", "例如：位置及順序符合"],
-  ["底部沉渣及泥屑清除確認", "依本公司標準值（預設 15 cm 以內）", "例如：沉泥 12 cm"],
+  ["底部沉渣及泥屑清除確認", "依本公司標準值（預設 15 cm 以內）", "例如：12"],
   ["端板接頭清洗（公及公母單元時）", "以大小鋼刷確實清洗", "填寫清洗狀況"],
   ["穩定液新鮮液之貯存量是否充裕", "依照施工計畫", "填寫液量或確認說明"],
-  ["槽溝穩定液面高度控制", "高於地下水位 1.0 m 以上，且不低於導溝頂下 80 cm", "例如：導溝頂下 60 cm，高於水位 1.5 m"],
+  ["槽溝穩定液面高度控制", "液面在導溝頂下 80 cm 以內；高於地下水位 1.0 m 以上（現場確認）", "例如：60"],
   ["廢土清運是否正常", "不致影響挖掘進度", "填寫異常說明"],
   ["施工動線及運土車輛之安排", "不致延遲澆置時間", "填寫異常說明"],
   ["壁體坍塌處是否需作補強", "若需補強，說明方式", "填寫補強方式或無需補強"],
   ["帆布是否破損（母單元時）", "單元起吊前及下放時檢查", "填寫檢查狀況"],
-  ["開挖深度與特密管長度之配合", "初灌管底離槽溝底 30～50 cm", "填寫距離"],
+  ["開挖深度與特密管長度之配合", "初灌管底離槽溝底 30～50 cm", "例如：40"],
   ["特密管之檢查（變形、破裂、堵塞、水密性）", "下放前及過程中目視檢查", "填寫檢查狀況"],
   ["特密管插入位置、深度、組合記錄", "位置符合圖面；長度配合挖掘深度", "填寫左／中／右位置與管長"],
   ["放置橡皮碗", "澆置前放置於漏斗內", "填寫是／否"],
   ["穩定液回收池容積是否足夠", "同時間無挖掘，容積大於回收量", "填寫是／否或容積"],
-  ["混凝土坍度之確認", "依本公司標準值確認坍度及允許誤差", "例如：實測 18 cm"],
-  ["混凝土是否合乎設計強度", "記錄空打段、實打段 GL 與強度", "填寫 GL／強度"],
-  ["特密管埋入混凝土內之確認", "依單元類型套用本公司標準值", "填寫埋入深度"],
-  ["超音波記錄結果說明", "依單元型式及圖說完成檢測記錄", "填寫位置與垂直精度"]
+  ["混凝土坍度之確認", "依本公司標準值確認坍度及允許誤差", "例如：19"],
+  ["混凝土是否合乎設計強度", "實測強度不小於設計強度（設計值取壁體資訊）", "例如：280"],
+  ["特密管埋入混凝土內之確認", "依單元類型套用本公司標準值", "例如：2.0"],
+  ["超音波記錄結果說明", "垂直精度依本公司標準值（填斜率分母 n，可寫 1/420）", "例如：420"]
 ];
 
 // 這些是營造廠在現場要快速確認的「本公司標準值」。
@@ -94,7 +94,7 @@ const QUALITY_STANDARD_CONFIG = [
   { key: "chloride", label: "氯離子含量上限", unit: "kg/m³", options: ["0.15", "0.30"], default: "0.15" },
   { key: "centerlineTolerance", label: "導溝中心線偏差上限", unit: "cm", options: ["1", "2", "3", "5"], default: "2" },
   { key: "wallThicknessTolerance", label: "壁厚偏差上限", unit: "cm", options: ["3", "5", "7.5", "10"], default: "5" },
-  { key: "cageLongitudinalTolerance", label: "鋼筋籠縱向偏差上限", unit: "cm", options: ["±2.5", "±5", "±7.5", "±10"], default: "±2.5", legacy: ["±7.5"] },
+  { key: "cageLongitudinalTolerance", label: "鋼筋籠雙向偏差上限", unit: "cm", options: ["±2.5", "±5", "±7.5", "±10"], default: "±5", legacy: ["±7.5", "±2.5"] },
   { key: "cageTopTolerance", label: "鋼筋籠頂高程偏差上限", unit: "cm", options: ["±3", "±5", "±7.5", "±10"], default: "±5" },
   { key: "cover", label: "保護層厚度下限", unit: "cm", options: ["5", "7.5", "10", "12.5"], default: "10", legacy: ["7.5"] },
   { key: "volumeDifference", label: "混凝土實際與設計數量差異上限", unit: "%", options: ["5", "10", "15", "20"], default: "5", legacy: ["10"], current: () => volumeDifferenceSummary() }
@@ -152,7 +152,7 @@ function qualityStandardText(key) {
     chloride: `氯離子含量 ≤ ${value} kg/m³`,
     centerlineTolerance: `中心線偏差 ≤ ${value} cm`,
     wallThicknessTolerance: `壁厚偏差 ≤ ${value} cm`,
-    cageLongitudinalTolerance: `縱向偏差 ${value} cm`,
+    cageLongitudinalTolerance: `雙向（縱、橫向）偏差 ${value} cm`,
     cageTopTolerance: `頂高程偏差 ${value} cm`,
     cover: `保護層厚度 ≥ ${value} cm`,
     embedmentMale: `埋入深度 ≥ ${value} m`,
@@ -167,11 +167,15 @@ function qualityCheckStandard(index, fallback) {
   const dynamic = {
     0: qualityStandardText("centerlineTolerance"),
     1: qualityStandardText("sediment"),
-    9: qualityStandardText("tremieClearance"),
+    9: `初灌管底離槽溝底 ${TREMIE_CLEARANCE_MIN}～${state.quality.standards.tremieClearance || "—"} cm`,
     14: `${qualityStandardText("slump")}；${qualityStandardText("slumpTolerance")}`,
+    15: parseMeasure(state.wall.strength).value !== null
+      ? `實測強度 ≥ 設計強度 ${String(state.wall.strength).trim()} ${strengthUnit()}`
+      : "實測強度不小於設計強度（請先在「壁體資訊」填混凝土強度）",
     16: state.wall.unitType
       ? `${state.wall.unitType}：${qualityStandardText(embedmentKeyFor(state.wall.unitType))}`
-      : `依壁體資訊的單元類型套用：公單元 ≥ ${state.quality.standards.embedmentMale} m／母單元 ≥ ${state.quality.standards.embedmentFemale} m／公母單元 ≥ ${state.quality.standards.embedmentBoth} m`
+      : `依壁體資訊的單元類型套用：公單元 ≥ ${state.quality.standards.embedmentMale} m／母單元 ≥ ${state.quality.standards.embedmentFemale} m／公母單元 ≥ ${state.quality.standards.embedmentBoth} m`,
+    17: `${qualityStandardText("verticalDenominator")}（填斜率分母 n，可寫 1/420）`
   };
   return dynamic[index] || fallback;
 }
@@ -180,7 +184,80 @@ const embedmentKeyFor = unitType => ({ "公單元": "embedmentMale", "母單元"
 const strengthUnit = () => STRENGTH_UNITS.includes(state.wall.strengthUnit) ? state.wall.strengthUnit : STRENGTH_UNITS[0];
 
 function qualityCheckPlaceholder(index, fallback) {
-  return index === 15 ? `填寫 GL／${strengthUnit()}` : fallback;
+  return fallback;
+}
+
+// 品質自檢的數值項目：輸入容錯見 auto-judge.js，依本公司標準值自動判定。
+// evaluate 回傳不合格原因；null 表示合格或還缺條件（例如還沒選單元類型、還沒填設計強度）。
+const TREMIE_CLEARANCE_MIN = 30;
+const LIQUID_LEVEL_MAX_BELOW_TOP = 80;
+function qualityVerticalDenominator() {
+  const precision = selectedVerticalPrecision();
+  if (precision) return precision.denominator;
+  return state.quality.standards.verticalDenominator === "10/D" ? null : number(state.quality.standards.verticalDenominator);
+}
+const QUALITY_MEASURES = {
+  "底部沉渣及泥屑清除確認": { unit: () => "cm", evaluate: value => {
+    const limit = number(state.quality.standards.sediment);
+    return limit !== null && value > limit ? `沉泥 ${value} cm，超過 ${limit} cm` : null;
+  } },
+  "槽溝穩定液面高度控制": { unit: () => "cm", prefix: "導溝頂下", evaluate: value =>
+    value > LIQUID_LEVEL_MAX_BELOW_TOP ? `液面在導溝頂下 ${value} cm，超過 ${LIQUID_LEVEL_MAX_BELOW_TOP} cm` : null },
+  "開挖深度與特密管長度之配合": { unit: () => "cm", evaluate: value => {
+    const limit = number(state.quality.standards.tremieClearance);
+    if (value < TREMIE_CLEARANCE_MIN) return `初灌管底離槽底 ${value} cm，小於 ${TREMIE_CLEARANCE_MIN} cm`;
+    return limit !== null && value > limit ? `初灌管底離槽底 ${value} cm，超過 ${limit} cm` : null;
+  } },
+  "混凝土坍度之確認": { unit: () => "cm", evaluate: value => {
+    const target = number(state.quality.standards.slump);
+    const tolerance = number(state.quality.standards.slumpTolerance);
+    if (target === null || tolerance === null) return null;
+    return Math.abs(value - target) > tolerance ? `坍度 ${value} cm，超出 ${target} ± ${tolerance} cm` : null;
+  } },
+  "混凝土是否合乎設計強度": { unit: () => strengthUnit(), evaluate: value => {
+    const design = parseMeasure(state.wall.strength).value;
+    return design !== null && value < design ? `實測強度 ${value} ${strengthUnit()}，小於設計強度 ${design} ${strengthUnit()}` : null;
+  } },
+  "特密管埋入混凝土內之確認": { unit: () => "m", evaluate: value => {
+    const key = embedmentKeyFor(state.wall.unitType);
+    const limit = key ? number(state.quality.standards[key]) : null;
+    return limit !== null && value < limit ? `埋入深度 ${value} m，小於${state.wall.unitType}下限 ${limit} m` : null;
+  } },
+  "超音波記錄結果說明": { unit: () => "1/n", ratio: true, evaluate: value => {
+    const denominator = qualityVerticalDenominator();
+    return denominator !== null && value < denominator ? `垂直精度 1/${value} 劣於標準約 1/${Number(denominator.toFixed(1))}` : null;
+  } }
+};
+
+const qualityMeasure = check => QUALITY_MEASURES[check?.item] || null;
+// 範例資料的數值項目（其餘項目填「已確認」）
+const QUALITY_EXAMPLE_VALUES = {
+  "底部沉渣及泥屑清除確認": "12", "槽溝穩定液面高度控制": "60", "開挖深度與特密管長度之配合": "40",
+  "混凝土坍度之確認": "20", "混凝土是否合乎設計強度": "350", "特密管埋入混凝土內之確認": "2.0", "超音波記錄結果說明": "420"
+};
+
+// 回傳 { status, message }，status 同 auto-judge.js
+function qualityMeasureStatus(check) {
+  const measure = qualityMeasure(check);
+  if (!measure) return { status: "empty", message: "" };
+  const parsed = parseMeasure(check.actual, { ratio: measure.ratio });
+  if (parsed.invalid) return { status: "invalid", message: INVALID_MEASURE_MESSAGE };
+  if (parsed.value === null) return { status: "empty", message: "" };
+  const message = measure.evaluate(parsed.value);
+  return { status: message ? "fail" : "pass", message: message || "" };
+}
+
+// 列印與 Markdown 的「現場紀錄／實測」：數值項目補上單位（垂直精度印成 1/n）
+function qualityActualText(check) {
+  const measure = qualityMeasure(check);
+  const text = display(check.actual);
+  if (!measure || !text) return text;
+  const parsed = parseMeasure(check.actual, { ratio: measure.ratio });
+  if (parsed.value === null) return text;
+  const value = String(Number(parsed.value.toFixed(3)));
+  const unit = measure.unit();
+  const body = unit === "1/n" ? `1/${value}` : `${value} ${unit}`;
+  return measure.prefix ? `${measure.prefix} ${body}` : body;
 }
 
 // 混凝土實際與設計數量差異：|實際 − 設計| ／ 設計。實際數量以澆置紀錄的累積方量為準（有車次時自動帶入壁體資訊），
@@ -327,7 +404,8 @@ const number = value => {
 const fixed = value => Number.isFinite(value) ? value.toFixed(2) : "";
 // 這兩支檔案的 display 只做 trim：畫面上的空值由各自的樣板處理，列印時未填就留白。
 const display = printText;
-const guideCheckActual = check => [display(check.actual), check.barNo ? `號數 ${barSizeMark(check.barNo)}` : "", check.barSpacing ? `間距 ${check.barSpacing} cm` : ""].filter(Boolean).join("；") || "";
+// 數值項目（淨寬、深度、鋼筋…）的格式交給 guide-wall.js；其餘項目只印文字紀錄。
+const guideCheckActual = check => guideMeasure(check) ? guideMeasureText(check) : display(check.actual);
 const esc = value => String(value ?? "")
   .replaceAll("&", "&amp;")
   .replaceAll("<", "&lt;")
@@ -680,11 +758,11 @@ const SEGMENT_ICONS = {
   "不適用": "N/A"
 };
 
-function resultSegmented(name, selected, attrs) {
+function resultSegmented(name, selected, attrs, disabled = []) {
   return `<div class="glass-segmented" role="radiogroup" aria-labelledby="${name}-label">${["符合", "不符合", "不適用"]
     .map(value => {
       const stateClass = value === "符合" ? "is-pass" : value === "不符合" ? "is-fail" : "is-na";
-      return `<label><input type="radio" name="${name}" value="${value}" aria-label="${value}" ${value === selected ? "checked" : ""} ${attrs} /><span class="${stateClass}">${SEGMENT_ICONS[value]}</span></label>`;
+      return `<label><input type="radio" name="${name}" value="${value}" aria-label="${value}" ${value === selected ? "checked" : ""} ${disabled.includes(value) ? "disabled" : ""} ${attrs} /><span class="${stateClass}">${SEGMENT_ICONS[value]}</span></label>`;
     })
     .join("")}</div>`;
 }
@@ -692,19 +770,25 @@ function resultSegmented(name, selected, attrs) {
 function renderCheckCards(type) {
   const domPrefix = { quality: "quality", guideWall: "guide-wall", rebarCage: "rebar-cage" }[type] || type;
   const target = $(`#${domPrefix}-check-list`);
-  target.innerHTML = state[type].checks.map((check, index) => `
-    <article class="check-card ${check.result === "不符合" ? "is-failed" : ""}">
+  target.innerHTML = state[type].checks.map((check, index) => {
+    const attrs = field => `data-check-item="${type}" data-check-index="${index}" data-check-field="${field}"`;
+    const measure = type === "guideWall" && guideMeasure(check);
+    // 導溝數值項目不合格時鎖住「✓」（會先把不該是「符合」的結果改掉，所以要在判斷 is-failed 之前）
+    const locked = measure ? guideLockedResults(check) : [];
+    return `
+    <article class="check-card ${check.result === "不符合" ? "is-failed" : ""}" data-check-card="${type}-${index}">
       <div class="check-card-head"><span>${String(index + 1).padStart(2, "0")}</span><strong>${esc(check.item)}</strong></div>
       <p>${type === "quality" ? esc(qualityCheckStandard(index, check.standard)) : standardHtml(check.standard)}</p>
       <div class="check-card-fields">
-        <label class="field"><span>現場紀錄／實測</span><input type="text" value="${esc(check.actual)}" data-check-item="${type}" data-check-index="${index}" data-check-field="actual" /></label>
-        <div class="field result-field"><span id="check-${type}-${index}-result-label">複核結果</span>${resultSegmented(`check-${type}-${index}-result`, check.result, `data-check-item="${type}" data-check-index="${index}" data-check-field="result"`)}</div>
+        ${measure ? guideMeasureFieldsHtml(check, attrs) : `<label class="field"><span>現場紀錄／實測</span><input type="text" value="${esc(check.actual)}" ${attrs("actual")} /></label>`}
+        <div class="field result-field"><span id="check-${type}-${index}-result-label">複核結果</span>${resultSegmented(`check-${type}-${index}-result`, check.result, attrs("result"), locked)}</div>
       </div>
-      ${type === "guideWall" && check.item.includes("鋼筋") ? `<div class="guide-rebar-fields">
-        <label class="field"><span>鋼筋號數</span><select data-check-item="${type}" data-check-index="${index}" data-check-field="barNo">${barSizeOptions(check.barNo)}</select></label>
-        <label class="field"><span>間距（cm）</span><input type="number" min="0" step="0.5" inputmode="decimal" placeholder="例如：20" value="${esc(check.barSpacing)}" data-check-item="${type}" data-check-index="${index}" data-check-field="barSpacing" /></label>
-      </div>` : ""}
-    </article>`).join("");
+    </article>`;
+  }).join("");
+  renderCheckProgress(type);
+}
+
+function renderCheckProgress(type) {
   const completed = state[type].checks.filter(check => check.result !== "待確認").length;
   if (type === "guideWall") {
     $("#guide-wall-progress").textContent = `${completed} / ${state.guideWall.checks.length}`;
@@ -757,15 +841,28 @@ function renderQualityStandards() {
 function renderQuality() {
   setQualityInputs();
   renderQualityStandards();
-  $("#quality-check-list").innerHTML = state.quality.checks.map((check, index) => `
-    <article class="quality-card ${check.result === "不符合" ? "is-failed" : ""}">
+  $("#quality-check-list").innerHTML = state.quality.checks.map((check, index) => {
+    const measure = qualityMeasure(check);
+    // 數值、標準值或壁體資訊一變就重繪，這裡順便套用自動判定（不自動打勾，所以不會蓋掉使用者點的 ✓／✗）
+    const { status, message } = qualityMeasureStatus(check);
+    if (measure) applyAutoResult(check, status);
+    const locked = measure ? autoLockedResults(check, status) : [];
+    const bad = status === "fail" || status === "invalid";
+    const input = `<input type="text"${measure ? ` inputmode="decimal"${bad ? ' class="is-invalid"' : ""}` : ""} value="${esc(check.actual)}" placeholder="${esc(qualityCheckPlaceholder(index, check.placeholder))}" data-quality-item="${index}" data-quality-field="actual" />`;
+    return `
+    <article class="quality-card ${check.result === "不符合" ? "is-failed" : ""}" data-quality-card="${index}">
       <div class="quality-card-head"><span>${String(index + 1).padStart(2, "0")}</span><strong>${esc(check.item)}</strong></div>
-      <p>${esc(qualityCheckStandard(index, check.standard))}</p>
+      <p>${esc(qualityCheckStandard(index, check.standard))}${message ? `<br /><strong>警示：${esc(message)}</strong>` : ""}</p>
       <div class="quality-card-fields">
-        <label class="field"><span>現場紀錄／實測</span><input type="text" value="${esc(check.actual)}" placeholder="${esc(qualityCheckPlaceholder(index, check.placeholder))}" data-quality-item="${index}" data-quality-field="actual" /></label>
-        <div class="field result-field"><span id="quality-${index}-result-label">檢查結果</span>${resultSegmented(`quality-${index}-result`, check.result, `data-quality-item="${index}" data-quality-field="result"`)}</div>
+        <label class="field${measure ? " quality-measure-field" : ""}"><span>現場紀錄／實測</span>${measure?.prefix ? `<b class="guide-affix">${esc(measure.prefix)}</b>` : ""}${input}${measure ? `<b class="guide-affix">${esc(measure.unit())}</b>` : ""}</label>
+        <div class="field result-field"><span id="quality-${index}-result-label">檢查結果</span>${resultSegmented(`quality-${index}-result`, check.result, `data-quality-item="${index}" data-quality-field="result"`, locked)}</div>
       </div>
-    </article>`).join("");
+    </article>`;
+  }).join("");
+  renderQualityProgress();
+}
+
+function renderQualityProgress() {
   const completed = state.quality.checks.filter(check => check.result !== "待確認").length;
   $("#quality-progress").textContent = `${completed} / ${state.quality.checks.length}`;
   $("#quality-pending").textContent = String(state.quality.checks.length - completed);
@@ -815,9 +912,9 @@ function loadExample() {
   state.depth = [{ time: "12:10", value: "-35.80" }, { time: "12:35", value: "-35.82" }];
   state.prework = Object.fromEntries(PHASES.map((phase, index) => [phase.id, { date: "2026-08-11", start: `0${8 + index}:00`, end: `0${8 + index}:30` }]));
   state.trucks = Array.from({ length: 8 }, (_, index) => ({ truckNo: `C${String(index + 1).padStart(2, "0")}`, dispatch: `${12 + Math.floor(index / 2)}:${index % 2 ? "50" : "28"}`, unload: `${13 + Math.floor(index / 2)}:${index % 2 ? "42" : "20"}`, finish: `${13 + Math.floor(index / 2)}:${index % 2 ? "55" : "33"}`, volume: index === 7 ? "11.26" : "13", measured: index === 7 ? "36.30" : (4.62 + index * 4.64).toFixed(2), slump: index === 0 ? "18" : "" }));
-  state.guideWall = { date: "2026-08-10", axisNo: "X3～X7 南側", reviewer: "Site Engineer", note: "中心線偏差 1.6 cm；順序符合；導溝條件完成複核。", checks: GUIDE_WALL_CHECKS.map(([item, standard], index) => ({ item, standard, actual: index === 0 ? "中心線偏差 1.6 cm" : "已確認", barNo: index === 5 ? "D16" : "", barSpacing: index === 5 ? "19.5" : "", result: "符合" })) };
+  state.guideWall = { date: "2026-08-10", axisNo: "X3～X7 南側", reviewer: "Site Engineer", note: "中心線偏差 1.6 cm；順序符合；導溝條件完成複核。", checks: GUIDE_WALL_CHECKS.map((definition, index) => ({ ...createGuideWallCheck(definition), actual: index === 0 ? "中心線偏差 1.6 cm" : "已確認", ...GUIDE_WALL_EXAMPLE_VALUES[definition[0]], result: "符合" })) };
   state.rebarCage = { date: "2026-08-10", cageNo: "C21-U／C21-L", reviewer: "Site Engineer", note: "配筋圖逐項核對；吊放條件完成。", mode: "detailed", parts: exampleRebarCageParts(), checks: REBAR_CAGE_CHECKS.map(([item, standard], index) => ({ item, standard, actual: index === 7 ? "3 組成對安裝；線路已保護至孔口" : "已確認", result: "符合" })), photos: [] };
-  state.quality = { note: "各項檢查完成，未發現影響施工之缺失。", standards: { ...QUALITY_STANDARD_DEFAULTS }, checks: QUALITY_CHECKS.map(([item, standard, placeholder]) => ({ item, standard, placeholder, actual: "已確認", result: "符合" })) };
+  state.quality = { note: "各項檢查完成，未發現影響施工之缺失。", standards: { ...QUALITY_STANDARD_DEFAULTS }, checks: QUALITY_CHECKS.map(([item, standard, placeholder]) => ({ item, standard, placeholder, actual: QUALITY_EXAMPLE_VALUES[item] || "已確認", result: "符合" })) };
 }
 
 function clearAllData() {
@@ -1024,7 +1121,7 @@ function renderPrint() {
   const truckRows = calculatedTrucks();
   const lastTruck = truckRows.at(-1);
 
-  const qualityRows = state.quality.checks.map((check, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(check.item)}</td><td class="text-left">${esc(qualityCheckStandard(index, check.standard))}</td><td class="text-left">${esc(display(check.actual))}</td><td>${esc(check.result)}</td></tr>`).join("");
+  const qualityRows = state.quality.checks.map((check, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(check.item)}</td><td class="text-left">${esc(qualityCheckStandard(index, check.standard))}</td><td class="text-left">${esc(qualityActualText(check))}</td><td>${esc(check.result)}</td></tr>`).join("");
   const qualityStandardRows = QUALITY_STANDARD_CONFIG.map(config => {
     const unitType = state.wall.unitType;
     const selectedKey = unitType === "公單元" ? "embedmentMale" : unitType === "母單元" ? "embedmentFemale" : unitType === "公母單元" ? "embedmentBoth" : null;
@@ -1176,6 +1273,7 @@ function exportData() {
       active_tab: activeTool === "diaphragmWall" ? activeTab : activeTool,
       current_form_label: currentExportLabel(activeTool, activeTab)
     },
+    construction_plan: exportPlanDraft("diaphragm-wall"),
     project: {
       name: state.overview.project || null,
       contractor: state.overview.contractor || null,
@@ -1228,6 +1326,7 @@ function exportData() {
         item: check.item,
         standard: qualityCheckStandard(index, check.standard),
         actual: check.actual || null,
+        unit: qualityMeasure(check)?.unit() || null,
         result: check.result
       }))
     },
@@ -1242,7 +1341,11 @@ function exportData() {
         item_no: index + 1,
         item: check.item,
         standard: check.standard,
+        design_value: toNumberOrText(check.design),
         actual: check.actual || null,
+        unit: guideMeasure(check)?.unit || null,
+        design_bar_size: check.designBarNo || null,
+        design_bar_spacing_cm: toNumberOrText(check.designBarSpacing),
         bar_size: check.barNo || null,
         bar_spacing_cm: toNumberOrText(check.barSpacing),
         result: check.result
@@ -1374,14 +1477,14 @@ function exportMarkdown() {
     ``,
     `| 項次 | 檢查項目 | 檢查標準 | 現場紀錄／實測 | 結果 |`,
     `| ---: | --- | --- | --- | --- |`,
-    ...data.quality_self_check.items.map(item => `| ${item.item_no} | ${markdownCell(item.item)} | ${markdownCell(item.standard)} | ${markdownCell(item.actual)} | ${markdownCell(item.result)} |`),
+    ...data.quality_self_check.items.map(item => `| ${item.item_no} | ${markdownCell(item.item)} | ${markdownCell(item.standard)} | ${markdownCell(qualityActualText({ item: item.item, actual: item.actual ?? "" }))} | ${markdownCell(item.result)} |`),
     ``,
     `**缺失及改善結果：** ${markdownCell(data.quality_self_check.note)}`,
     ``,
     `## Guide Wall／導溝複核`,
     ``,
     `- 軸線／方向編號：${markdownCell(data.guide_wall_review.axis_no)}`,
-    ...data.guide_wall_review.items.map(item => `- ${item.item_no}. ${item.item}：${item.result}；現場紀錄：${markdownCell([item.actual, item.bar_size ? `號數 ${barSizeMark(item.bar_size)}` : "", item.bar_spacing_cm !== null && item.bar_spacing_cm !== undefined ? `間距 ${item.bar_spacing_cm} cm` : ""].filter(Boolean).join("；"))}`),
+    ...data.guide_wall_review.items.map(item => `- ${item.item_no}. ${item.item}：${item.result}；現場紀錄：${markdownCell(guideCheckActual({ item: item.item, design: item.design_value ?? "", actual: item.actual ?? "", designBarNo: item.design_bar_size ?? "", designBarSpacing: item.design_bar_spacing_cm ?? "", barNo: item.bar_size ?? "", barSpacing: item.bar_spacing_cm ?? "" }))}`),
     ``,
     `## Rebar Cage／鋼筋籠複核`,
     ``,
@@ -1448,11 +1551,16 @@ function importGuideWallItems(items) {
     const record = source.find(entry => labels.includes(entry?.item)) || {};
     return {
       item,
-      standard: importText(record.standard) || standard,
+      // 數值項目的判定邏輯跟著程式走，標準文字也以程式為準，不沿用舊檔
+      standard: (!GUIDE_WALL_MEASURES[item] && importText(record.standard)) || standard,
+      design: importText(record.design_value),
       actual: importText(record.actual),
+      designBarNo: importText(record.design_bar_size),
+      designBarSpacing: importText(record.design_bar_spacing_cm),
       barNo: importText(record.bar_size || record.bar_no),
       barSpacing: importText(record.bar_spacing_cm || record.bar_spacing),
-      result: importResult(record.result)
+      result: importResult(record.result),
+      auto: ""
     };
   });
 }
@@ -1547,6 +1655,9 @@ function importJsonPayload(payload) {
     photos: importCagePhotos(rebarCage.photos)
   };
 
+  // 計畫頁的封面與修訂紀錄（只收同一個工具匯出的，見 draft.js）
+  importPlanDraft("diaphragm-wall", payload.construction_plan, state.overview);
+
   const context = payload.export_context || {};
   const importedTool = ["diaphragmWall", "guideWall", "rebarCage"].includes(context.active_tool) ? context.active_tool : "diaphragmWall";
   const importedTab = TAB_LABELS[context.active_tab] ? context.active_tab : "wall";
@@ -1616,9 +1727,30 @@ function initialize() {
       return;
     }
     const check = event.target.closest("[data-check-item]");
-    if (check) state[check.dataset.checkItem].checks[Number(check.dataset.checkIndex)][check.dataset.checkField] = check.value;
+    if (check) {
+      const type = check.dataset.checkItem;
+      const record = state[type].checks[Number(check.dataset.checkIndex)];
+      record[check.dataset.checkField] = check.value;
+      // 導溝數值項目：邊打字邊判定，就地更新紅框與結果鈕
+      if (type === "guideWall" && check.dataset.checkField !== "result" && guideMeasure(record)) {
+        applyGuideAutoResult(record);
+        syncGuideMeasureCard(check.closest("[data-check-card]"), record);
+        renderCheckProgress(type);
+      }
+    }
     const qualityCheck = event.target.closest("[data-quality-item]");
-    if (qualityCheck) state.quality.checks[Number(qualityCheck.dataset.qualityItem)][qualityCheck.dataset.qualityField] = qualityCheck.value;
+    if (qualityCheck) {
+      const record = state.quality.checks[Number(qualityCheck.dataset.qualityItem)];
+      record[qualityCheck.dataset.qualityField] = qualityCheck.value;
+      // 數值項目邊打字邊判定：就地更新紅框與結果鈕，警示文字離開欄位再重繪
+      if (qualityCheck.dataset.qualityField === "actual" && qualityMeasure(record)) {
+        const { status } = qualityMeasureStatus(record);
+        applyAutoResult(record, status);
+        qualityCheck.classList.toggle("is-invalid", status === "fail" || status === "invalid");
+        syncAutoResultCard(qualityCheck.closest("[data-quality-card]"), record, autoLockedResults(record, status));
+        renderQualityProgress();
+      }
+    }
   });
 
   document.addEventListener("change", event => {
@@ -1632,13 +1764,20 @@ function initialize() {
     const check = event.target.closest("[data-check-item]");
     if (check) {
       const type = check.dataset.checkItem;
-      state[type].checks[Number(check.dataset.checkIndex)][check.dataset.checkField] = check.value;
-      if (check.dataset.checkField === "result") renderCheckCards(type);
+      const record = state[type].checks[Number(check.dataset.checkIndex)];
+      record[check.dataset.checkField] = check.value;
+      if (check.dataset.checkField === "result") {
+        if ("auto" in record) record.auto = "";
+        renderCheckCards(type);
+      }
     }
     const qualityCheck = event.target.closest("[data-quality-item]");
     if (qualityCheck) {
-      state.quality.checks[Number(qualityCheck.dataset.qualityItem)][qualityCheck.dataset.qualityField] = qualityCheck.value;
-      if (qualityCheck.dataset.qualityField === "result") renderQuality();
+      const record = state.quality.checks[Number(qualityCheck.dataset.qualityItem)];
+      record[qualityCheck.dataset.qualityField] = qualityCheck.value;
+      if (qualityCheck.dataset.qualityField === "result") record.auto = "";
+      // 結果改了、或數值項目輸入完（離開欄位）才重繪，更新警示文字；一般文字欄不重繪
+      if (qualityCheck.dataset.qualityField === "result" || qualityMeasure(record)) renderQuality();
     }
     const qualityStandard = event.target.closest("[data-quality-standard]");
     if (qualityStandard) {
@@ -1668,7 +1807,11 @@ function initialize() {
 
   $("#help-button").addEventListener("click", () => $("#help-dialog").showModal());
   $("#clear-button").addEventListener("click", () => $("#clear-dialog").showModal());
-  $("#confirm-clear").addEventListener("click", clearAllData);
+  // 「還原預設」連同本工具的施工計畫草稿（封面、修訂紀錄、版本）一起清掉；匯入 JSON 也會呼叫 clearAllData，那時不動計畫
+  $("#confirm-clear").addEventListener("click", () => {
+    clearAllData();
+    try { localStorage.removeItem("project-portal.plan.diaphragm-wall.draft"); } catch (error) { /* 靜默 */ }
+  });
   $("#export-button").addEventListener("click", () => {
     $("#export-current-label").textContent = currentExportLabel();
     $("#import-status").textContent = "";

@@ -77,6 +77,10 @@ body { margin: 0; background: var(--glass-page-bg); background-image: var(--glas
 .plan-section + .plan-section { margin-top: 28px; }
 .plan-article p { margin: 0 0 10px; }
 .plan-article ul, .plan-article ol { margin: 0 0 12px; padding-left: 1.5em; }
+/* 子條列：「・」標記，緊貼上一行 */
+.plan-article .plan-sublist { margin: 2px 0 0; padding-left: 1.2em; list-style: none; }
+.plan-article .plan-sublist li { position: relative; padding: 0; border: 0; }
+.plan-article .plan-sublist li::before { content: "・"; position: absolute; top: 0; left: -1.1em; width: auto; height: auto; border-radius: 0; background: none; color: inherit; font: inherit; line-height: inherit; text-align: left; counter-increment: none; }
 .plan-article li { margin: 2px 0; }
 .plan-steps { counter-reset: step; list-style: none; padding-left: 0 !important; }
 .plan-steps li { position: relative; padding: 6px 0 6px 2.4em; border-bottom: 1px dashed var(--glass-line); }

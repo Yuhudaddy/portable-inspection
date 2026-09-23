@@ -598,9 +598,34 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .check-card-fields > .result-field { flex: 0 0 auto; position: relative; }
 .check-card.is-failed .check-card-fields > .field input,
 .check-card.is-failed .check-card-fields > .field select { background-color: #fff; }
-.guide-rebar-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; margin-top: 10px; margin-left: 24px; }
-.guide-rebar-fields .field > span { font-size: 0.6875rem; }
-.guide-rebar-fields .field input, .guide-rebar-fields .field select { min-height: 40px; border-radius: 999px; font-size: 0.875rem; }
+/* 導溝數值項目（guide-wall.js）：設計／實測兩組欄位。手機上下排，寬螢幕同一列；
+   兩組以「設計」灰字、「實測」主色字與中間的細分隔線區分。不合格的那組框線變紅。 */
+.check-card-fields > .guide-measure { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.guide-measure-group { display: flex; align-items: center; gap: 6px; min-width: 0; margin: 0; }
+.guide-measure-label { flex: none; color: var(--glass-label); font-size: 0.6875rem; font-weight: 600; }
+.guide-measure-group[data-guide-group="actual"] .guide-measure-label { color: var(--glass-accent); }
+.check-card-fields > .guide-measure input { flex: 1 1 auto; padding-right: 14px; }
+.check-card-fields > .guide-measure select { flex: 1 1 0; padding-left: 12px; }
+.guide-affix, .guide-at { flex: none; color: var(--glass-soft); font-size: 0.75rem; font-weight: 500; }
+.guide-measure-group.is-invalid :is(input, select),
+.check-card-fields > .field input.is-invalid { box-shadow: inset 0 0 0 1.5px var(--glass-danger); }
+.guide-measure-note { grid-column: 1 / -1; padding-left: 2px; color: var(--glass-soft); font-size: 0.6875rem; line-height: 1.4; }
+.guide-measure-note:empty { display: none; }
+.guide-measure-note.is-invalid { color: var(--glass-danger-ink); font-weight: 500; }
+/* 鋼筋一組有兩個下拉，手機上欄位獨占一行，結果鈕移到下方靠右 */
+.check-card-fields:has(> .guide-measure) { align-items: flex-start; }   /* 提示字在欄位下方，結果鈕對齊欄位列 */
+.check-card-fields:has(> .guide-measure.is-rebar) { flex-wrap: wrap; justify-content: flex-end; }
+.check-card-fields > .guide-measure.is-rebar { flex-basis: 100%; }
+@media (min-width: 560px) {
+  .check-card-fields > .guide-measure { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 17px; }
+  .check-card-fields > .guide-measure.is-single { grid-template-columns: minmax(0, 1fr); }
+  .guide-measure-group[data-guide-group="actual"] { position: relative; }
+  .guide-measure-group[data-guide-group="actual"]::before { content: ""; position: absolute; top: 8px; bottom: 8px; left: -9px; width: 1px; background: var(--line); }
+}
+@media (min-width: 720px) {
+  .check-card-fields:has(> .guide-measure.is-rebar) { flex-wrap: nowrap; }
+  .check-card-fields > .guide-measure.is-rebar { flex-basis: auto; }
+}
 
 .note-field {
   display: grid;
@@ -786,6 +811,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 .quality-card-fields > .field input { min-height: 42px; padding: 0 14px; border-radius: 999px; font-size: 0.875rem; }
 .quality-card-fields > .result-field { flex: 0 0 auto; position: relative; }
+.quality-card > p strong { display: block; margin-top: 4px; color: var(--glass-danger-ink); font-weight: 500; }
+/* 數值項目：前後加單位（例：導溝頂下 [ 60 ] cm） */
+.quality-card-fields > .quality-measure-field { display: flex; align-items: center; gap: 6px; }
+.quality-card-fields > .field input.is-invalid { box-shadow: inset 0 0 0 1.5px var(--glass-danger); }
 .quality-card.is-failed .quality-card-fields > .field input { background: #fff; }
 .quality-context-note {
   margin: 10px 0 0;
@@ -845,7 +874,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 /* 數值＋單位並排：輸入格吃剩餘寬度，單位下拉只佔內容寬。 */
 .field-unit-row { display: flex; gap: 8px; align-items: center; min-width: 0; }
 .form-grid > .field > .field-unit-row > input { flex: 1 1 auto; width: auto; margin: 0 0 0 -10px; }
-.form-grid > .field > .field-unit-row > select { flex: none; width: auto; margin: 0 -10px 0 0; padding: 0 24px 0 8px; }
+.form-grid > .field > .field-unit-row > select { flex: none; width: auto; margin: 0 -10px 0 0; padding: 0 24px 0 8px; font-size: 0.875rem; }   /* 單位比數值小 2px */
 .calculated-field > span em[hidden] { display: none; }
 .quality-standard-note { margin-top: 10px; }
 .example-actions { display: grid; width: 100%; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
@@ -950,7 +979,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .help-dialog-compact .example-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .help-dialog-compact .help-content { gap: 10px; }
   .help-dialog-compact .help-content section { padding-bottom: 8px; }
-  .guide-rebar-fields { margin-left: 0; }
   .quality-standard-heading { display: block; }
   .quality-standard-heading > div { margin-bottom: 4px; }
   .quality-standard-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -986,6 +1014,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .tab-row button[aria-selected="true"]:hover { background: var(--glass-ink); }
   .record-switcher button[aria-current="page"]:hover { background: #fff; }
   .confirm-button:hover, .dock-primary:hover { background: var(--glass-accent-strong); }
+  .confirm-button.danger-button:hover { background: var(--glass-danger-strong); }
   .dock-tool:hover { background: rgba(60, 50, 30, 0.09); }
 }
 

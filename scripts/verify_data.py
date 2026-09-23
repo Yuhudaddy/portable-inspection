@@ -203,7 +203,7 @@ def verify_roundtrip(browser, html, tool, unit_path):
 
 # ---------------------------------------------------------------- 本公司標準值預設改版後的舊草稿
 def verify_standard_default_migration(browser, html, tool, standards_path, json_path, seed, expected):
-    """2026-09-21 預設值改版（沉泥 15、保護層 10、籠縱向 ±2.5…）：舊草稿裡仍是舊預設的項目換成新預設，
+    """2026-09-21 預設值改版（沉泥 15、保護層 10、籠雙向 ±5…）：舊草稿裡仍是舊預設的項目換成新預設，
     使用者自己選的值保留，草稿缺的鍵補上預設；匯入 JSON 不套用（紀錄檔照原值）。"""
     page = open_clean(browser, html)
     page.evaluate("() => { loadExample(); draft.schedule(); }")
@@ -260,9 +260,9 @@ def verify_vendor_links(browser):
       const select = document.querySelector('[data-bind="wall.strengthUnit"]');
       select.value = "psi"; select.dispatchEvent(new Event("input", { bubbles: true })); select.dispatchEvent(new Event("change", { bubbles: true }));
       const data = exportData();
-      return { placeholder: document.querySelector('[data-bind="wall.strength"]').placeholder, quality: document.querySelector('[data-quality-item="15"]').placeholder,
+      return { placeholder: document.querySelector('[data-bind="wall.strength"]').placeholder, quality: document.querySelector('[data-quality-card="15"] .guide-affix').textContent + "｜" + document.querySelectorAll('#quality-check-list .quality-card p')[15].textContent,
         exported: [data.wall_unit.concrete_strength, data.wall_unit.concrete_strength_unit, "concrete_strength_kgf_cm2" in data.wall_unit] }; }""")
-    check("廠商版：強度單位選 psi → 強度欄與品質自檢第 16 項 placeholder 同步、JSON 帶 concrete_strength_unit", unit["placeholder"] == "例如：5000" and unit["quality"] == "填寫 GL／psi" and unit["exported"] == [350, "psi", False], unit)
+    check("廠商版：強度單位選 psi → 強度欄 placeholder、品質自檢第 16 項單位與設計強度同步、JSON 帶 concrete_strength_unit", unit["placeholder"] == "例如：5000" and unit["quality"] == "psi｜實測強度 ≥ 設計強度 350 psi" and unit["exported"] == [350, "psi", False], unit)
     page.evaluate("() => showTab('wall')")
     text = pdf_text(page, "current")
     check("廠商版：PDF 壁體資訊的強度單位跟著選項", "混凝土強度(psi)" in text.replace(" ", ""), text[:200])
@@ -405,14 +405,14 @@ def verify_check_text_refresh(browser):
       q5: [state.quality.checks[4].standard, state.quality.checks[4].actual], q2: state.quality.checks[1].placeholder,
       g4: [state.guideWall.checks[3].standard, state.guideWall.checks[3].actual], g1: [state.guideWall.checks[0].item, state.guideWall.checks[0].actual, state.guideWall.checks[0].result],
       count: [state.quality.checks.length, state.guideWall.checks.length, state.rebarCage.checks.length] })""")
-    check("廠商版：舊草稿的判定標準／placeholder 換成程式定義，actual 保留；改名項目的填值不帶入", after["q5"] == ["高於地下水位 1.0 m 以上，且不低於導溝頂下 80 cm", "鋪面下 70 cm"] and after["q2"] == "例如：沉泥 12 cm" and after["g4"][1] == "1.9 m" and "1.8 m" in after["g4"][0] and after["g1"] == ["放樣", "", "待確認"] and after["count"] == [18, 11, 7], after)
+    check("廠商版：舊草稿的判定標準／placeholder 換成程式定義，actual 保留；改名項目的填值不帶入", after["q5"] == ["液面在導溝頂下 80 cm 以內；高於地下水位 1.0 m 以上（現場確認）", "鋪面下 70 cm"] and after["q2"] == "例如：12" and after["g4"][1] == "1.9 m" and "1.8 m" in after["g4"][0] and after["g1"] == ["放樣", "", "待確認"] and after["count"] == [18, 11, 7], after)
     dynamic = page.evaluate("""() => {
       const text = i => document.querySelectorAll('#quality-check-list .quality-card p')[i].textContent;
       state.wall.unitType = ""; renderQuality();
       const none = text(16);
       state.wall.unitType = "母單元"; state.quality.standards.embedmentFemale = "2.0"; renderQuality();
       return { none, chosen: text(16), sediment: text(1), tremie: text(9), slump: text(14) }; }""")
-    check("廠商版：品質自檢畫面的判定標準跟著本公司標準值（沉泥 15、端距 50、坍度 20±2）", dynamic["sediment"] == "沉泥厚度 ≤ 15 cm" and dynamic["tremie"] == "特密管端距 ≤ 50 cm" and dynamic["slump"].startswith("坍度 20 cm；允許誤差 2 cm"), dynamic)
+    check("廠商版：品質自檢畫面的判定標準跟著本公司標準值（沉泥 15、初灌 30～50、坍度 20±2）", dynamic["sediment"] == "沉泥厚度 ≤ 15 cm" and dynamic["tremie"] == "初灌管底離槽溝底 30～50 cm" and dynamic["slump"].startswith("坍度 20 cm；允許誤差 2 cm"), dynamic)
     check("廠商版：埋入深度未選單元類型時列出公／母／公母三種標準值，選了就只顯示該類型", dynamic["none"].startswith("依壁體資訊的單元類型套用：公單元 ≥ 1.5 m／母單元 ≥ 1.5 m／公母單元 ≥ 1.5 m") and dynamic["chosen"] == "母單元：埋入深度 ≥ 2.0 m", dynamic)
     spin = page.evaluate("""() => { const rules = [...document.styleSheets].flatMap(sheet => { try { return [...sheet.cssRules]; } catch (e) { return []; } });
       const spinRule = rules.find(rule => rule.selectorText?.includes('::-webkit-inner-spin-button'));
@@ -476,9 +476,119 @@ def verify_bar_sizes(browser):
     page.context.close()
 
     page = open_clean(browser, "diaphragm-wall-gc")
-    page.evaluate("""() => { state.guideWall.checks[5].barNo = "D16"; state.guideWall.checks[5].barSpacing = "20"; activeTool = "guideWall"; renderAll?.(); }""")
+    page.evaluate("""() => { Object.assign(state.guideWall.checks[5], { designBarNo: "D16", designBarSpacing: "20", barNo: "D16", barSpacing: "17.5" }); activeTool = "guideWall"; renderAll?.(); }""")
     text = pdf_text(page, "current")
-    check("導溝 PDF 鋼筋號數印 #5", "號數 #5" in text and "D16" not in text, text[:300])
+    flat = "".join(text.split())  # 表格欄窄，PDF 抽字會在任意處斷行
+    check("導溝 PDF 鋼筋印設計／實測 #5@間距", "設計#5@20cm" in flat and "實測#5@17.5cm" in flat and "D16" not in text, text[:300])
+    page.context.close()
+
+
+# ---------------------------------------------------------------- 導溝數值項目自動判定（guide-wall.js）
+def verify_guide_wall_measures(browser, html):
+    page = open_clean(browser, html)
+    result = page.evaluate("""() => {
+      activeTool = "guideWall"; renderAll?.();
+      const q = (i, f) => document.querySelector(`[data-check-item="guideWall"][data-check-index="${i}"][data-check-field="${f}"]`);
+      const set = (i, f, v) => { const el = q(i, f); el.value = v; el.dispatchEvent(new Event("input", { bubbles: true })); el.dispatchEvent(new Event("change", { bubbles: true })); };
+      const r = i => state.guideWall.checks[i].result;
+      const out = {};
+      set(2, "design", "100"); set(2, "actual", "106"); out.widthFail = [r(2), q(2, "result").closest(".check-card").querySelector('input[value="符合"]').disabled];
+      set(2, "actual", "104"); out.widthBack = r(2);
+      set(3, "design", "1.5"); out.depthDesign = r(3);
+      set(3, "design", "2"); set(3, "actual", "2"); out.depthEqual = r(3);
+      q(4, "result").closest(".check-card").querySelector('input[value="不適用"]').click();
+      set(4, "design", "20"); set(4, "actual", "10"); out.naKept = r(4);
+      set(5, "designBarNo", "D16"); set(5, "designBarSpacing", "20"); set(5, "barNo", "D16"); set(5, "barSpacing", "17.5"); out.rebarPass = r(5);
+      set(5, "barSpacing", "25"); out.rebarFail = r(5);
+      set(7, "design", "210"); set(7, "actual", "200"); out.strength = r(7);
+      set(8, "actual", "0.3"); out.top = guideCheckActual(state.guideWall.checks[8]);
+      const payload = exportData();
+      clearAllData(); importJsonPayload(JSON.parse(JSON.stringify(payload)));
+      out.imported = [state.guideWall.checks[2].design, state.guideWall.checks[5].designBarSpacing, state.guideWall.checks[5].barSpacing, state.guideWall.checks[7].result];
+      return out;
+    }""")
+    check(f"{html}：淨寬超出 ±5 cm → 自動 ✗ 且 ✓ 停用；改回範圍內退回待確認", result["widthFail"] == ["不符合", True] and result["widthBack"] == "待確認", result)
+    check(f"{html}：深度設計 < 1.8 m 自動 ✗；實測 = 設計不算不合格", result["depthDesign"] == "不符合" and result["depthEqual"] == "待確認", result)
+    check(f"{html}：選了 N/A 後數值不合格也不改", result["naKept"] == "不適用", result)
+    check(f"{html}：鋼筋號數相同且間距 ≤ 設計自動 ✓，間距過大自動 ✗", result["rebarPass"] == "符合" and result["rebarFail"] == "不符合", result)
+    check(f"{html}：強度低於設計自動 ✗；頂部高程印 GL-", result["strength"] == "不符合" and result["top"] == "GL-0.3 m", result)
+    check(f"{html}：設計值經 JSON 匯出匯入保留", result["imported"] == ["100", "20", "25", "不符合"], result)
+    page.context.close()
+
+
+# ---------------------------------------------------------------- 數值自動判定：輸入容錯、改標準值即時重判（auto-judge.js）
+# 外面包一層函式：Playwright 對「結果是函式」的運算式會直接呼叫它
+SET_VALUE_JS = """() => { window.__set = (selector, value) => { const el = document.querySelector(selector); el.value = value;
+  el.dispatchEvent(new Event("input", { bubbles: true })); el.dispatchEvent(new Event("change", { bubbles: true })); }; }"""
+
+
+def verify_auto_judge(browser):
+    page = open_clean(browser, "diaphragm-wall")
+    page.evaluate(SET_VALUE_JS)
+    guide = page.evaluate("""() => {
+      activeTool = "guideWall"; renderAll?.();
+      const q = f => `[data-check-item="guideWall"][data-check-index="2"][data-check-field="${f}"]`;
+      const r = () => state.guideWall.checks[2].result;
+      const locked = () => document.querySelector(`[data-check-card="guideWall-2"] input[value="符合"]`).disabled;
+      const note = () => document.querySelector('[data-check-card="guideWall-2"] [data-guide-note]').textContent;
+      __set(q("design"), "１００"); __set(q("actual"), "106cm"); const fail = [r(), locked()];
+      __set(q("actual"), "約100"); const invalid = [r(), locked(), note()];
+      __set(q("actual"), "103 cm"); const ok = [r(), locked()];
+      return { fail, invalid, ok, print: guideCheckActual(state.guideWall.checks[2]) };
+    }""")
+    check("輸入容錯：全形數字與「106cm」可判定；「約100」紅框提示請輸入數值、✓ 停用、退回待確認", guide["fail"] == ["不符合", True] and guide["invalid"] == ["待確認", True, "請輸入數值"] and guide["ok"] == ["待確認", False], guide)
+    check("輸入容錯：列印時整理成數字＋單位", guide["print"] == "設計 100 cm；實測 103 cm（許可值 95～105 cm）", guide)
+
+    quality = page.evaluate("""() => {
+      state.wall.unitType = "公單元"; activeTool = "diaphragmWall"; renderAll?.();
+      const q = i => `[data-quality-item="${i}"][data-quality-field="actual"]`;
+      const r = i => state.quality.checks[i].result;
+      __set(q(1), "18"); const sediment = r(1);
+      __set('[data-quality-standard="sediment"]', "20"); const relaxed = r(1);
+      __set('[data-quality-standard="sediment"]', "15"); const tightened = r(1);
+      __set(q(4), "90"); __set(q(9), "25"); __set(q(14), "23"); __set(q(16), "1.2"); __set(q(17), "1/250");
+      state.wall.strength = "350"; renderAll?.(); __set(q(15), "300");
+      __set(q(0), "abc");
+      const results = [4, 9, 14, 15, 16, 17].map(r);
+      __set(q(17), "abc"); const invalid = [r(17), document.querySelector('[data-quality-card="17"] input[value="符合"]').disabled];
+      return { sediment, relaxed, tightened, results, invalid, text: r(0), print: qualityActualText(state.quality.checks[4]) };
+    }""")
+    check("06 品質自檢：沉泥超過標準自動 ✗；標準值改寬後立即退回待確認、改回又自動 ✗", [quality["sediment"], quality["relaxed"], quality["tightened"]] == ["不符合", "待確認", "不符合"], quality)
+    check("06 品質自檢：液面、初灌、坍度、強度、埋入、垂直精度不合格都自動 ✗；文字項目不判定", quality["results"] == ["不符合"] * 6 and quality["text"] == "待確認", quality)
+    check("06 品質自檢：數值欄輸入文字 → ✓ 停用、退回待確認；液面列印「導溝頂下 90 cm」", quality["invalid"] == ["待確認", True] and quality["print"] == "導溝頂下 90 cm", quality)
+
+    # 計畫封面跟著 JSON 走
+    page.evaluate("""() => localStorage.setItem('project-portal.plan.diaphragm-wall.draft', JSON.stringify({ schema: 'project-portal.draft.v1',
+      data: { version: 'full', cover: { project: 'P', contractor: 'C', author: '工務所', date: '2026-09-01', revision: 'B' }, revisions: [{ version: 'A', date: '2026-08-01', note: '初版', author: '甲' }, { version: 'B', date: '2026-09-01', note: '改標準值', author: '乙' }] } }))""")
+    plan = page.evaluate("""() => { const payload = exportData(); localStorage.removeItem('project-portal.plan.diaphragm-wall.draft');
+      clearAllData(); importJsonPayload(JSON.parse(JSON.stringify(payload)));
+      const restored = JSON.parse(localStorage.getItem('project-portal.plan.diaphragm-wall.draft')).data;
+      return { exported: payload.construction_plan, restored: [restored.version, restored.cover.author, restored.cover.revision, restored.revisions.length, restored.revisions[1].note], payload }; }""")
+    check("計畫封面與修訂紀錄寫進 JSON，匯入後還原到計畫草稿", plan["exported"]["work"] == "diaphragm-wall" and plan["restored"] == ["full", "工務所", "B", 2, "改標準值"], plan["restored"])
+    page.context.close()
+
+    page = open_clean(browser, "diaphragm-wall-gc")
+    page.evaluate(SET_VALUE_JS)
+    vendor_into_gc = page.evaluate("""(payload) => { importJsonPayload(payload); return localStorage.getItem('project-portal.plan.diaphragm-wall-gc.draft'); }""", plan["payload"])
+    check("營造廠版匯入廠商 JSON 不會動到營造廠的計畫草稿", vendor_into_gc is None, vendor_into_gc)
+    hold = page.evaluate("""() => {
+      clearAllData(); showTab?.("hold1");
+      const q = (h, key) => `[data-hold="${h}"][data-hold-index="${HOLD_BY_ID[h].items.findIndex(d => d.key === key)}"][data-hold-field="actual"]`;
+      const r = (h, key) => state.holds[h][HOLD_BY_ID[h].items.findIndex(d => d.key === key)].result;
+      state.guideWall.checks[2].design = "100"; renderAll?.();
+      __set(q("hold1", "guideClear"), "106"); const clearFail = r("hold1", "guideClear");
+      __set(q("hold1", "guideClear"), "104"); const clearOk = r("hold1", "guideClear");
+      __set(q("hold1", "sediment"), "18"); const sediment = r("hold1", "sediment");
+      __set('[data-standard="sediment"]', "20"); const relaxed = r("hold1", "sediment");
+      __set(q("hold1", "verticality"), "1/250"); const vertical = r("hold1", "verticality");
+      __set(q("hold2", "slurryDensity"), "1.10"); const density = r("hold2", "slurryDensity");
+      __set(q("hold3", "slump"), "abc");
+      const slumpIndex = HOLD_BY_ID.hold3.items.findIndex(d => d.key === "slump");
+      const invalid = [r("hold3", "slump"), document.querySelector(`[data-hold-card="hold3-${slumpIndex}"] input[value="符合"]`).disabled];
+      return { clearFail, clearOk, sediment, relaxed, vertical, density, invalid };
+    }""")
+    check("01 停檢點：導溝淨寬以導溝複核表設計淨寬 ±5 cm 自動判定", hold["clearFail"] == "不符合" and hold["clearOk"] == "待確認", hold)
+    check("01 停檢點：沉泥超標自動 ✗、標準值改寬立即退回；垂直度可寫 1/250；比重 1.10 未小於 1.1 判 ✗；非數值 ✓ 停用", hold["sediment"] == "不符合" and hold["relaxed"] == "待確認" and hold["vertical"] == "不符合" and hold["density"] == "不符合" and hold["invalid"] == ["待確認", True], hold)
     page.context.close()
 
 
@@ -623,6 +733,24 @@ def verify_plan_page(browser):
     page.wait_for_function("typeof renderPlan === 'function'")
     result = page.evaluate("() => ({ project: state.cover.project, contractor: state.cover.contractor, back: document.querySelector('#back-link').getAttribute('href'), title: (setPrintDocumentTitle(planFileName()), document.title) })")
     check("計畫頁：from 工具的工程名稱／廠商帶入封面，返回連結指回工具頁，PDF 檔名含版本", result["project"] == "帶入測試工程" and result["contractor"] == "帶入營造" and result["back"] == "./diaphragm-wall-gc" and "精簡版" in result["title"], result)
+    # 封面改工程名稱 → 寫回工具頁草稿；工具頁改了之後再開計畫，封面跟著更新；編製單位不同步
+    page.evaluate("""() => { const input = document.querySelector('[data-cover="project"]'); input.value = '計畫改名工程'; input.dispatchEvent(new Event('input', { bubbles: true }));
+      const author = document.querySelector('[data-cover="author"]'); author.value = '工務所'; author.dispatchEvent(new Event('input', { bubbles: true })); }""")
+    page.wait_for_timeout(600)
+    back = page.evaluate("() => JSON.parse(localStorage.getItem('project-portal.diaphragmWallGc.draft')).data.overview")
+    check("計畫頁：封面改工程名稱寫回工具頁草稿，編製單位不寫回", back["project"] == "計畫改名工程" and back["contractor"] == "帶入營造" and "author" not in back, back)
+    page.evaluate("() => { const stored = JSON.parse(localStorage.getItem('project-portal.diaphragmWallGc.draft')); stored.data.overview.contractor = '工具改廠商'; localStorage.setItem('project-portal.diaphragmWallGc.draft', JSON.stringify(stored)); }")
+    page.goto(f"{BASE}/plan?work=diaphragm-wall-gc&from=diaphragm-wall-gc", wait_until="networkidle")
+    page.wait_for_function("typeof renderPlan === 'function'")
+    again = page.evaluate("() => ({ project: state.cover.project, contractor: state.cover.contractor, author: state.cover.author, field: document.querySelector('[data-cover=\"contractor\"]').value })")
+    check("計畫頁：工具頁改了廠商，重開計畫封面同步；編製單位保留計畫自己的值", again == {"project": "計畫改名工程", "contractor": "工具改廠商", "author": "工務所", "field": "工具改廠商"}, again)
+    page.wait_for_timeout(600)
+    page.goto(f"{BASE}/diaphragm-wall-gc", wait_until="networkidle")
+    page.wait_for_function("typeof state === 'object' && typeof clearAllData === 'function'")
+    cleared = page.evaluate("""() => { const before = Boolean(localStorage.getItem('project-portal.plan.diaphragm-wall-gc.draft'));
+      document.querySelector('#confirm-clear').click();
+      return { before, after: Boolean(localStorage.getItem('project-portal.plan.diaphragm-wall-gc.draft')), label: document.querySelector('#confirm-clear').textContent }; }""")
+    check("工具頁「還原預設」一併清掉該工具的計畫草稿", cleared == {"before": True, "after": False, "label": "還原預設"}, cleared)
     page.context.close()
 
 
@@ -688,7 +816,7 @@ try:
         verify_standard_default_migration(
             browser, "diaphragm-wall", "廠商版", "quality.standards", "quality_self_check.standards",
             seed={"cageLongitudinalTolerance": "±7.5", "slump": "18", "sediment": "10", "cover": "5", "volumeDifference": "15"},
-            expected={"cageLongitudinalTolerance": "±2.5", "slump": "20", "sediment": "15", "cover": "5", "volumeDifference": "15", "chloride": "0.15"})
+            expected={"cageLongitudinalTolerance": "±5", "slump": "20", "sediment": "15", "cover": "5", "volumeDifference": "15", "chloride": "0.15"})
         verify_standard_default_migration(
             browser, "diaphragm-wall-gc", "營造廠版", "standards", "standards",
             seed={"sediment": "10", "rollerSpacing": "4", "cover": "7.5", "tremieInitialMin": "10", "tremieInitialMax": "20", "overbreakMin": "5", "overbreakMax": "15", "slump": "19"},
@@ -699,6 +827,9 @@ try:
         verify_cage_photos(browser, "diaphragm-wall-gc", "營造廠版")
         verify_formwork_units(browser)
         verify_bar_sizes(browser)
+        verify_guide_wall_measures(browser, "diaphragm-wall")
+        verify_guide_wall_measures(browser, "diaphragm-wall-gc")
+        verify_auto_judge(browser)
         verify_rebar_cage_helpers(browser)
         verify_rebar_cage_ui(browser, "diaphragm-wall-gc")
         verify_rebar_cage_ui(browser, "diaphragm-wall")

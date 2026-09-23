@@ -219,6 +219,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .tab-row button:hover { background: rgba(60, 50, 30, 0.09); }
   .tab-row button[aria-selected="true"]:hover { background: var(--glass-ink); }
   .confirm-button:hover, .dock-primary:hover { background: var(--glass-accent-strong); }
+  .confirm-button.danger-button:hover { background: var(--glass-danger-strong); }
   .dock-tool:hover { background: rgba(60, 50, 30, 0.09); }
 }
 

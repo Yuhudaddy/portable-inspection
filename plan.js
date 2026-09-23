@@ -25,15 +25,32 @@ const state = {
 };
 const draft = work ? createDraftStore(`project-portal.plan.${work}.draft`, () => state) : null;
 
-// 第一次開啟：工程名稱、廠商從工具頁草稿帶入
-function prefillFromTool() {
-  if (!from || state.cover.project || state.cover.contractor) return;
+// 工程名稱、施工廠商與工具頁的「工程資訊」同步：開啟時以工具頁草稿為準（工具頁沒填才保留封面自己的值），
+// 在封面修改也寫回工具頁草稿。編製單位、日期、版次只屬於計畫。
+const SYNCED_COVER_FIELDS = ["project", "contractor"];
+
+function readToolDraft() {
+  if (!from) return null;
   try {
     const stored = JSON.parse(localStorage.getItem(PLAN_FROM[from].draft));
-    const overview = stored?.data?.overview || {};
-    state.cover.project = String(overview.project || "");
-    state.cover.contractor = String(overview.contractor || "");
-  } catch (error) { /* 沒有草稿就留空 */ }
+    return stored?.data?.overview && typeof stored.data.overview === "object" ? stored : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+function syncCoverFromTool() {
+  const overview = readToolDraft()?.data.overview;
+  if (!overview) return;
+  SYNCED_COVER_FIELDS.forEach(field => { if (overview[field]) state.cover[field] = String(overview[field]); });
+}
+
+// 工具頁還沒有草稿就不建立：只寫一個 overview 的草稿會讓工具頁以為有資料可還原
+function writeCoverToTool(field) {
+  const stored = readToolDraft();
+  if (!stored) return;
+  stored.data.overview[field] = state.cover[field];
+  try { localStorage.setItem(PLAN_FROM[from].draft, JSON.stringify(stored)); } catch (error) { /* 靜默 */ }
 }
 
 function visibleSections(version) {
@@ -46,11 +63,17 @@ function visibleSections(version) {
   return content.sections.filter(keep).map(trim);
 }
 
+// 條列項目可以是字串，或 { text, items } 帶一層子條列（例：「特密管埋入混凝土內：」下分高分子系／皂土系）。
+// 表格儲存格裡的 \n 換行，讓同一格可分行列出不同條件。
+const itemHtml = item => typeof item === "string" ? esc(item)
+  : `${esc(item.text)}<ul class="plan-sublist">${(item.items || []).map(sub => `<li>${esc(sub)}</li>`).join("")}</ul>`;
+const cellHtml = cell => esc(cell).replaceAll("\n", "<br>");
+
 function blockHtml(block) {
   switch (block.type) {
     case "p": return `<p>${esc(block.text)}</p>`;
-    case "ul": return `<ul>${block.items.map(item => `<li>${esc(item)}</li>`).join("")}</ul>`;
-    case "ol": return `<ol class="plan-steps">${block.items.map(item => `<li>${esc(item)}</li>`).join("")}</ol>`;
+    case "ul": return `<ul>${block.items.map(item => `<li>${itemHtml(item)}</li>`).join("")}</ul>`;
+    case "ol": return `<ol class="plan-steps">${block.items.map(item => `<li>${itemHtml(item)}</li>`).join("")}</ol>`;
     case "callout": return `<aside class="plan-callout"><strong>${esc(block.title)}</strong><p>${esc(block.text)}</p></aside>`;
     case "figure": {
       const drawn = window.PLAN_FIGURES?.[block.figure]?.() || "";
@@ -58,10 +81,10 @@ function blockHtml(block) {
     }
     case "figureTable": {
       const head = block.head.map(cell => `<th>${esc(cell)}</th>`).join("") + `<th class="plan-col-figure">示意圖</th>`;
-      const rows = block.rows.map(row => `<tr>${row.cells.map(cell => `<td>${esc(cell)}</td>`).join("")}<td class="plan-cell-figure">${window.PLAN_FIGURES?.[row.figure]?.() || ""}</td></tr>`).join("");
+      const rows = block.rows.map(row => `<tr>${row.cells.map(cell => `<td>${cellHtml(cell)}</td>`).join("")}<td class="plan-cell-figure">${window.PLAN_FIGURES?.[row.figure]?.() || ""}</td></tr>`).join("");
       return `<figure class="plan-figure plan-figure-table">${block.caption ? `<figcaption>${esc(block.caption)}</figcaption>` : ""}<table class="plan-table plan-table-figure"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>${block.note ? `<p class="plan-note">${esc(block.note)}</p>` : ""}</figure>`;
     }
-    case "table": return `<figure class="plan-figure">${block.caption ? `<figcaption>${esc(block.caption)}</figcaption>` : ""}<table class="plan-table"><thead><tr>${block.head.map(cell => `<th>${esc(cell)}</th>`).join("")}</tr></thead><tbody>${block.rows.map(row => `<tr>${row.map(cell => `<td>${esc(cell)}</td>`).join("")}</tr>`).join("")}</tbody></table>${block.note ? `<p class="plan-note">${esc(block.note)}</p>` : ""}</figure>`;
+    case "table": return `<figure class="plan-figure">${block.caption ? `<figcaption>${esc(block.caption)}</figcaption>` : ""}<table class="plan-table"><thead><tr>${block.head.map(cell => `<th>${esc(cell)}</th>`).join("")}</tr></thead><tbody>${block.rows.map(row => `<tr>${row.map(cell => `<td>${cellHtml(cell)}</td>`).join("")}</tr>`).join("")}</tbody></table>${block.note ? `<p class="plan-note">${esc(block.note)}</p>` : ""}</figure>`;
     default: return "";
   }
 }
@@ -115,15 +138,20 @@ function initialize() {
   document.title = `${content.title}｜Portable Inspection`;
   if (from) { $("#back-link").href = `./${from}`; $("#back-label").textContent = PLAN_FROM[from].label; }
   Object.assign(state, draft.load() ?? {});
-  prefillFromTool();
+  syncCoverFromTool();
   renderPlan();
   draft.watch();
+  // 從工具頁按「上一頁」回來時頁面可能是快取的舊畫面，重新對一次工具頁的工程資訊
+  window.addEventListener("pageshow", event => { if (event.persisted) { syncCoverFromTool(); renderCover(); } });
 
   $("#plan-version").addEventListener("change", event => { state.version = event.target.value === "full" ? "full" : "brief"; renderArticle(); });
   document.addEventListener("input", event => {
     const cover = event.target.closest("[data-cover]");
     const revision = event.target.closest("[data-revision]");
-    if (cover) state.cover[cover.dataset.cover] = cover.value;
+    if (cover) {
+      state.cover[cover.dataset.cover] = cover.value;
+      if (SYNCED_COVER_FIELDS.includes(cover.dataset.cover)) writeCoverToTool(cover.dataset.cover);
+    }
     if (revision) state.revisions[Number(revision.dataset.index)][revision.dataset.revision] = revision.value;
   });
   document.addEventListener("click", event => {

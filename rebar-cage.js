@@ -265,7 +265,7 @@ function renderRebarCageDialogFields() {
         <label class="field gl-field ${issues[i].has("bottom") ? "is-invalid" : ""}"><span>底部（GL 以下 m）</span><span class="gl-input"><em>GL −</em>${rebarCageNumberInput("bottom", interval.bottom, "例如：20", "0.01")}<em>m</em></span></label>
         <label class="field"><span>鋼筋號數</span><select data-interval-field="size">${barSizeOptions(interval.size)}</select></label>
         <label class="field"><span>間距（cm）</span>${rebarCageNumberInput("spacing", interval.spacing, "例如：60")}</label>
-        <label class="field span-two rebar-extra-toggle"><input type="checkbox" data-interval-field="extraEnabled" ${interval.extra.enabled ? "checked" : ""} /><span>補強插筋（啟用加強）</span></label>
+        <label class="field span-two rebar-extra-toggle"><input type="checkbox" data-interval-field="extraEnabled" ${interval.extra.enabled ? "checked" : ""} /><span>補強插筋</span></label>
         ${interval.extra.enabled ? `
         <label class="field"><span>補強 鋼筋號數</span><select data-interval-field="extraSize">${barSizeOptions(interval.extra.size)}</select></label>
         <label class="field"><span>補強 間距（cm）</span>${rebarCageNumberInput("extraSpacing", interval.extra.spacing, "例如：15")}</label>` : ""}

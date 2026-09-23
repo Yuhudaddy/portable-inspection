@@ -34,13 +34,11 @@ const PRINT_GROUP_LABELS = {
 // 並保留下拉選單，讓公司日後能依核定施工計畫調整。
 const STANDARD_CONFIG = [
   { key: "centerline", label: "放樣中心線偏差上限", unit: "mm", options: ["10", "15", "20", "25", "30"], default: "20" },
-  { key: "guideClearMin", label: "導溝淨寬加大下限", unit: "cm", options: ["2", "3", "4"], default: "3" },
-  { key: "guideClearMax", label: "導溝淨寬加大上限", unit: "cm", options: ["4", "5", "6", "8"], default: "5" },
   { key: "verticalDenominator", label: "槽壁垂直精度（10／D）", unit: "1/n", options: ["100", "200", "300", "400", "500", "10/D"], default: "300" },
   { key: "deflection", label: "最大偏擺位移上限", unit: "cm", options: ["5", "10", "15", "20"], default: "10" },
   { key: "sediment", label: "孔底沉泥厚度上限", unit: "cm", options: ["5", "10", "15", "20"], default: "15", legacy: ["10"] },
-  { key: "slurryDensityMin", label: "穩定液比重下限", unit: "－", options: ["0.95", "1.00", "1.05"], default: "1.00" },
-  { key: "slurryDensityMax", label: "穩定液比重上限", unit: "－", options: ["1.05", "1.10", "1.15", "1.20"], default: "1.10" },
+  // 比重只管上限（< 1.1，與施工計畫一致）；舊版的下限鍵不再使用，載入草稿時自動丟掉
+  { key: "slurryDensityMax", label: "穩定液比重須小於", unit: "－", options: ["1.05", "1.10", "1.15", "1.20"], default: "1.10" },
   { key: "sandContentBentonite", label: "含砂量上限（皂土系）", unit: "%", options: ["1", "2", "3", "4"], default: "3" },
   { key: "sandContentPolymer", label: "含砂量上限（高分子系）", unit: "%", options: ["0.5", "1", "1.5", "2"], default: "1" },
   { key: "rollerSpacing", label: "保護層護耳縱向間距上限", unit: "m", options: ["3", "4", "5"], default: "3", legacy: ["4"] },
@@ -83,6 +81,9 @@ function selectedVerticalPrecision() {
   return state.standards.verticalDenominator === "10/D" ? verticalPrecision() : null;
 }
 
+const GUIDE_CLEAR_TOLERANCE = GUIDE_WALL_MEASURES["位置與淨寬"].tolerance;
+const guideClearDesign = () => parseMeasure(state.guideWall.checks.find(check => check.item === "位置與淨寬")?.design).value;
+
 function effectiveVerticalDenominator() {
   const precision = selectedVerticalPrecision();
   return precision ? precision.denominator : number(state.standards.verticalDenominator);
@@ -99,17 +100,17 @@ function verticalityStandardText() {
 const GUIDE_WALL_CHECKS = [
   ["放樣", "點位、單元順序與核定圖說相符"],
   ["地下管線", "未與既有管線衝突"],
-  ["位置與淨寬", "導溝內面淨寬符合設計連續壁厚+施工餘裕(5cm內)"],
-  ["深度", "・深度至少 1.8 m，且回填土層以下至少 30 cm\n・溝底高程符合核定施工圖"],
-  ["牆厚", "導溝牆厚、斷面及結構尺寸符合核定圖說"],
-  ["鋼筋", "鋼筋號數／支數／間距與核定配筋圖一致"],
+  ["位置與淨寬", "導溝內面淨寬在設計值 ±5 cm 以內"],
+  ["深度", "・深度依結構設計圖且至少 1.8 m，實測不小於設計深度\n・回填土層以下至少 30 cm（現場確認）\n・溝底高程符合核定施工圖"],
+  ["牆厚", "導溝牆厚不小於設計值；斷面及結構尺寸符合核定圖說"],
+  ["鋼筋", "號數與設計相同、間距不大於設計間距；支數與核定配筋圖一致"],
   ["回撐木", "間距 @200 cm 或依核定支撐計畫（拆模後未達指定強度時嚴禁重車行駛）"],
-  ["混凝土強度", "混凝土強度符合設計要求"],
+  ["混凝土強度", "實測強度不小於設計強度"],
   ["頂部基準高程", "符合設計圖說"],
   ["壁面順直度", "導溝兩側壁面垂直度 1/300，並保持順直，無明顯扭曲或局部變形"],
   ["壁面與底部完整性", "無鬆動、剝落、裂縫；底部無堆積物"]
 ];
-const createGuideWallCheck = ([item, standard]) => ({ item, standard, actual: "", barNo: "", barSpacing: "", result: "待確認" });
+const createGuideWallCheck = ([item, standard]) => ({ item, standard, design: "", actual: "", designBarNo: "", designBarSpacing: "", barNo: "", barSpacing: "", result: "待確認", auto: "" });
 const STRENGTH_UNITS = ["kgf/cm²", "psi"];
 const STRENGTH_PLACEHOLDER = { "kgf/cm²": "例如：350", "psi": "例如：5000" };
 const strengthUnit = () => STRENGTH_UNITS.includes(state.unit.strengthUnit) ? state.unit.strengthUnit : STRENGTH_UNITS[0];
@@ -137,7 +138,8 @@ const fixed = value => Number.isFinite(value) ? value.toFixed(2) : "";
 const signed = value => Number.isFinite(value) ? `${value >= 0 ? "+" : ""}${value.toFixed(2)}` : "";
 // 這兩支檔案的 display 只做 trim：畫面上的空值由各自的樣板處理，列印時未填就留白。
 const display = printText;
-const guideCheckActual = check => [display(check.actual), check.barNo ? `號數 ${barSizeMark(check.barNo)}` : "", check.barSpacing ? `間距 ${check.barSpacing} cm` : ""].filter(Boolean).join("；") || "";
+// 數值項目（淨寬、深度、鋼筋…）的格式交給 guide-wall.js；其餘項目只印文字紀錄。
+const guideCheckActual = check => guideMeasure(check) ? guideMeasureText(check) : display(check.actual);
 const esc = value => String(value ?? "")
   .replaceAll("&", "&amp;")
   .replaceAll("<", "&lt;")
@@ -170,21 +172,17 @@ const HOLD_POINTS = [
           : null
       },
       {
+        // 設計淨寬取本工具導溝複核表「位置與淨寬」的設計值，許可差與導溝複核表同一個（±5 cm）
         key: "guideClear", item: "導溝內面淨寬實測", mode: "number", unit: "cm", placeholder: "例如：105",
         standard: () => {
-          const thickness = number(state.unit.thickness);
-          const lo = S("guideClearMin");
-          const hi = S("guideClearMax");
-          if (thickness === null) return `壁厚 +${state.standards.guideClearMin}～${state.standards.guideClearMax} cm 且壁面垂直`;
-          return `${(thickness * 100 + lo).toFixed(1)}～${(thickness * 100 + hi).toFixed(1)} cm（壁厚 +${state.standards.guideClearMin}～${state.standards.guideClearMax} cm）`;
+          const design = guideClearDesign();
+          if (design === null) return `設計淨寬 ±${GUIDE_CLEAR_TOLERANCE} cm 且壁面垂直（請先在導溝複核表填「位置與淨寬」的設計值）`;
+          return `${fixed(design - GUIDE_CLEAR_TOLERANCE)}～${fixed(design + GUIDE_CLEAR_TOLERANCE)} cm（設計淨寬 ${design} cm ±${GUIDE_CLEAR_TOLERANCE} cm）且壁面垂直`;
         },
         evaluate: value => {
-          const thickness = number(state.unit.thickness);
-          if (value === null || thickness === null) return null;
-          const lo = thickness * 100 + S("guideClearMin");
-          const hi = thickness * 100 + S("guideClearMax");
-          if (value < lo) return `淨寬 ${value} cm 小於容許下限 ${lo.toFixed(1)} cm`;
-          if (value > hi) return `淨寬 ${value} cm 大於容許上限 ${hi.toFixed(1)} cm`;
+          const design = guideClearDesign();
+          if (value === null || design === null) return null;
+          if (Math.abs(value - design) > GUIDE_CLEAR_TOLERANCE) return `淨寬 ${value} cm 與設計淨寬 ${design} cm 相差超過 ±${GUIDE_CLEAR_TOLERANCE} cm`;
           return null;
         }
       },
@@ -298,11 +296,10 @@ const HOLD_POINTS = [
       },
       {
         key: "slurryDensity", item: "澆置前穩定液比重", mode: "number", unit: "－", placeholder: "例如：1.05",
-        standard: () => `${state.standards.slurryDensityMin}～${state.standards.slurryDensityMax}`,
+        standard: () => `< ${state.standards.slurryDensityMax}`,
         evaluate: value => {
           if (value === null) return null;
-          if (value < S("slurryDensityMin")) return `比重 ${value} 低於下限 ${state.standards.slurryDensityMin}`;
-          if (value > S("slurryDensityMax")) return `比重 ${value} 高於上限 ${state.standards.slurryDensityMax}`;
+          if (value >= S("slurryDensityMax")) return `比重 ${value} 未小於上限 ${state.standards.slurryDensityMax}`;
           return null;
         }
       },
@@ -624,10 +621,22 @@ function calculatedDesignVolume() {
   return height * thickness * length;
 }
 
-function holdItemValue(holdId, index) {
+// 數值項目的輸入容錯與判定狀態見 auto-judge.js；垂直度（1/n）另外接受「1/420」的寫法。
+function holdItemParsed(holdId, index) {
   const definition = HOLD_BY_ID[holdId].items[index];
   const record = state.holds[holdId][index];
-  return definition.mode === "number" ? number(record.actual) : null;
+  return definition.mode === "number" ? parseMeasure(record.actual, { ratio: definition.unit === "1/n" }) : { value: null, empty: true, invalid: false };
+}
+
+function holdItemValue(holdId, index) {
+  return holdItemParsed(holdId, index).value;
+}
+
+function holdItemStatus(holdId, index) {
+  const parsed = holdItemParsed(holdId, index);
+  if (parsed.invalid) return "invalid";
+  if (parsed.value === null) return "empty";
+  return holdItemWarning(holdId, index) ? "fail" : "pass";
 }
 
 function holdItemStandard(holdId, index) {
@@ -714,11 +723,11 @@ const SEGMENT_ICONS = {
   "不適用": "N/A"
 };
 
-function resultSegmented(name, selected, attrs) {
+function resultSegmented(name, selected, attrs, disabled = []) {
   return `<div class="glass-segmented" role="radiogroup" aria-labelledby="${name}-label">${["符合", "不符合", "不適用"]
     .map(value => {
       const stateClass = value === "符合" ? "is-pass" : value === "不符合" ? "is-fail" : "is-na";
-      return `<label><input type="radio" name="${name}" value="${value}" aria-label="${value}" ${value === selected ? "checked" : ""} ${attrs} /><span class="${stateClass}">${SEGMENT_ICONS[value]}</span></label>`;
+      return `<label><input type="radio" name="${name}" value="${value}" aria-label="${value}" ${value === selected ? "checked" : ""} ${disabled.includes(value) ? "disabled" : ""} ${attrs} /><span class="${stateClass}">${SEGMENT_ICONS[value]}</span></label>`;
     })
     .join("")}</div>`;
 }
@@ -749,19 +758,23 @@ function renderHold(holdId) {
   const warnings = [];
   target.innerHTML = hold.items.map((definition, index) => {
     const record = state.holds[holdId][index];
-    const warning = holdItemWarning(holdId, index);
+    // 數值、標準值或設計基準一變就會重繪，這裡順便套用自動判定（沒有自動打勾，所以不會蓋掉使用者點的 ✓／✗）
+    const status = holdItemStatus(holdId, index);
+    applyAutoResult(record, status);
+    const locked = autoLockedResults(record, status);
+    const warning = status === "invalid" ? INVALID_MEASURE_MESSAGE : holdItemWarning(holdId, index);
     if (warning) warnings.push({ index, warning });
     const failed = record.result === "不符合" || Boolean(warning);
     const unitSuffix = definition.unit ? `（${esc(definition.unit)}）` : "";
-    const inputType = definition.mode === "number" ? "number" : "text";
-    const numericAttrs = definition.mode === "number" ? ' step="0.01" inputmode="decimal"' : "";
+    const inputType = "text";
+    const numericAttrs = definition.mode === "number" ? ` inputmode="decimal"${status === "fail" || status === "invalid" ? ' class="is-invalid"' : ""}` : "";
     return `
-    <article class="check-card ${failed ? "is-failed" : ""}">
+    <article class="check-card ${failed ? "is-failed" : ""}" data-hold-card="${holdId}-${index}">
       <div class="check-card-head"><span>${String(index + 1).padStart(2, "0")}</span><strong>${esc(definition.item)}</strong></div>
       <p>${esc(holdItemStandard(holdId, index))}${warning ? `<br /><strong>警示：${esc(warning)}</strong>` : ""}</p>
       <div class="check-card-fields">
         <label class="field"><span>現場紀錄／實測${unitSuffix}</span><input type="${inputType}"${numericAttrs} value="${esc(record.actual)}" placeholder="${esc(definition.placeholder || "")}" data-hold="${holdId}" data-hold-index="${index}" data-hold-field="actual" /></label>
-        <div class="field result-field"><span id="hold-${holdId}-${index}-result-label">查驗結果</span>${resultSegmented(`hold-${holdId}-${index}-result`, record.result, `data-hold="${holdId}" data-hold-index="${index}" data-hold-field="result"`)}</div>
+        <div class="field result-field"><span id="hold-${holdId}-${index}-result-label">查驗結果</span>${resultSegmented(`hold-${holdId}-${index}-result`, record.result, `data-hold="${holdId}" data-hold-index="${index}" data-hold-field="result"`, locked)}</div>
       </div>
     </article>`;
   }).join("");
@@ -782,19 +795,25 @@ function renderHold(holdId) {
 function renderCheckCards(type) {
   const domPrefix = { guideWall: "guide-wall", rebarCage: "rebar-cage" }[type] || type;
   const target = $(`#${domPrefix}-check-list`);
-  target.innerHTML = state[type].checks.map((check, index) => `
-    <article class="check-card ${check.result === "不符合" ? "is-failed" : ""}">
+  target.innerHTML = state[type].checks.map((check, index) => {
+    const attrs = field => `data-check-item="${type}" data-check-index="${index}" data-check-field="${field}"`;
+    const measure = type === "guideWall" && guideMeasure(check);
+    // 導溝數值項目不合格時鎖住「✓」（會先把不該是「符合」的結果改掉，所以要在判斷 is-failed 之前）
+    const locked = measure ? guideLockedResults(check) : [];
+    return `
+    <article class="check-card ${check.result === "不符合" ? "is-failed" : ""}" data-check-card="${type}-${index}">
       <div class="check-card-head"><span>${String(index + 1).padStart(2, "0")}</span><strong>${esc(check.item)}</strong></div>
       <p>${standardHtml(check.standard)}</p>
       <div class="check-card-fields">
-        <label class="field"><span>現場紀錄／實測</span><input type="text" value="${esc(check.actual)}" data-check-item="${type}" data-check-index="${index}" data-check-field="actual" /></label>
-        <div class="field result-field"><span id="check-${type}-${index}-result-label">複核結果</span>${resultSegmented(`check-${type}-${index}-result`, check.result, `data-check-item="${type}" data-check-index="${index}" data-check-field="result"`)}</div>
+        ${measure ? guideMeasureFieldsHtml(check, attrs) : `<label class="field"><span>現場紀錄／實測</span><input type="text" value="${esc(check.actual)}" ${attrs("actual")} /></label>`}
+        <div class="field result-field"><span id="check-${type}-${index}-result-label">複核結果</span>${resultSegmented(`check-${type}-${index}-result`, check.result, attrs("result"), locked)}</div>
       </div>
-      ${type === "guideWall" && check.item.includes("鋼筋") ? `<div class="guide-rebar-fields">
-        <label class="field"><span>鋼筋號數</span><select data-check-item="${type}" data-check-index="${index}" data-check-field="barNo">${barSizeOptions(check.barNo)}</select></label>
-        <label class="field"><span>間距（cm）</span><input type="number" min="0" step="0.5" inputmode="decimal" placeholder="例如：20" value="${esc(check.barSpacing)}" data-check-item="${type}" data-check-index="${index}" data-check-field="barSpacing" /></label>
-      </div>` : ""}
-    </article>`).join("");
+    </article>`;
+  }).join("");
+  renderCheckProgress(type);
+}
+
+function renderCheckProgress(type) {
   const completed = state[type].checks.filter(check => check.result !== "待確認").length;
   if (type === "guideWall") {
     $("#guide-wall-progress").textContent = `${completed} / ${state.guideWall.checks.length}`;
@@ -855,13 +874,20 @@ function exampleRebarCageParts() {
   return parts;
 }
 
+// 範例資料的數值項目（皆在標準內）；文字項目填「已確認」
+const HOLD_EXAMPLE_VALUES = {
+  centerline: "12", guideClear: "103", finalDepth: "-35.90", verticality: "420", deflection: "6.5", sediment: "8",
+  rollerSpacing: "3", cageTop: "-0.52", slurryDensity: "1.05", sandContent: "1.2",
+  slump: "20", chloride: "0.08", specimenSets: "1", tremieInitial: "40", tremieEmbed: "2.4", actualVolume: "102.26", pourTop: "+0.30"
+};
+
 function loadExample() {
   state.overview = { project: "Example Construction Project — North Lot", contractor: "○○營造股份有限公司", reviewer: "Site Engineer" };
   state.holdDates = { hold1: "2026-08-10", hold2: "2026-08-11", hold3: "2026-08-11", hold4: "2026-08-12" };
   Object.assign(state.unit, { unitType: "公母單元", unitNo: "21", sequenceNo: "03", slurryType: "皂土系", guideTopElevation: "0.15", strength: "350", strengthUnit: "kgf/cm²", thickness: "1.00", length: "2.80", designDepth: "-35.80", topElevation: "-0.50", designVolume: "98.84" });
-  state.holds = Object.fromEntries(HOLD_POINTS.map((hold, holdIndex) => [hold.id, hold.items.map((definition, index) => ({ actual: holdIndex === 2 && index === 7 ? "102.26 m³；超方約 3.46%" : holdIndex === 0 && index === 0 ? "12 mm" : holdIndex === 2 && index === 0 ? "20 cm" : "已確認", result: "符合" }))]));
+  state.holds = Object.fromEntries(HOLD_POINTS.map(hold => [hold.id, hold.items.map(definition => ({ actual: HOLD_EXAMPLE_VALUES[definition.key] ?? "已確認", result: "符合" }))]));
   state.conclusion = { verdict: "合格放行", note: "各停檢點均完成查驗，相關專業分包商紀錄列入附件保存。" };
-  state.guideWall = { date: "2026-08-10", axisNo: "X3～X7 南側", note: "中心線偏差 1.6 cm；導溝施工條件符合。", checks: GUIDE_WALL_CHECKS.map(([item, standard], index) => ({ item, standard, actual: index === 0 ? "中心線偏差 1.6 cm" : "已確認", barNo: index === 5 ? "D16" : "", barSpacing: index === 5 ? "19.5" : "", result: "符合" })) };
+  state.guideWall = { date: "2026-08-10", axisNo: "X3～X7 南側", note: "中心線偏差 1.6 cm；導溝施工條件符合。", checks: GUIDE_WALL_CHECKS.map((definition, index) => ({ ...createGuideWallCheck(definition), actual: index === 0 ? "中心線偏差 1.6 cm" : "已確認", ...GUIDE_WALL_EXAMPLE_VALUES[definition[0]], result: "符合" })) };
   state.rebarCage = { date: "2026-08-10", cageNo: "C21-U／C21-L", drawingNo: "S-21 Rev.C", note: "配筋圖逐項核對；吊放條件完成。", mode: "detailed", parts: exampleRebarCageParts(), checks: REBAR_CAGE_CHECKS.map(([item, standard], index) => ({ item, standard, actual: index === 7 ? "3 組成對安裝；線路已保護至孔口" : "已確認", result: "符合" })), photos: [] };
 }
 
@@ -1081,6 +1107,7 @@ function exportData() {
       active_tab: activeTool === "inspection" ? activeTab : activeTool,
       current_form_label: currentExportLabel(activeTool, activeTab)
     },
+    construction_plan: exportPlanDraft("diaphragm-wall-gc"),
     project: {
       name: state.overview.project || null,
       contractor: state.overview.contractor || null,
@@ -1137,7 +1164,11 @@ function exportData() {
         item_no: index + 1,
         item: check.item,
         standard: check.standard,
+        design_value: toNumberOrText(check.design),
         actual: check.actual || null,
+        unit: guideMeasure(check)?.unit || null,
+        design_bar_size: check.designBarNo || null,
+        design_bar_spacing_cm: toNumberOrText(check.designBarSpacing),
         bar_size: check.barNo || null,
         bar_spacing_cm: toNumberOrText(check.barSpacing),
         result: check.result
@@ -1243,7 +1274,7 @@ function exportMarkdown() {
     `## 導溝施工複核`,
     ``,
     `- 軸線／方向編號：${markdownCell(data.guide_wall_review.axis_no)}`,
-    ...data.guide_wall_review.items.map(item => `- ${item.item_no}. ${item.item}：${item.result}；現場紀錄：${markdownCell([item.actual, item.bar_size ? `號數 ${barSizeMark(item.bar_size)}` : "", item.bar_spacing_cm !== null && item.bar_spacing_cm !== undefined ? `間距 ${item.bar_spacing_cm} cm` : ""].filter(Boolean).join("；"))}`),
+    ...data.guide_wall_review.items.map(item => `- ${item.item_no}. ${item.item}：${item.result}；現場紀錄：${markdownCell(guideCheckActual({ item: item.item, design: item.design_value ?? "", actual: item.actual ?? "", designBarNo: item.design_bar_size ?? "", designBarSpacing: item.design_bar_spacing_cm ?? "", barNo: item.bar_size ?? "", barSpacing: item.bar_spacing_cm ?? "" }))}`),
     ``,
     `## 鋼筋籠吊放前複核`,
     ``,
@@ -1309,11 +1340,16 @@ function importGuideWallItems(items) {
     const record = source.find(entry => labels.includes(entry?.item)) || {};
     return {
       item,
-      standard: importText(record.standard) || standard,
+      // 數值項目的判定邏輯跟著程式走，標準文字也以程式為準，不沿用舊檔
+      standard: (!GUIDE_WALL_MEASURES[item] && importText(record.standard)) || standard,
+      design: importText(record.design_value),
       actual: importText(record.actual),
+      designBarNo: importText(record.design_bar_size),
+      designBarSpacing: importText(record.design_bar_spacing_cm),
       barNo: importText(record.bar_size || record.bar_no),
       barSpacing: importText(record.bar_spacing_cm || record.bar_spacing),
-      result: importResult(record.result)
+      result: importResult(record.result),
+      auto: ""
     };
   });
 }
@@ -1436,6 +1472,9 @@ function importJsonPayload(payload) {
   else if (vendorTypes.includes(payload.record_type)) message = importVendorPayload(payload);
   else throw new Error("這不是連續壁查驗或施工紀錄工具所產生的 JSON。");
 
+  // 計畫頁的封面與修訂紀錄（只收同一個工具匯出的，見 draft.js）
+  importPlanDraft("diaphragm-wall-gc", payload.construction_plan, state.overview);
+
   const context = payload.export_context || {};
   const importedTool = ["inspection", "guideWall", "rebarCage"].includes(context.active_tool) ? context.active_tool : "inspection";
   const importedTab = TAB_LABELS[context.active_tab] ? context.active_tab : "design";
@@ -1484,7 +1523,12 @@ function initialize() {
     if (input) {
       const [group, key] = input.dataset.bind.split(".");
       state[group][key] = input.value;
-      if (group === "unit") { syncUnitInputs(input); updateUnitCalculation(); }
+      if (group === "unit") {
+        syncUnitInputs(input);
+        updateUnitCalculation();
+        // 設計深度、頂高程等會影響停檢點的判定
+        HOLD_POINTS.forEach(item => renderHold(item.id));
+      }
       return;
     }
     const meta = event.target.closest("[data-check-bind]");
@@ -1495,11 +1539,33 @@ function initialize() {
     }
     const hold = event.target.closest("[data-hold]");
     if (hold) {
-      state.holds[hold.dataset.hold][Number(hold.dataset.holdIndex)][hold.dataset.holdField] = hold.value;
+      const holdId = hold.dataset.hold;
+      const index = Number(hold.dataset.holdIndex);
+      const record = state.holds[holdId][index];
+      record[hold.dataset.holdField] = hold.value;
+      // 邊打字邊判定：就地更新紅框與結果鈕；判定標準文字與警示清單等離開欄位再重繪
+      if (hold.dataset.holdField === "actual" && HOLD_BY_ID[holdId].items[index].mode === "number") {
+        const status = holdItemStatus(holdId, index);
+        applyAutoResult(record, status);
+        hold.classList.toggle("is-invalid", status === "fail" || status === "invalid");
+        syncAutoResultCard(hold.closest("[data-hold-card]"), record, autoLockedResults(record, status));
+      }
       return;
     }
     const check = event.target.closest("[data-check-item]");
-    if (check) state[check.dataset.checkItem].checks[Number(check.dataset.checkIndex)][check.dataset.checkField] = check.value;
+    if (check) {
+      const type = check.dataset.checkItem;
+      const record = state[type].checks[Number(check.dataset.checkIndex)];
+      record[check.dataset.checkField] = check.value;
+      // 導溝數值項目：邊打字邊判定，就地更新紅框與結果鈕
+      if (type === "guideWall" && check.dataset.checkField !== "result" && guideMeasure(record)) {
+        applyGuideAutoResult(record);
+        syncGuideMeasureCard(check.closest("[data-check-card]"), record);
+        renderCheckProgress(type);
+        // 停檢點 1 的導溝淨寬以這裡的設計值判定
+        if (record.item === "位置與淨寬") renderHold("hold1");
+      }
+    }
   });
 
   document.addEventListener("change", event => {
@@ -1520,15 +1586,21 @@ function initialize() {
     }
     const hold = event.target.closest("[data-hold]");
     if (hold) {
-      state.holds[hold.dataset.hold][Number(hold.dataset.holdIndex)][hold.dataset.holdField] = hold.value;
+      const record = state.holds[hold.dataset.hold][Number(hold.dataset.holdIndex)];
+      record[hold.dataset.holdField] = hold.value;
+      if (hold.dataset.holdField === "result") record.auto = "";
       renderHold(hold.dataset.hold);
       return;
     }
     const check = event.target.closest("[data-check-item]");
     if (check) {
       const type = check.dataset.checkItem;
-      state[type].checks[Number(check.dataset.checkIndex)][check.dataset.checkField] = check.value;
-      if (check.dataset.checkField === "result") renderCheckCards(type);
+      const record = state[type].checks[Number(check.dataset.checkIndex)];
+      record[check.dataset.checkField] = check.value;
+      if (check.dataset.checkField === "result") {
+        if ("auto" in record) record.auto = "";
+        renderCheckCards(type);
+      }
     }
     const standard = event.target.closest("[data-standard]");
     if (standard) {
@@ -1564,7 +1636,11 @@ function initialize() {
 
   $("#help-button").addEventListener("click", () => $("#help-dialog").showModal());
   $("#clear-button").addEventListener("click", () => $("#clear-dialog").showModal());
-  $("#confirm-clear").addEventListener("click", clearAllData);
+  // 「還原預設」連同本工具的施工計畫草稿（封面、修訂紀錄、版本）一起清掉；匯入 JSON 也會呼叫 clearAllData，那時不動計畫
+  $("#confirm-clear").addEventListener("click", () => {
+    clearAllData();
+    try { localStorage.removeItem("project-portal.plan.diaphragm-wall-gc.draft"); } catch (error) { /* 靜默 */ }
+  });
   $("#export-button").addEventListener("click", () => {
     $("#export-current-label").textContent = currentExportLabel();
     $("#import-status").textContent = "";

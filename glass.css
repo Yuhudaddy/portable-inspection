@@ -38,6 +38,7 @@
   --glass-success-ink: oklch(36% 0.08 155);
 
   --glass-danger: oklch(58% 0.13 30);
+  --glass-danger-strong: oklch(51% 0.14 30);   /* 危險按鈕 hover：同色相再深一階 */
   --glass-danger-bg: oklch(58% 0.13 30 / 0.14);
   --glass-danger-ink: oklch(48% 0.13 30);
   --glass-danger-wash: oklch(58% 0.13 30 / 0.07);
@@ -226,6 +227,8 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; marg
 .glass-segmented input:checked + span.is-pass { background: var(--glass-success); color: #fff; }
 .glass-segmented input:checked + span.is-fail { background: var(--glass-danger); color: #fff; }
 .glass-segmented input:checked + span.is-na { background: var(--glass-soft); color: #fff; }
+/* 數值判定不合格時「✓」停用（導溝數值項目） */
+.glass-segmented input:disabled + span { opacity: 0.3; cursor: not-allowed; }
 
 /* 不合格列：整列淡紅底，三段鈕改白底維持對比 */
 .is-failed .glass-segmented { background: #fff; }

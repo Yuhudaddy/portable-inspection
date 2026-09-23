@@ -88,3 +88,41 @@ function createDraftStore(key, getState, { enabled = true, delay = 400 } = {}) {
     }
   };
 }
+
+// 施工計畫頁的封面與修訂紀錄跟著工具的 JSON 走（換手機時一起帶過去）。
+// 工程名稱、施工廠商本來就與工具頁的工程資訊同步，這裡只帶計畫自己的欄位。
+// work 對應 plan.html?work=…；匯入時 work 不同（例如營造廠版匯入廠商 JSON）就不動計畫。
+const PLAN_DRAFT_SCHEMA = "project-portal.draft.v1";
+const planDraftKey = work => `project-portal.plan.${work}.draft`;
+
+function exportPlanDraft(work) {
+  try {
+    const data = JSON.parse(localStorage.getItem(planDraftKey(work)))?.data;
+    if (!data || typeof data !== "object") return null;
+    const cover = data.cover || {};
+    return {
+      work,
+      version: data.version === "full" ? "full" : "brief",
+      author: cover.author || null,
+      date: cover.date || null,
+      revision: cover.revision || null,
+      revisions: (Array.isArray(data.revisions) ? data.revisions : []).map(row => ({
+        version: row.version || null, date: row.date || null, note: row.note || null, author: row.author || null
+      }))
+    };
+  } catch (error) {
+    return null;
+  }
+}
+
+function importPlanDraft(work, plan, overview = {}) {
+  if (!plan || plan.work !== work) return;
+  const text = value => value === null || value === undefined ? "" : String(value);
+  const data = {
+    version: plan.version === "full" ? "full" : "brief",
+    cover: { project: text(overview.project), contractor: text(overview.contractor), author: text(plan.author), date: text(plan.date), revision: text(plan.revision) },
+    revisions: (Array.isArray(plan.revisions) ? plan.revisions : []).map(row => ({ version: text(row.version), date: text(row.date), note: text(row.note), author: text(row.author) }))
+  };
+  if (!data.revisions.length) data.revisions = [{ version: data.cover.revision || "A", date: data.cover.date, note: "初版", author: "" }];
+  try { localStorage.setItem(planDraftKey(work), JSON.stringify({ schema: PLAN_DRAFT_SCHEMA, data })); } catch (error) { /* 靜默 */ }
+}

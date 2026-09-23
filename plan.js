@@ -2,8 +2,8 @@
 // 正文來自 plans/<work>.js（PLAN_CONTENT），修訂紀錄來自 plans/revisions.js；封面（編製單位、日期、版本）存本機草稿；精簡版只取 level "brief" 的章節與區塊。
 const PLAN_WORKS = ["diaphragm-wall-gc", "diaphragm-wall", "formwork", "rebar", "steel"];
 const PLAN_FROM = {
-  "diaphragm-wall-gc": { label: "營造廠查驗表", draft: "project-portal.diaphragmWallGc.draft" },
-  "diaphragm-wall": { label: "施工紀錄", draft: "project-portal.diaphragmWall.draft" },
+  "diaphragm-wall-gc": { label: "營造廠查驗表", draft: INSPECTION_STANDARDS["diaphragm-wall-gc"].draftKey },
+  "diaphragm-wall": { label: "施工紀錄", draft: INSPECTION_STANDARDS["diaphragm-wall"].draftKey },
   "template": { label: "模板複核表", draft: "project-portal.template.draft" },
   "rebar": { label: "鋼筋查驗表", draft: "project-portal.rebar.draft" },
   "steel-structure": { label: "鋼構複核表", draft: "project-portal.steel.draft" }
@@ -62,11 +62,60 @@ function visibleSections(version) {
   return content.sections.filter(keep).map(trim);
 }
 
+// 檢查標準值與計畫同步：內文用 {{key}} 標記工具頁下拉選單的值（key 見 inspection-standards.js），
+// 彩現時換成工具頁目前選的值；和預設不同的數值加底色，封面註記「本案調整 N 項」。
+// {{key:ratio}} 印成 1/n（選 10/D 時照印 10/D）。沒有檢查標準值的計畫（模板、鋼筋、鋼構）不受影響。
+let standards = null;
+// inspection-standards.js 以 const 宣告（不是 window 屬性），用識別字取
+const standardSet = () => (typeof INSPECTION_STANDARDS === "object" ? INSPECTION_STANDARDS[work] : null);
+
+function readStandards() {
+  const set = standardSet();
+  if (!set) return null;
+  let saved = null;
+  try { saved = set.read(JSON.parse(localStorage.getItem(set.draftKey))?.data); } catch (error) { /* 沒有草稿就用預設 */ }
+  const values = mergeStandardDefaults(saved, set.config);
+  const byKey = Object.fromEntries(set.config.map(item => [item.key, item]));
+  return { config: set.config, byKey, values, adjusted: set.config.filter(item => values[item.key] !== item.default) };
+}
+
+// 示意圖（plans/figures-*.js）裡要跟著標準值的數字用這個查：keys 依序取這份計畫有定義的第一個
+const FIGURE_CONTEXT = {
+  standard: (keys, fallback) => {
+    const key = keys.find(candidate => standards?.byKey[candidate]);
+    return key ? standards.values[key] : fallback;
+  }
+};
+
+const TOKEN_FORMATS = {
+  ratio: value => value === "10/D" ? value : `1/${value}`
+};
+
+function standardHtml(key, format) {
+  const item = standards?.byKey[key];
+  if (!item) return `{{${esc(key)}}}`;   // 打錯的代號照原樣露出，測試會抓
+  const shown = esc((TOKEN_FORMATS[format] || String)(standards.values[key]));
+  return standards.values[key] === item.default ? shown
+    : `<span class="plan-value is-adjusted" title="${esc(`本公司預設 ${(TOKEN_FORMATS[format] || String)(item.default)}`)}">${shown}</span>`;
+}
+
+// 內文字串：跳脫 HTML 後把 {{key}} 換成標準值
+const txt = value => esc(value).replace(/\{\{(\w+)(?::(\w+))?\}\}/g, (match, key, format) => standardHtml(key, format));
+
 // 條列項目可以是字串，或 { text, items } 帶一層子條列（例：「特密管埋入混凝土內：」下分高分子系／皂土系）。
 // 表格儲存格裡的 \n 換行，讓同一格可分行列出不同條件。
-const itemHtml = item => typeof item === "string" ? esc(item)
-  : `${esc(item.text)}<ul class="plan-sublist">${(item.items || []).map(sub => `<li>${esc(sub)}</li>`).join("")}</ul>`;
-const cellHtml = cell => esc(cell).replaceAll("\n", "<br>");
+const itemHtml = item => typeof item === "string" ? txt(item)
+  : `${txt(item.text)}<ul class="plan-sublist">${(item.items || []).map(sub => `<li>${txt(sub)}</li>`).join("")}</ul>`;
+const cellHtml = cell => txt(cell).replaceAll("\n", "<br>");
+const captionHtml = block => block.caption ? `<figcaption>${txt(block.caption)}</figcaption>` : "";
+const noteHtml = block => block.note ? `<p class="plan-note">${txt(block.note)}</p>` : "";
+
+// 檢查標準值總表：直接由設定產生，永遠與工具頁的下拉選單一致
+function standardsTableHtml(block) {
+  if (!standards) return "";
+  const rows = standards.config.map(item => `<tr><td>${esc(item.label)}</td><td>${standardHtml(item.key)}</td><td>${esc(item.unit)}</td></tr>`).join("");
+  return `<figure class="plan-figure">${captionHtml(block)}<table class="plan-table"><thead><tr><th>項目</th><th>標準值</th><th>單位</th></tr></thead><tbody>${rows}</tbody></table>${noteHtml(block)}</figure>`;
+}
 
 // Mermaid 流程圖：區塊只放原始碼的 key（見 plans/flowcharts-*.js），畫面彩現後才載入 vendor/mermaid.min.js（約 2.5 MB）
 // 轉成 SVG；沒有流程圖的計畫完全不載入。列印前等圖畫完（flowchartsReady）。文字用 SVG text（htmlLabels: false），
@@ -130,23 +179,24 @@ window.planFlowchartsReady = () => flowchartsReady;
 
 function blockHtml(block) {
   switch (block.type) {
-    case "p": return `<p>${esc(block.text)}</p>`;
+    case "p": return `<p>${txt(block.text)}</p>`;
     case "ul": return `<ul>${block.items.map(item => `<li>${itemHtml(item)}</li>`).join("")}</ul>`;
     case "ol": return `<ol class="plan-steps">${block.items.map(item => `<li>${itemHtml(item)}</li>`).join("")}</ol>`;
-    case "callout": return `<aside class="plan-callout"><strong>${esc(block.title)}</strong><p>${esc(block.text)}</p></aside>`;
+    case "callout": return `<aside class="plan-callout"><strong>${txt(block.title)}</strong><p>${txt(block.text)}</p></aside>`;
+    case "standards": return standardsTableHtml(block);
     case "figure": {
-      const drawn = window.PLAN_FIGURES?.[block.figure]?.() || "";
-      return `<figure class="plan-figure plan-diagram">${block.caption ? `<figcaption>${esc(block.caption)}</figcaption>` : ""}<div class="plan-diagram-body">${drawn}</div>${block.note ? `<p class="plan-note">${esc(block.note)}</p>` : ""}</figure>`;
+      const drawn = window.PLAN_FIGURES?.[block.figure]?.(FIGURE_CONTEXT) || "";
+      return `<figure class="plan-figure plan-diagram">${captionHtml(block)}<div class="plan-diagram-body">${drawn}</div>${noteHtml(block)}</figure>`;
     }
     case "mermaid": return window.PLAN_FLOWCHARTS?.[block.flowchart]
-      ? `<figure class="plan-figure plan-flowchart">${block.caption ? `<figcaption>${esc(block.caption)}</figcaption>` : ""}<div class="plan-flowchart-body" data-flowchart="${esc(block.flowchart)}" role="img" aria-label="${esc(block.caption || "流程圖")}">${loadingHtml("流程圖載入中…")}</div>${block.note ? `<p class="plan-note">${esc(block.note)}</p>` : ""}</figure>`
+      ? `<figure class="plan-figure plan-flowchart">${captionHtml(block)}<div class="plan-flowchart-body" data-flowchart="${esc(block.flowchart)}" role="img" aria-label="${esc(block.caption || "流程圖")}">${loadingHtml("流程圖載入中…")}</div>${noteHtml(block)}</figure>`
       : "";
     case "figureTable": {
       const head = block.head.map(cell => `<th>${esc(cell)}</th>`).join("") + `<th class="plan-col-figure">示意圖</th>`;
-      const rows = block.rows.map(row => `<tr>${row.cells.map(cell => `<td>${cellHtml(cell)}</td>`).join("")}<td class="plan-cell-figure">${window.PLAN_FIGURES?.[row.figure]?.() || ""}</td></tr>`).join("");
-      return `<figure class="plan-figure plan-figure-table">${block.caption ? `<figcaption>${esc(block.caption)}</figcaption>` : ""}<table class="plan-table plan-table-figure"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>${block.note ? `<p class="plan-note">${esc(block.note)}</p>` : ""}</figure>`;
+      const rows = block.rows.map(row => `<tr>${row.cells.map(cell => `<td>${cellHtml(cell)}</td>`).join("")}<td class="plan-cell-figure">${window.PLAN_FIGURES?.[row.figure]?.(FIGURE_CONTEXT) || ""}</td></tr>`).join("");
+      return `<figure class="plan-figure plan-figure-table">${captionHtml(block)}<table class="plan-table plan-table-figure"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>${noteHtml(block)}</figure>`;
     }
-    case "table": return `<figure class="plan-figure">${block.caption ? `<figcaption>${esc(block.caption)}</figcaption>` : ""}<table class="plan-table"><thead><tr>${block.head.map(cell => `<th>${esc(cell)}</th>`).join("")}</tr></thead><tbody>${block.rows.map(row => `<tr>${row.map(cell => `<td>${cellHtml(cell)}</td>`).join("")}</tr>`).join("")}</tbody></table>${block.note ? `<p class="plan-note">${esc(block.note)}</p>` : ""}</figure>`;
+    case "table": return `<figure class="plan-figure">${captionHtml(block)}<table class="plan-table"><thead><tr>${block.head.map(cell => `<th>${esc(cell)}</th>`).join("")}</tr></thead><tbody>${block.rows.map(row => `<tr>${row.map(cell => `<td>${cellHtml(cell)}</td>`).join("")}</tr>`).join("")}</tbody></table>${noteHtml(block)}</figure>`;
     default: return "";
   }
 }
@@ -183,9 +233,12 @@ function renderRevisions() {
   const rows = planRevisions();
   $("#revision-rows").innerHTML = rows.map(row => `<tr><td>${esc(row.version)}</td><td>${esc(row.date)}</td><td>${esc(row.note)}</td></tr>`).join("");
   $("#plan-revision").textContent = rows.at(-1)?.version || "—";
+  const adjusted = standards?.adjusted.length || 0;
+  $("#plan-adjusted").hidden = !adjusted;
+  $("#plan-adjusted").textContent = adjusted ? `本案調整 ${adjusted} 項（內文以底色標示）` : "";
 }
 
-function renderPlan() { renderCover(); renderRevisions(); renderArticle(); }
+function renderPlan() { standards = readStandards(); renderCover(); renderRevisions(); renderArticle(); }
 
 function planFileName() {
   return [content.title, state.cover.project, VERSION_LABEL[state.version], state.cover.date || today];
@@ -207,7 +260,13 @@ function initialize() {
   renderPlan();
   draft.watch();
   // 從工具頁按「上一頁」回來時頁面可能是快取的舊畫面，重新對一次工具頁的工程資訊
-  window.addEventListener("pageshow", event => { if (event.persisted) { syncCoverFromTool(); renderCover(); } });
+  // 同步的來源（工程資訊、檢查標準值）都在工具頁草稿：回到這頁或別的分頁改了草稿，就整份重畫
+  window.addEventListener("pageshow", event => { if (event.persisted) { syncCoverFromTool(); renderPlan(); } });
+  window.addEventListener("storage", event => {
+    if (event.key !== standardSet()?.draftKey && event.key !== (from && PLAN_FROM[from].draft)) return;
+    syncCoverFromTool();
+    renderPlan();
+  });
 
   $("#plan-version").addEventListener("change", event => { state.version = event.target.value === "full" ? "full" : "brief"; renderArticle(); });
   document.addEventListener("input", event => {

@@ -1,0 +1,61 @@
+// 兩個連續壁工具的檢查標準值：工具頁的下拉選單與施工計畫（plan.js）共用同一份設定。
+// 鍵名＝施工計畫的 work；draftKey／read 讓計畫頁從工具的本機草稿讀出目前選的值。
+// 介面不顯示外部規範名稱；預設值直接作為起始值，依核定施工計畫由下拉選單調整。
+// legacy 列出歷次舊預設：舊草稿裡仍是舊預設的項目視同沒改過，換成新預設（見 draft.js mergeStandardDefaults）。
+const INSPECTION_STANDARDS = {
+  // 01 品管版（營造廠查驗表「設計基準」分頁）
+  "diaphragm-wall-gc": {
+    draftKey: "project-portal.diaphragmWallGc.draft",
+    read: data => data?.standards,
+    config: [
+      { key: "centerline", label: "放樣中心線偏差上限", unit: "mm", options: ["10", "15", "20", "25", "30"], default: "20" },
+      { key: "verticalDenominator", label: "槽壁垂直精度（10／D）", unit: "1/n", options: ["100", "200", "300", "400", "500", "10/D"], default: "300" },
+      { key: "deflection", label: "最大偏擺位移上限", unit: "cm", options: ["5", "10", "15", "20"], default: "10" },
+      { key: "sediment", label: "孔底沉泥厚度上限", unit: "cm", options: ["5", "10", "15", "20"], default: "15", legacy: ["10"] },
+      // 比重只管上限（< 1.1，與施工計畫一致）；舊版的下限鍵不再使用，載入草稿時自動丟掉
+      { key: "slurryDensityMax", label: "穩定液比重須小於", unit: "－", options: ["1.05", "1.10", "1.15", "1.20"], default: "1.10" },
+      { key: "sandContentBentonite", label: "含砂量上限（皂土系）", unit: "%", options: ["1", "2", "3", "4"], default: "3" },
+      { key: "sandContentPolymer", label: "含砂量上限（高分子系）", unit: "%", options: ["0.5", "1", "1.5", "2"], default: "1" },
+      { key: "rollerSpacing", label: "保護層護耳縱向間距上限", unit: "m", options: ["3", "4", "5"], default: "3", legacy: ["4"] },
+      { key: "cover", label: "土側保護層厚度下限", unit: "cm", options: ["5", "7.5", "10", "12.5"], default: "10", legacy: ["7.5"] },
+      { key: "cageTopTolerance", label: "籠頂高程偏差上限", unit: "±cm", options: ["3", "5", "7.5", "10"], default: "5" },
+      { key: "slump", label: "混凝土坍度", unit: "cm", options: Array.from({ length: 10 }, (_, i) => String(15 + i)), default: "20", legacy: ["18"] },
+      { key: "slumpTolerance", label: "坍度允許誤差", unit: "±cm", options: ["1", "2", "3", "4"], default: "2" },
+      { key: "chloride", label: "氯離子含量上限", unit: "kg/m³", options: ["0.15", "0.30"], default: "0.15" },
+      { key: "specimenSets", label: "試體取樣組數下限", unit: "組", options: ["1", "2", "3"], default: "1" },
+      { key: "tremieInitialMin", label: "初灌管底離底下限", unit: "cm", options: ["5", "10", "15", "30"], default: "30", legacy: ["10"] },
+      { key: "tremieInitialMax", label: "初灌管底離底上限", unit: "cm", options: ["20", "25", "30", "50"], default: "50", legacy: ["20"] },
+      { key: "tremieEmbedBentonite", label: "管底埋深下限（皂土系）", unit: "m", options: ["1.5", "2.0", "2.5"], default: "2.0" },
+      { key: "tremieEmbedPolymer", label: "管底埋深下限（高分子系）", unit: "m", options: ["1.0", "1.5", "2.0"], default: "1.5" },
+      { key: "overbreakMin", label: "合理超方率下限", unit: "%", options: ["-5", "0", "3", "5"], default: "-5", legacy: ["5"] },
+      { key: "overbreakMax", label: "合理超方率上限", unit: "%", options: ["5", "10", "15", "20"], default: "5", legacy: ["15"] },
+      { key: "overpourMin", label: "壁頂超打高度下限", unit: "m", options: ["0.5", "0.8", "1.0"], default: "0.5" }
+    ]
+  },
+  // 06 完整版（施工紀錄「品質自檢」分頁）
+  "diaphragm-wall": {
+    draftKey: "project-portal.diaphragmWall.draft",
+    read: data => data?.quality?.standards,
+    config: [
+      { key: "slump", label: "混凝土坍度", unit: "cm", options: Array.from({ length: 10 }, (_, i) => String(15 + i)), default: "20", legacy: ["18"] },
+      { key: "slumpTolerance", label: "坍度允許誤差", unit: "cm", options: ["0", "1", "2", "3", "4", "5"], default: "2" },
+      { key: "sediment", label: "沉泥厚度上限", unit: "cm", options: ["5", "10", "15", "20", "25"], default: "15", legacy: ["10"] },
+      { key: "sandContent", label: "含砂量上限", unit: "%", options: ["0.5", "1", "1.5", "2"], default: "1" },
+      { key: "settlingTime", label: "靜置時間下限", unit: "hr", options: ["0.5", "1", "1.5", "2"], default: "0.5" },
+      { key: "verticalDenominator", label: "垂直精度（10／D）", unit: "1/n", options: ["100", "200", "300", "400", "500", "10/D"], default: "300" },
+      { key: "tremieClearance", label: "特密管端距上限", unit: "cm", options: ["20", "30", "40", "50"], default: "50", legacy: ["20"] },
+      { key: "embedmentMale", label: "公單元埋入深度下限", unit: "m", options: ["0.5", "1.0", "1.5", "2.0"], default: "1.5" },
+      { key: "embedmentFemale", label: "母單元埋入深度下限", unit: "m", options: ["0.5", "1.0", "1.5", "2.0"], default: "1.5" },
+      { key: "embedmentBoth", label: "公母單元埋入深度下限", unit: "m", options: ["0.5", "1.0", "1.5", "2.0"], default: "1.5" },
+      { key: "pourInterruption", label: "澆置中斷時間上限", unit: "min", options: ["30", "45", "60"], default: "30" },
+      { key: "pourCompletion", label: "澆置完成時間上限", unit: "min", options: ["60", "90", "120"], default: "90" },
+      { key: "chloride", label: "氯離子含量上限", unit: "kg/m³", options: ["0.15", "0.30"], default: "0.15" },
+      { key: "centerlineTolerance", label: "導溝中心線偏差上限", unit: "cm", options: ["1", "2", "3", "5"], default: "2" },
+      { key: "wallThicknessTolerance", label: "壁厚偏差上限", unit: "cm", options: ["3", "5", "7.5", "10"], default: "5" },
+      { key: "cageLongitudinalTolerance", label: "鋼筋籠雙向偏差上限", unit: "cm", options: ["±2.5", "±5", "±7.5", "±10"], default: "±5", legacy: ["±7.5", "±2.5"] },
+      { key: "cageTopTolerance", label: "鋼筋籠頂高程偏差上限", unit: "cm", options: ["±3", "±5", "±7.5", "±10"], default: "±5" },
+      { key: "cover", label: "保護層厚度下限", unit: "cm", options: ["5", "7.5", "10", "12.5"], default: "10", legacy: ["7.5"] },
+      { key: "volumeDifference", label: "混凝土實際與設計數量差異上限", unit: "%", options: ["5", "10", "15", "20"], default: "5", legacy: ["10"] }
+    ]
+  }
+};

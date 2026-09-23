@@ -85,7 +85,8 @@ window.PLAN_FIGURES = window.PLAN_FIGURES || {};
   };
 
   // ---- 包穩定液／包空氣形成機制 ----------------------------------------------------
-  window.PLAN_FIGURES.tremieTraps = () => {
+  // standard(keys, fallback)：計畫頁傳入的檢查標準值查詢（見 plan.js），依序取第一個有定義的 key
+  window.PLAN_FIGURES.tremieTraps = ({ standard = (keys, fallback) => fallback } = {}) => {
     const W = 640, H = 350;
     const frame = (x, y, title, { pipeBottom, pipeInside = "concrete", concreteTop = 100, extra = "" }) => {
       const trenchX = x + 34, trenchW = 82, trenchTop = y + 38, trenchBottom = y + 150;
@@ -110,7 +111,7 @@ window.PLAN_FIGURES = window.PLAN_FIGURES || {};
     const label = (x, y, content, options = {}) => text(x, y, content, { size: 9, fill: SOFT, ...options });
     const arrow = (x1, y1, x2, y2) => line(x1, y1, x2, y2, { width: 1.2, marker: "pf-arrow" });
     const row1 = [
-      frame(28, 0, "① 澆置中", { pipeBottom: 120, extra: label(52, 60, "穩定液") + label(52, 140, "混凝土") + label(136, 112, "管底埋入 ≥ 1.5 m", { size: 8 }) }),
+      frame(28, 0, "① 澆置中", { pipeBottom: 120, extra: label(52, 60, "穩定液") + label(52, 140, "混凝土") + label(136, 112, `管底埋入 ≥ ${standard(["tremieEmbedPolymer", "embedmentMale"], "1.5")} m`, { size: 8 }) }),
       frame(188, 0, "② 提管過多", { pipeBottom: 86, extra: arrow(263, 100, 263, 62) + label(272, 74, "穩定液", { size: 8 }) + label(272, 84, "回流入管", { size: 8 }) }),
       frame(348, 0, "③ 再插入續澆", { pipeBottom: 120, pipeInside: "slurry", extra: label(432, 96, "管內仍是", { size: 8 }) + label(432, 106, "穩定液", { size: 8 }) }),
       frame(508, 0, "④ 包穩定液", { pipeBottom: 120, extra: `<ellipse cx="614" cy="126" rx="12" ry="8" fill="url(#pf-slurry)" stroke="${INK}" />` + label(583, 164, "管內穩定液被擠入混凝土", { size: 8, anchor: "middle" }) })

@@ -89,7 +89,7 @@
               <label class="field calculated-field"><span>設計數量（m³）<em>自動</em></span><input type="number" min="0" step="0.01" inputmode="decimal" data-bind="unit.designVolume" readonly /></label>
             </div>
             <section class="quality-standard-panel" aria-labelledby="standard-heading">
-              <div class="quality-standard-heading"><div><span>STANDARD</span><h3 id="standard-heading">檢查標準值</h3></div><p>預設值可直接使用；如核定施工計畫不同，請由下拉選單調整。停檢點判定與警示均依此標準換算。</p></div>
+              <div class="quality-standard-heading"><div><span>STANDARD</span><h3 id="standard-heading">檢查標準值</h3></div><p>預設值可直接使用；如核定施工計畫不同，請由下拉選單調整。停檢點判定與警示均依此標準換算，調整的數值也會同步到施工計畫並以底色標示。</p></div>
               <div class="quality-standard-list" id="standard-list"></div>
               <p class="quality-standard-note" id="standard-note"></p>
             </section>
@@ -330,6 +330,7 @@
     <script src="./print-pages.js" defer></script>
     <script src="./dialog-forms.js" defer></script>
     <script src="./bar-sizes.js" defer></script>
+    <script src="./inspection-standards.js" defer></script>
     <script src="./auto-judge.js" defer></script>
     <script src="./guide-wall.js" defer></script>
     <script src="./rebar-cage.js" defer></script>

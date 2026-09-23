@@ -29,33 +29,7 @@ const PRINT_GROUP_LABELS = {
   "inspection-b": "查驗表 2／停檢點 3·4＋查驗結論"
 };
 
-// 營造廠在現場要快速確認的「檢查標準值」。
-// 介面不顯示外部規範名稱；預設值可直接作為公司內部起始值，
-// 並保留下拉選單，讓公司日後能依核定施工計畫調整。
-const STANDARD_CONFIG = [
-  { key: "centerline", label: "放樣中心線偏差上限", unit: "mm", options: ["10", "15", "20", "25", "30"], default: "20" },
-  { key: "verticalDenominator", label: "槽壁垂直精度（10／D）", unit: "1/n", options: ["100", "200", "300", "400", "500", "10/D"], default: "300" },
-  { key: "deflection", label: "最大偏擺位移上限", unit: "cm", options: ["5", "10", "15", "20"], default: "10" },
-  { key: "sediment", label: "孔底沉泥厚度上限", unit: "cm", options: ["5", "10", "15", "20"], default: "15", legacy: ["10"] },
-  // 比重只管上限（< 1.1，與施工計畫一致）；舊版的下限鍵不再使用，載入草稿時自動丟掉
-  { key: "slurryDensityMax", label: "穩定液比重須小於", unit: "－", options: ["1.05", "1.10", "1.15", "1.20"], default: "1.10" },
-  { key: "sandContentBentonite", label: "含砂量上限（皂土系）", unit: "%", options: ["1", "2", "3", "4"], default: "3" },
-  { key: "sandContentPolymer", label: "含砂量上限（高分子系）", unit: "%", options: ["0.5", "1", "1.5", "2"], default: "1" },
-  { key: "rollerSpacing", label: "保護層護耳縱向間距上限", unit: "m", options: ["3", "4", "5"], default: "3", legacy: ["4"] },
-  { key: "cover", label: "土側保護層厚度下限", unit: "cm", options: ["5", "7.5", "10", "12.5"], default: "10", legacy: ["7.5"] },
-  { key: "cageTopTolerance", label: "籠頂高程偏差上限", unit: "±cm", options: ["3", "5", "7.5", "10"], default: "5" },
-  { key: "slump", label: "混凝土坍度", unit: "cm", options: Array.from({ length: 10 }, (_, i) => String(15 + i)), default: "20", legacy: ["18"] },
-  { key: "slumpTolerance", label: "坍度允許誤差", unit: "±cm", options: ["1", "2", "3", "4"], default: "2" },
-  { key: "chloride", label: "氯離子含量上限", unit: "kg/m³", options: ["0.15", "0.30"], default: "0.15" },
-  { key: "specimenSets", label: "試體取樣組數下限", unit: "組", options: ["1", "2", "3"], default: "1" },
-  { key: "tremieInitialMin", label: "初灌管底離底下限", unit: "cm", options: ["5", "10", "15", "30"], default: "30", legacy: ["10"] },
-  { key: "tremieInitialMax", label: "初灌管底離底上限", unit: "cm", options: ["20", "25", "30", "50"], default: "50", legacy: ["20"] },
-  { key: "tremieEmbedBentonite", label: "管底埋深下限（皂土系）", unit: "m", options: ["1.5", "2.0", "2.5"], default: "2.0" },
-  { key: "tremieEmbedPolymer", label: "管底埋深下限（高分子系）", unit: "m", options: ["1.0", "1.5", "2.0"], default: "1.5" },
-  { key: "overbreakMin", label: "合理超方率下限", unit: "%", options: ["-5", "0", "3", "5"], default: "-5", legacy: ["5"] },
-  { key: "overbreakMax", label: "合理超方率上限", unit: "%", options: ["5", "10", "15", "20"], default: "5", legacy: ["15"] },
-  { key: "overpourMin", label: "壁頂超打高度下限", unit: "m", options: ["0.5", "0.8", "1.0"], default: "0.5" }
-];
+const STANDARD_CONFIG = INSPECTION_STANDARDS["diaphragm-wall-gc"].config;
 
 const STANDARD_DEFAULTS = Object.fromEntries(STANDARD_CONFIG.map(item => [item.key, item.default]));
 
@@ -503,7 +477,7 @@ const state = {
 
 // 本機草稿（共用 draft.js）：啟動時還原、輸入時去抖寫入、「清空」時刪除。
 const exampleMode = new URLSearchParams(location.search).get("example") === "1";
-const draft = createDraftStore("project-portal.diaphragmWallGc.draft", () => state, { enabled: !exampleMode });
+const draft = createDraftStore(INSPECTION_STANDARDS["diaphragm-wall-gc"].draftKey, () => state, { enabled: !exampleMode });
 
 function normalizeHoldResult(value) {
   return ["待確認", "符合", "不符合", "不適用"].includes(value) ? value : "待確認";

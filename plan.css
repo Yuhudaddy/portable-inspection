@@ -43,6 +43,9 @@ body { margin: 0; background: var(--glass-page-bg); background-image: var(--glas
 .revisions-table th:first-child { width: 4em; }
 .revisions-table td:nth-child(2) { white-space: nowrap; }
 .plan-figure { margin: 12px 0 16px; }
+/* 依本案檢查標準值調整過的數值（和本公司預設不同）：淡黃底，列印也保留 */
+.plan-value.is-adjusted { padding: 0 2px; border-radius: 3px; background: #fdf0c4; box-shadow: inset 0 -1px 0 #e7c65a; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.plan-adjusted { margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: #fdf0c4; color: #6b5310; font-size: 0.75rem; font-weight: 600; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 /* Mermaid 流程圖：SVG 依原始寬度置中，最寬撐滿內文 */
 .plan-flowchart-body { min-height: 60px; }
 .plan-flowchart-body svg { display: block; height: auto; margin: 0 auto; }

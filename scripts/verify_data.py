@@ -592,6 +592,114 @@ def verify_auto_judge(browser):
     page.context.close()
 
 
+# ---------------------------------------------------------------- 檢查標準值 → 施工計畫同步（方案 B）
+PLAN_TOKEN_REPORT = """() => {
+  const set = INSPECTION_STANDARDS[new URLSearchParams(location.search).get('work')];
+  const source = JSON.stringify(PLAN_CONTENT[new URLSearchParams(location.search).get('work')]);
+  const tokens = [...source.matchAll(/\\{\\{(\\w+)(?::(\\w+))?\\}\\}/g)].map(m => m[1]);
+  const keys = set.config.map(item => item.key);
+  const article = document.querySelector('#plan-article');
+  return {
+    unknown: tokens.filter(key => !keys.includes(key)),
+    used: [...new Set(tokens)],
+    leftover: article.textContent.includes('{{'),
+    adjustedCount: article.querySelectorAll('.is-adjusted').length,
+    adjustedTexts: [...article.querySelectorAll('.is-adjusted')].map(el => el.textContent),
+    cover: document.querySelector('#plan-adjusted').hidden ? '' : document.querySelector('#plan-adjusted').textContent,
+    tableRows: [...article.querySelectorAll('figure')].filter(f => f.querySelector('th')?.textContent === '項目' && f.textContent.includes('檢查標準值')).map(f => f.querySelectorAll('tbody tr').length)[0] || 0,
+    configCount: keys.length,
+    text: article.textContent
+  };
+}"""
+
+
+def plan_report(browser, work, tool_draft=None):
+    page = open_plan(browser, f"?work={work}&from={work}")
+    page.evaluate("() => { try { localStorage.clear(); } catch (e) {} }")
+    if tool_draft is not None:
+        page.evaluate("([key, data]) => localStorage.setItem(key, JSON.stringify({ schema: 'project-portal.draft.v1', data }))", [tool_draft[0], tool_draft[1]])
+    page.evaluate("() => { state.version = 'full'; renderPlan(); }")
+    report = page.evaluate(PLAN_TOKEN_REPORT)
+    return page, report
+
+
+def verify_plan_standard_sync(browser):
+    drafts = {"diaphragm-wall-gc": "project-portal.diaphragmWallGc.draft", "diaphragm-wall": "project-portal.diaphragmWall.draft"}
+    for work in drafts:
+        page, report = plan_report(browser, work)
+        check(f"計畫同步 {work}：內文代號都對得到檢查標準值，預設時不留代號、不標底色", not report["unknown"] and not report["leftover"] and report["adjustedCount"] == 0 and report["cover"] == "", {k: report[k] for k in ("unknown", "leftover", "adjustedCount", "cover")})
+        check(f"計畫同步 {work}：標準值總表由設定產生，列數＝下拉選單數（{report['configCount']}）", report["tableRows"] == report["configCount"], report["tableRows"])
+        check(f"計畫同步 {work}：內文至少引用 10 個不同的檢查標準值", len(report["used"]) >= 10, sorted(report["used"]))
+        page.context.close()
+
+    # 06：在工具頁用下拉選單改三個值，計畫內文與總表跟著變、以底色標示、封面計數
+    page = open_clean(browser, "diaphragm-wall")
+    page.evaluate(SET_VALUE_JS)
+    page.evaluate("""() => { __set('[data-quality-standard="sediment"]', '20'); __set('[data-quality-standard="slump"]', '22'); __set('[data-quality-standard="verticalDenominator"]', '10/D'); }""")
+    page.wait_for_timeout(700)
+    stored = page.evaluate("() => localStorage.getItem('project-portal.diaphragmWall.draft')")
+    page.context.close()
+    page, report = plan_report(browser, "diaphragm-wall", ("project-portal.diaphragmWall.draft", json.loads(stored)["data"]))
+    texts = report["adjustedTexts"]
+    check("計畫同步 06：沉泥 20、坍度 22、垂直精度 10/D 印進內文並標底色，封面「本案調整 3 項」",
+          "20" in texts and "22" in texts and "10/D" in texts and "≤ 20 cm" in report["text"] and "22 ± 2 cm" in report["text"] and report["cover"].startswith("本案調整 3 項"),
+          {"adjusted": texts, "cover": report["cover"]})
+    check("計畫同步 06：沒改的值不標底色（坍度允許誤差 2 照常印）", "2" not in texts, texts)
+    page.context.close()
+
+    # 01：籠頂 ±7.5、沉泥 20，改完另一個分頁的計畫即時更新（storage 事件）
+    context = browser.new_context(viewport={"width": 1280, "height": 900})
+    plan_page = context.new_page()
+    plan_page.goto(f"{BASE}/plan?work=diaphragm-wall-gc&from=diaphragm-wall-gc", wait_until="networkidle")
+    plan_page.wait_for_function("typeof renderPlan === 'function'")
+    plan_page.evaluate("() => { try { localStorage.clear(); } catch (e) {} state.version = 'full'; renderPlan(); }")
+    tool_page = context.new_page()
+    tool_page.goto(f"{BASE}/diaphragm-wall-gc", wait_until="networkidle")
+    tool_page.wait_for_function("typeof state === 'object' && typeof clearAllData === 'function'")
+    tool_page.evaluate(SET_VALUE_JS)
+    tool_page.evaluate("""() => { __set('[data-standard="cageTopTolerance"]', '7.5'); __set('[data-standard="sediment"]', '20'); draft.schedule(); }""")
+    tool_page.wait_for_timeout(900)
+    live = plan_page.evaluate(PLAN_TOKEN_REPORT)
+    check("計畫同步 01：另一個分頁改了下拉選單，已開著的計畫即時更新（±7.5 cm、沉泥 20 cm）",
+          "±7.5 cm" in live["text"] and "7.5" in live["adjustedTexts"] and "20" in live["adjustedTexts"] and live["cover"].startswith("本案調整 2 項"),
+          {"adjusted": live["adjustedTexts"], "cover": live["cover"]})
+    judged = tool_page.evaluate("""() => { const i = HOLD_BY_ID.hold1.items.findIndex(d => d.key === 'sediment'); __set(`[data-hold="hold1"][data-hold-index="${i}"][data-hold-field="actual"]`, '18'); return state.holds.hold1[i].result; }""")
+    check("計畫同步 01：工具頁照新標準判定（沉泥上限改 20 後，18 cm 不判 ✗）", judged == "待確認", judged)
+    context.close()
+
+
+# 抽驗：每份計畫隨機挑 5 個檢查標準值改成非預設選項（固定亂數種子，3 輪），
+# 用另一套替換邏輯算出每一句含代號的文字應該長什麼樣，逐句比對計畫實際印出的內容。
+SPOT_CHECK_JS = """(seed) => {
+  const work = new URLSearchParams(location.search).get('work');
+  const set = INSPECTION_STANDARDS[work];
+  let x = seed; const rand = () => (x = (x * 1103515245 + 12345) % 2147483648) / 2147483648;
+  const picks = [...set.config].sort(() => rand() - 0.5).slice(0, 5);
+  const saved = Object.fromEntries(set.config.map(item => [item.key, item.default]));
+  picks.forEach(item => { const others = item.options.filter(option => option !== item.default && !(item.legacy || []).includes(option)); if (others.length) saved[item.key] = others[Math.floor(rand() * others.length)]; });
+  const data = work === 'diaphragm-wall' ? { quality: { standards: saved } } : { standards: saved };
+  localStorage.setItem(set.draftKey, JSON.stringify({ schema: 'project-portal.draft.v1', data }));
+  state.version = 'full'; renderPlan();
+  const strings = [];
+  const walk = node => { if (typeof node === 'string') { if (node.includes('{{')) strings.push(node); } else if (node && typeof node === 'object') Object.values(node).forEach(walk); };
+  walk(PLAN_CONTENT[work].sections);
+  const expected = strings.map(text => text.replace(/\\{\\{(\\w+)(?::ratio)?\\}\\}/g, (m, key) => m.includes(':ratio') && saved[key] !== '10/D' ? '1/' + saved[key] : saved[key]).replaceAll('\\n', ''));
+  const article = document.querySelector('#plan-article').textContent;
+  const missing = expected.filter(line => !article.includes(line));
+  const changed = picks.filter(item => saved[item.key] !== item.default).map(item => `${item.key}=${saved[item.key]}`);
+  return { checked: expected.length, missing, changed, cover: document.querySelector('#plan-adjusted').textContent };
+}"""
+
+
+def verify_plan_spot_check(browser):
+    for work in ("diaphragm-wall-gc", "diaphragm-wall"):
+        for seed in (7, 42, 2026):
+            page = open_plan(browser, f"?work={work}&from={work}")
+            result = page.evaluate(SPOT_CHECK_JS, seed)
+            check(f"抽驗 {work}（種子 {seed}）：{'、'.join(result['changed'])} → {result['checked']} 句全部印成新值", not result["missing"] and result["cover"].startswith(f"本案調整 {len(result['changed'])} 項"), result["missing"][:3] or result["cover"])
+            page.context.close()
+
+
 # ---------------------------------------------------------------- 鋼筋籠部位資料層
 def verify_rebar_cage_helpers(browser):
     page = open_clean(browser, "diaphragm-wall-gc")
@@ -839,6 +947,8 @@ try:
         verify_rebar_cage_ui(browser, "diaphragm-wall")
         verify_pdf_content(browser)
         verify_plan_page(browser)
+        verify_plan_standard_sync(browser)
+        verify_plan_spot_check(browser)
         verify_plan_links(browser)
         verify_unit_sync(browser, "diaphragm-wall-gc", "state.unit.unitNo")
         verify_unit_sync(browser, "diaphragm-wall", "state.wall.unitNo")

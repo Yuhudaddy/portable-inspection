@@ -1,13 +1,15 @@
 """本機預覽用的靜態伺服器，路由規則比照 Cloudflare Pages：/diaphragm-wall → diaphragm-wall.html。
 App 內所有連結與 Service Worker 快取清單都是無副檔名路徑，直接用 python -m http.server 會 404、
-Service Worker 也裝不起來。用法：python3 scripts/serve.py [port]
+Service Worker 也裝不起來。用法：python3 scripts/serve.py [port] [資料夾]（資料夾預設為專案根目錄，
+例如 share/diaphragm-wall 可預覽對外展示版）
 """
 import http.server
 import os
 import sys
 from pathlib import Path
 
-ROOT = str(Path(__file__).resolve().parents[1])
+PROJECT = Path(__file__).resolve().parents[1]
+ROOT = str(PROJECT / sys.argv[2]) if len(sys.argv) > 2 else str(PROJECT)
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 4173
 
 

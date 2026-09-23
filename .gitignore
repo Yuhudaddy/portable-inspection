@@ -7,3 +7,6 @@ scripts/__pycache__/
 
 # 參考用的書頁掃描 PDF（版權，只留本機）
 docs/reference/
+
+# 對外展示版（scripts/build_share.py 產生，不進 git）
+share/

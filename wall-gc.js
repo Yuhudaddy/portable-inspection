@@ -150,8 +150,8 @@ const HOLD_POINTS = [
         key: "guideClear", item: "導溝內面淨寬實測", mode: "number", unit: "cm", placeholder: "例如：105",
         standard: () => {
           const design = guideClearDesign();
-          if (design === null) return `設計淨寬 ±${GUIDE_CLEAR_TOLERANCE} cm 且壁面垂直（請先在導溝複核表填「位置與淨寬」的設計值）`;
-          return `${fixed(design - GUIDE_CLEAR_TOLERANCE)}～${fixed(design + GUIDE_CLEAR_TOLERANCE)} cm（設計淨寬 ${design} cm ±${GUIDE_CLEAR_TOLERANCE} cm）且壁面垂直`;
+          if (design === null) return `設計淨寬 ±${GUIDE_CLEAR_TOLERANCE} cm（請先在導溝複核表填「位置與淨寬」的設計值）`;
+          return `${fixed(design - GUIDE_CLEAR_TOLERANCE)}～${fixed(design + GUIDE_CLEAR_TOLERANCE)} cm（設計淨寬 ${design} cm ±${GUIDE_CLEAR_TOLERANCE} cm）`;
         },
         evaluate: value => {
           const design = guideClearDesign();
@@ -320,7 +320,7 @@ const HOLD_POINTS = [
           : null
       },
       {
-        key: "specimenSets", item: "抗壓強度試體取樣組數", mode: "number", unit: "組", placeholder: "例如：1",
+        key: "specimenSets", item: "抗壓強度試體取樣組數", mode: "number", unit: "組／100 m³", placeholder: "例如：1",
         standard: () => `每單元至少 ${state.standards.specimenSets} 組（7、28 天齡期），每增 100 m³ 加 1 組（每組 5 顆或依合約），送第三方實驗室`,
         evaluate: value => value !== null && S("specimenSets") !== null && value < S("specimenSets")
           ? `取樣 ${value} 組，少於每單元 ${state.standards.specimenSets} 組`
@@ -724,6 +724,14 @@ function renderStandards() {
     : "請先在上方選擇穩定液種類；未選擇前皂土系與高分子系兩組標準均可調整，且不進行自動判定。";
 }
 
+// 數值欄旁邊的單位（防呆：一看就知道要填什麼）。高程可正可負，「GL」放左邊；垂直度只填分母，「1/」放左邊。
+function holdUnitAffix(unit) {
+  if (!unit || unit === "－") return { before: "", after: "" };
+  if (unit === "GL, m") return { before: "GL", after: "m" };
+  if (unit === "1/n") return { before: "1/", after: "" };
+  return { before: "", after: unit };
+}
+
 function renderHold(holdId) {
   const hold = HOLD_BY_ID[holdId];
   const target = $(`#${holdId}-check-list`);
@@ -731,22 +739,23 @@ function renderHold(holdId) {
   const warnings = [];
   target.innerHTML = hold.items.map((definition, index) => {
     const record = state.holds[holdId][index];
-    // 數值、標準值或設計基準一變就會重繪，這裡順便套用自動判定（沒有自動打勾，所以不會蓋掉使用者點的 ✓／✗）
+    // 標準值或設計基準一變就會重繪：這裡只重判自動帶入的結果，使用者手動點的保留
     const status = holdItemStatus(holdId, index);
-    applyAutoResult(record, status);
+    rejudge(record, status);
     const locked = autoLockedResults(record, status);
     const warning = status === "invalid" ? INVALID_MEASURE_MESSAGE : holdItemWarning(holdId, index);
     if (warning) warnings.push({ index, warning });
     const failed = record.result === "不符合" || Boolean(warning);
     const unitSuffix = definition.unit ? `（${esc(definition.unit)}）` : "";
+    const affix = holdUnitAffix(definition.unit);
     const inputType = "text";
     const numericAttrs = definition.mode === "number" ? ` inputmode="decimal"${status === "fail" || status === "invalid" ? ' class="is-invalid"' : ""}` : "";
     return `
     <article class="check-card ${failed ? "is-failed" : ""}" data-hold-card="${holdId}-${index}">
-      <div class="check-card-head"><span>${String(index + 1).padStart(2, "0")}</span><strong>${esc(definition.item)}</strong></div>
+      <div class="check-card-head"><span>${String(index + 1).padStart(2, "0")}</span><strong>${esc(definition.item)}</strong>${definition.mode === "number" ? AUTO_JUDGE_BADGE : ""}</div>
       <p>${esc(holdItemStandard(holdId, index))}${warning ? `<br /><strong>警示：${esc(warning)}</strong>` : ""}</p>
       <div class="check-card-fields">
-        <label class="field"><span>現場紀錄／實測${unitSuffix}</span><input type="${inputType}"${numericAttrs} value="${esc(record.actual)}" placeholder="${esc(definition.placeholder || "")}" data-hold="${holdId}" data-hold-index="${index}" data-hold-field="actual" /></label>
+        <label class="field${affix.before || affix.after ? " hold-measure-field" : ""}"><span>現場紀錄／實測${unitSuffix}</span>${affix.before ? `<b class="guide-affix">${esc(affix.before)}</b>` : ""}<input type="${inputType}"${numericAttrs} value="${esc(record.actual)}" placeholder="${esc(definition.placeholder || "")}" data-hold="${holdId}" data-hold-index="${index}" data-hold-field="actual" />${affix.after ? `<b class="guide-affix">${esc(affix.after)}</b>` : ""}</label>
         <div class="field result-field"><span id="hold-${holdId}-${index}-result-label">查驗結果</span>${resultSegmented(`hold-${holdId}-${index}-result`, record.result, `data-hold="${holdId}" data-hold-index="${index}" data-hold-field="result"`, locked)}</div>
       </div>
     </article>`;
@@ -775,7 +784,7 @@ function renderCheckCards(type) {
     const locked = measure ? guideLockedResults(check) : [];
     return `
     <article class="check-card ${check.result === "不符合" ? "is-failed" : ""}" data-check-card="${type}-${index}">
-      <div class="check-card-head"><span>${String(index + 1).padStart(2, "0")}</span><strong>${esc(check.item)}</strong></div>
+      <div class="check-card-head"><span>${String(index + 1).padStart(2, "0")}</span><strong>${esc(check.item)}</strong>${type === "guideWall" && guideAutoJudged(check) ? AUTO_JUDGE_BADGE : ""}</div>
       <p>${standardHtml(check.standard)}</p>
       <div class="check-card-fields">
         ${measure ? guideMeasureFieldsHtml(check, attrs) : `<label class="field"><span>現場紀錄／實測</span><input type="text" value="${esc(check.actual)}" ${attrs("actual")} /></label>`}
@@ -895,6 +904,17 @@ function clearAllData() {
   $("#clear-dialog").close();
 }
 
+
+// 改數值時自動判定取代了使用者手動點的結果：提示並可復原成原本的手動結果
+function noticeReplacedResult(record, replaced, rerender) {
+  if (!replaced) return;
+  const mark = { "符合": "✓", "不符合": "✗" }[record.result] || record.result;
+  showUndo(`已依新數值改判為 ${mark}，取代手動判定`, () => {
+    record.result = replaced;
+    markManualResult(record);
+    rerender();
+  });
+}
 
 // 沒有 action 時只顯示訊息（例如匯入結果），不出現「復原」鈕
 function showUndo(message, action = null) {
@@ -1432,9 +1452,10 @@ function initialize() {
       // 邊打字邊判定：就地更新紅框與結果鈕；判定標準文字與警示清單等離開欄位再重繪
       if (hold.dataset.holdField === "actual" && HOLD_BY_ID[holdId].items[index].mode === "number") {
         const status = holdItemStatus(holdId, index);
-        applyAutoResult(record, status);
+        const replaced = rejudge(record, status, { valueChanged: true });
         hold.classList.toggle("is-invalid", status === "fail" || status === "invalid");
         syncAutoResultCard(hold.closest("[data-hold-card]"), record, autoLockedResults(record, status));
+        noticeReplacedResult(record, replaced, () => renderHold(holdId));
       }
       return;
     }
@@ -1445,9 +1466,10 @@ function initialize() {
       record[check.dataset.checkField] = check.value;
       // 導溝數值項目：邊打字邊判定，就地更新紅框與結果鈕
       if (type === "guideWall" && check.dataset.checkField !== "result" && guideMeasure(record)) {
-        applyGuideAutoResult(record);
+        const replaced = applyGuideAutoResult(record);
         syncGuideMeasureCard(check.closest("[data-check-card]"), record);
         renderCheckProgress(type);
+        noticeReplacedResult(record, replaced, () => renderCheckCards(type));
         // 停檢點 1 的導溝淨寬以這裡的設計值判定
         if (record.item === "位置與淨寬") renderHold("hold1");
       }
@@ -1474,7 +1496,7 @@ function initialize() {
     if (hold) {
       const record = state.holds[hold.dataset.hold][Number(hold.dataset.holdIndex)];
       record[hold.dataset.holdField] = hold.value;
-      if (hold.dataset.holdField === "result") record.auto = "";
+      if (hold.dataset.holdField === "result") markManualResult(record);
       renderHold(hold.dataset.hold);
       return;
     }
@@ -1484,7 +1506,7 @@ function initialize() {
       const record = state[type].checks[Number(check.dataset.checkIndex)];
       record[check.dataset.checkField] = check.value;
       if (check.dataset.checkField === "result") {
-        if ("auto" in record) record.auto = "";
+        if ("auto" in record) markManualResult(record);
         renderCheckCards(type);
       }
     }

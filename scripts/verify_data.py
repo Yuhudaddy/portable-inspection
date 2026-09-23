@@ -507,8 +507,8 @@ def verify_guide_wall_measures(browser, html):
       out.imported = [state.guideWall.checks[2].design, state.guideWall.checks[5].designBarSpacing, state.guideWall.checks[5].barSpacing, state.guideWall.checks[7].result];
       return out;
     }""")
-    check(f"{html}：淨寬超出 ±5 cm → 自動 ✗ 且 ✓ 停用；改回範圍內退回待確認", result["widthFail"] == ["不符合", True] and result["widthBack"] == "待確認", result)
-    check(f"{html}：深度設計 < 1.8 m 自動 ✗；實測 = 設計不算不合格", result["depthDesign"] == "不符合" and result["depthEqual"] == "待確認", result)
+    check(f"{html}：淨寬超出 ±5 cm → 自動 ✗ 且 ✓ 停用；改回範圍內自動 ✓", result["widthFail"] == ["不符合", True] and result["widthBack"] == "符合", result)
+    check(f"{html}：深度設計 < 1.8 m 自動 ✗；實測 = 設計算合格（自動 ✓）", result["depthDesign"] == "不符合" and result["depthEqual"] == "符合", result)
     check(f"{html}：選了 N/A 後數值不合格也不改", result["naKept"] == "不適用", result)
     check(f"{html}：鋼筋號數相同且間距 ≤ 設計自動 ✓，間距過大自動 ✗", result["rebarPass"] == "符合" and result["rebarFail"] == "不符合", result)
     check(f"{html}：強度低於設計自動 ✗；頂部高程印 GL-", result["strength"] == "不符合" and result["top"] == "GL-0.3 m", result)
@@ -536,7 +536,7 @@ def verify_auto_judge(browser):
       __set(q("actual"), "103 cm"); const ok = [r(), locked()];
       return { fail, invalid, ok, print: guideCheckActual(state.guideWall.checks[2]) };
     }""")
-    check("輸入容錯：全形數字與「106cm」可判定；「約100」紅框提示請輸入數值、✓ 停用、退回待確認", guide["fail"] == ["不符合", True] and guide["invalid"] == ["待確認", True, "請輸入數值"] and guide["ok"] == ["待確認", False], guide)
+    check("輸入容錯：全形數字與「106cm」可判定；「約100」紅框提示改手動判定、自動 ✗ 退回待確認；改回合格自動 ✓", guide["fail"] == ["不符合", True] and guide["invalid"] == ["待確認", False, "非數值，請手動判定"] and guide["ok"] == ["符合", False], guide)
     check("輸入容錯：列印時整理成數字＋單位", guide["print"] == "設計 100 cm；實測 103 cm（許可值 95～105 cm）", guide)
 
     quality = page.evaluate("""() => {
@@ -553,9 +553,9 @@ def verify_auto_judge(browser):
       __set(q(17), "abc"); const invalid = [r(17), document.querySelector('[data-quality-card="17"] input[value="符合"]').disabled];
       return { sediment, relaxed, tightened, results, invalid, text: r(0), print: qualityActualText(state.quality.checks[4]) };
     }""")
-    check("06 品質自檢：沉泥超過標準自動 ✗；標準值改寬後立即退回待確認、改回又自動 ✗", [quality["sediment"], quality["relaxed"], quality["tightened"]] == ["不符合", "待確認", "不符合"], quality)
+    check("06 品質自檢：沉泥超過標準自動 ✗；標準值改寬後立即改判 ✓、改回又自動 ✗", [quality["sediment"], quality["relaxed"], quality["tightened"]] == ["不符合", "符合", "不符合"], quality)
     check("06 品質自檢：液面、初灌、坍度、強度、埋入、垂直精度不合格都自動 ✗；文字項目不判定", quality["results"] == ["不符合"] * 6 and quality["text"] == "待確認", quality)
-    check("06 品質自檢：數值欄輸入文字 → ✓ 停用、退回待確認；液面列印「導溝頂下 90 cm」", quality["invalid"] == ["待確認", True] and quality["print"] == "導溝頂下 90 cm", quality)
+    check("06 品質自檢：數值欄輸入文字 → 自動結果退回待確認、改手動判定（✓ 可點）；液面列印「導溝頂下 90 cm」", quality["invalid"] == ["待確認", False] and quality["print"] == "導溝頂下 90 cm", quality)
 
     # 計畫封面跟著 JSON 走（修訂紀錄由 plans/revisions.js 維護，不進 JSON）
     page.evaluate("""() => localStorage.setItem('project-portal.plan.diaphragm-wall.draft', JSON.stringify({ schema: 'project-portal.draft.v1',
@@ -587,8 +587,8 @@ def verify_auto_judge(browser):
       const invalid = [r("hold3", "slump"), document.querySelector(`[data-hold-card="hold3-${slumpIndex}"] input[value="符合"]`).disabled];
       return { clearFail, clearOk, sediment, relaxed, vertical, density, invalid };
     }""")
-    check("01 停檢點：導溝淨寬以導溝複核表設計淨寬 ±5 cm 自動判定", hold["clearFail"] == "不符合" and hold["clearOk"] == "待確認", hold)
-    check("01 停檢點：沉泥超標自動 ✗、標準值改寬立即退回；垂直度可寫 1/250；比重 1.10 未小於 1.1 判 ✗；非數值 ✓ 停用", hold["sediment"] == "不符合" and hold["relaxed"] == "待確認" and hold["vertical"] == "不符合" and hold["density"] == "不符合" and hold["invalid"] == ["待確認", True], hold)
+    check("01 停檢點：導溝淨寬以導溝複核表設計淨寬 ±5 cm 自動判定", hold["clearFail"] == "不符合" and hold["clearOk"] == "符合", hold)
+    check("01 停檢點：沉泥超標自動 ✗、標準值改寬立即改判 ✓；垂直度可寫 1/250；比重 1.10 未小於 1.1 判 ✗；非數值改手動判定", hold["sediment"] == "不符合" and hold["relaxed"] == "符合" and hold["vertical"] == "不符合" and hold["density"] == "不符合" and hold["invalid"] == ["待確認", False], hold)
     page.context.close()
 
 
@@ -664,7 +664,7 @@ def verify_plan_standard_sync(browser):
           "±7.5 cm" in live["text"] and "7.5" in live["adjustedTexts"] and "20" in live["adjustedTexts"] and live["cover"].startswith("本案調整 2 項"),
           {"adjusted": live["adjustedTexts"], "cover": live["cover"]})
     judged = tool_page.evaluate("""() => { const i = HOLD_BY_ID.hold1.items.findIndex(d => d.key === 'sediment'); __set(`[data-hold="hold1"][data-hold-index="${i}"][data-hold-field="actual"]`, '18'); return state.holds.hold1[i].result; }""")
-    check("計畫同步 01：工具頁照新標準判定（沉泥上限改 20 後，18 cm 不判 ✗）", judged == "待確認", judged)
+    check("計畫同步 01：工具頁照新標準判定（沉泥上限改 20 後，18 cm 自動 ✓）", judged == "符合", judged)
     context.close()
 
 
@@ -742,7 +742,27 @@ def verify_review_fixes(browser):
     }""")
     check("輸入容錯：超出範圍的長數字算輸入錯誤、「.5」＝0.5", result["huge"] is True and result["half"] == 0.5, result)
     check("頂部基準高程多打負號不會印成「GL--」", result["minus"] == "GL-0.30 m" and result["prefixed"] == "GL-0.30 m", result)
-    check("自動判定的 ✗ 經 JSON 匯出匯入後，數值改好仍退回待確認", result["imported"] == "不符合" and result["afterFix"] == "待確認", result)
+    check("自動判定的 ✗ 經 JSON 匯出匯入後，數值改好自動改判 ✓", result["imported"] == "不符合" and result["afterFix"] == "符合", result)
+    page.context.close()
+
+    # 手動判定：合格時手點 ✗ → 重繪、改標準值都保留；再改數值 → 依新數值重判並提示，可一鍵復原手動結果；N/A 不動
+    page = open_clean(browser, "diaphragm-wall-gc")
+    page.evaluate(SET_VALUE_JS)
+    manual = page.evaluate("""() => {
+      const i = HOLD_BY_ID.hold1.items.findIndex(d => d.key === 'sediment');
+      const q = `[data-hold="hold1"][data-hold-index="${i}"][data-hold-field="actual"]`;
+      const r = () => state.holds.hold1[i].result;
+      const radio = value => document.querySelector(`[data-hold-card="hold1-${i}"] input[value="${value}"]`);
+      __set(q, '12'); const auto = r();
+      radio('不符合').click(); const clicked = r();
+      renderHold('hold1'); __set('[data-standard="sediment"]', '20'); const kept = r();
+      __set(q, '13'); const rejudged = r(); const toast = document.querySelector('#undo-message').textContent;
+      document.querySelector('#undo-button').click(); const restored = r();
+      radio('不適用').click(); __set(q, '30'); const na = r();
+      return { auto, clicked, kept, rejudged, toast, restored, na };
+    }""")
+    check("手動判定：合格時手點 ✗ 會保留（重繪、改標準值都不動）；再改數值重判並提示、可復原；N/A 不動",
+          manual == {"auto": "符合", "clicked": "不符合", "kept": "不符合", "rejudged": "符合", "toast": "已依新數值改判為 ✓，取代手動判定", "restored": "不符合", "na": "不適用"}, manual)
     page.context.close()
 
     # 模板、鋼筋、鋼構的「還原預設」也清掉各自的施工計畫草稿
@@ -831,7 +851,7 @@ def verify_rebar_cage_ui(browser, html):
 def verify_pdf_content(browser):
     page = open_clean(browser, "diaphragm-wall", "?example=1")
     page.evaluate("""() => {
-      state.quality.checks[1].result = "不符合"; state.quality.checks[1].actual = "沉泥 35 cm";
+      state.quality.checks[1].result = "不符合"; state.quality.checks[1].auto = ""; state.quality.checks[1].actual = "沉泥 35 cm";
       state.quality.checks[2].result = "待確認";
       state.rebarCage.cageNo = "C21-U";
       renderAll?.(); renderPrint();

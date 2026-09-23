@@ -22,7 +22,7 @@ const INSPECTION_STANDARDS = {
       { key: "slump", label: "混凝土坍度", unit: "cm", options: Array.from({ length: 10 }, (_, i) => String(15 + i)), default: "20", legacy: ["18"] },
       { key: "slumpTolerance", label: "坍度允許誤差", unit: "±cm", options: ["1", "2", "3", "4"], default: "2" },
       { key: "chloride", label: "氯離子含量上限", unit: "kg/m³", options: ["0.15", "0.30"], default: "0.15" },
-      { key: "specimenSets", label: "試體取樣組數下限", unit: "組", options: ["1", "2", "3"], default: "1" },
+      { key: "specimenSets", label: "試體取樣組數下限", unit: "組／100 m³", options: ["1", "2", "3"], default: "1" },
       { key: "tremieInitialMin", label: "初灌管底離底下限", unit: "cm", options: ["5", "10", "15", "30"], default: "30", legacy: ["10"] },
       { key: "tremieInitialMax", label: "初灌管底離底上限", unit: "cm", options: ["20", "25", "30", "50"], default: "50", legacy: ["20"] },
       { key: "tremieEmbedBentonite", label: "管底埋深下限（皂土系）", unit: "m", options: ["1.5", "2.0", "2.5"], default: "2.0" },

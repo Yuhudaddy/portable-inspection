@@ -2,9 +2,9 @@
 //
 // 有設計值／實測值的項目依下表自動判定：
 //   ・不合格：實測框（或設計框）變紅，結果自動選「✗」，「✓」停用；使用者只能改數值或選 N/A。
-//   ・合格：鋼筋自動選「✓」；其餘項目仍要現場確認標準裡的其他條件，留給使用者點選。
-//   ・不是數值（容錯規則見 auto-judge.js）：紅框並提示「請輸入數值」，「✓」停用，不自動選。
-// 自動判定只在數值改變時套用（applyGuideAutoResult），重繪時不會蓋掉使用者手動點選的結果。
+//   ・合格：自動選「✓」；數值以外的缺失由使用者手動改「✗」。
+//   ・不是數值（容錯規則見 auto-judge.js）：紅框並提示「非數值，請手動判定」，不自動選。
+// 自動判定在這一項的數值改變時套用（applyGuideAutoResult），規則見 auto-judge.js 的 rejudge。
 //
 // 資料欄位：design（設計值）、actual（實測值，沿用舊欄位）；鋼筋是 designBarNo／designBarSpacing（設計）
 // 與 barNo／barSpacing（實測，沿用舊欄位）。auto 記錄目前結果是否由自動判定帶入，只存在草稿裡。
@@ -12,7 +12,7 @@ const GUIDE_WALL_MEASURES = {
   "位置與淨寬": { kind: "range", unit: "cm", tolerance: 5, placeholder: ["例如：100", "例如：102"] },
   "深度": { kind: "min", unit: "m", designMin: 1.8, placeholder: ["例如：2.0", "例如：2.1"] },
   "牆厚": { kind: "min", unit: "cm", placeholder: ["例如：20", "例如：21"] },
-  "鋼筋": { kind: "rebar", autoPass: true },
+  "鋼筋": { kind: "rebar" },
   "混凝土強度": { kind: "min", unit: "kgf/cm²", placeholder: ["例如：210", "例如：245"] },
   "頂部基準高程": { kind: "elevation", unit: "m", placeholder: "例如：0.30" }
 };
@@ -30,6 +30,8 @@ const GUIDE_WALL_EXAMPLE_VALUES = {
 const GUIDE_BAR_SPACINGS = ["10", "12.5", "15", "17.5", "20", "22.5", "25", "27.5", "30"];
 
 const guideMeasure = check => GUIDE_WALL_MEASURES[check?.item] || null;
+// 頂部基準高程沒有設計值可比，只記錄不判定
+const guideAutoJudged = check => Boolean(guideMeasure(check)) && guideMeasure(check).kind !== "elevation";
 const guideNumber = value => parseMeasure(value).value;
 const guideFormat = value => String(Number(value.toFixed(2)));
 
@@ -85,12 +87,10 @@ function evaluateGuideMeasure(check) {
   return { ...result, status: "pass", note };
 }
 
-// 數值改變後呼叫：不合格自動選 ✗；鋼筋合格自動選 ✓；條件解除時，把先前自動帶入的結果退回待確認。
-// 使用者選了 N/A 就不動。
+// 數值改變後呼叫：依新數值自動 ✓／✗（會取代手動結果，回傳被取代的結果；N/A 不動）
 function applyGuideAutoResult(check) {
-  const config = guideMeasure(check);
-  if (!config) return;
-  applyAutoResult(check, evaluateGuideMeasure(check).status, { autoPass: config.autoPass });
+  if (!guideMeasure(check)) return null;
+  return rejudge(check, evaluateGuideMeasure(check).status, { valueChanged: true });
 }
 
 // 不合格或不是數值時「✓」不可選（匯入或舊草稿帶進來的「符合」也在重繪前改掉）。

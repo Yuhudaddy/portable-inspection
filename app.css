@@ -571,6 +571,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .check-card-head { display: flex; align-items: baseline; gap: 10px; }
 .check-card-head span { font-family: var(--glass-font-num); color: var(--glass-faint); font-size: 0.75rem; }
 .check-card-head strong { font-size: 0.9375rem; font-weight: 600; }
+/* 「自動判定」標籤：填數值就會自動 ✓／✗ 的項目 */
+.auto-badge { align-self: center; padding: 1px 7px; border-radius: 999px; background: var(--glass-sunken); color: var(--glass-accent); font-size: 0.625rem; font-weight: 700; letter-spacing: 0.04em; white-space: nowrap; }
 .check-card > p { margin: 3px 0 12px 24px; color: var(--glass-soft); font-size: 0.75rem; line-height: 1.55; }
 .check-card > p strong { display: block; margin-top: 4px; color: var(--glass-danger-ink); font-weight: 500; }
 .check-card-fields { display: flex; align-items: center; gap: 8px; }
@@ -808,7 +810,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .quality-card-fields > .result-field { flex: 0 0 auto; position: relative; }
 .quality-card > p strong { display: block; margin-top: 4px; color: var(--glass-danger-ink); font-weight: 500; }
 /* 數值項目：前後加單位（例：導溝頂下 [ 60 ] cm） */
-.quality-card-fields > .quality-measure-field { display: flex; align-items: center; gap: 6px; }
+.quality-card-fields > .quality-measure-field,
+.check-card-fields > .hold-measure-field { display: flex; align-items: center; gap: 6px; }
 .quality-card-fields > .field input.is-invalid { box-shadow: inset 0 0 0 1.5px var(--glass-danger); }
 .quality-card.is-failed .quality-card-fields > .field input { background: #fff; }
 .quality-context-note {

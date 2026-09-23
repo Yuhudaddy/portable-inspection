@@ -753,7 +753,7 @@ function renderCheckCards(type) {
     const locked = measure ? guideLockedResults(check) : [];
     return `
     <article class="check-card ${check.result === "不符合" ? "is-failed" : ""}" data-check-card="${type}-${index}">
-      <div class="check-card-head"><span>${String(index + 1).padStart(2, "0")}</span><strong>${esc(check.item)}</strong></div>
+      <div class="check-card-head"><span>${String(index + 1).padStart(2, "0")}</span><strong>${esc(check.item)}</strong>${type === "guideWall" && guideAutoJudged(check) ? AUTO_JUDGE_BADGE : ""}</div>
       <p>${type === "quality" ? esc(qualityCheckStandard(index, check.standard)) : standardHtml(check.standard)}</p>
       <div class="check-card-fields">
         ${measure ? guideMeasureFieldsHtml(check, attrs) : `<label class="field"><span>現場紀錄／實測</span><input type="text" value="${esc(check.actual)}" ${attrs("actual")} /></label>`}
@@ -819,15 +819,15 @@ function renderQuality() {
   renderQualityStandards();
   $("#quality-check-list").innerHTML = state.quality.checks.map((check, index) => {
     const measure = qualityMeasure(check);
-    // 數值、標準值或壁體資訊一變就重繪，這裡順便套用自動判定（不自動打勾，所以不會蓋掉使用者點的 ✓／✗）
+    // 標準值或壁體資訊一變就重繪：這裡只重判自動帶入的結果，使用者手動點的保留
     const { status, message } = qualityMeasureStatus(check);
-    if (measure) applyAutoResult(check, status);
+    if (measure) rejudge(check, status);
     const locked = measure ? autoLockedResults(check, status) : [];
     const bad = status === "fail" || status === "invalid";
     const input = `<input type="text"${measure ? ` inputmode="decimal"${bad ? ' class="is-invalid"' : ""}` : ""} value="${esc(check.actual)}" placeholder="${esc(qualityCheckPlaceholder(index, check.placeholder))}" data-quality-item="${index}" data-quality-field="actual" />`;
     return `
     <article class="quality-card ${check.result === "不符合" ? "is-failed" : ""}" data-quality-card="${index}">
-      <div class="quality-card-head"><span>${String(index + 1).padStart(2, "0")}</span><strong>${esc(check.item)}</strong></div>
+      <div class="quality-card-head"><span>${String(index + 1).padStart(2, "0")}</span><strong>${esc(check.item)}</strong>${measure ? AUTO_JUDGE_BADGE : ""}</div>
       <p>${esc(qualityCheckStandard(index, check.standard))}${message ? `<br /><strong>警示：${esc(message)}</strong>` : ""}</p>
       <div class="quality-card-fields">
         <label class="field${measure ? " quality-measure-field" : ""}"><span>現場紀錄／實測</span>${measure?.prefix ? `<b class="guide-affix">${esc(measure.prefix)}</b>` : ""}${input}${measure ? `<b class="guide-affix">${esc(measure.unit())}</b>` : ""}</label>
@@ -977,6 +977,17 @@ function openTruckDialog(index = null) {
   $("#truck-dialog").showModal();
 }
 
+
+// 改數值時自動判定取代了使用者手動點的結果：提示並可復原成原本的手動結果
+function noticeReplacedResult(record, replaced, rerender) {
+  if (!replaced) return;
+  const mark = { "符合": "✓", "不符合": "✗" }[record.result] || record.result;
+  showUndo(`已依新數值改判為 ${mark}，取代手動判定`, () => {
+    record.result = replaced;
+    markManualResult(record);
+    rerender();
+  });
+}
 
 // 沒有 action 時只顯示訊息（例如匯入結果），不出現「復原」鈕
 function showUndo(message, action = null) {
@@ -1585,9 +1596,10 @@ function initialize() {
       record[check.dataset.checkField] = check.value;
       // 導溝數值項目：邊打字邊判定，就地更新紅框與結果鈕
       if (type === "guideWall" && check.dataset.checkField !== "result" && guideMeasure(record)) {
-        applyGuideAutoResult(record);
+        const replaced = applyGuideAutoResult(record);
         syncGuideMeasureCard(check.closest("[data-check-card]"), record);
         renderCheckProgress(type);
+        noticeReplacedResult(record, replaced, () => renderCheckCards(type));
       }
     }
     const qualityCheck = event.target.closest("[data-quality-item]");
@@ -1597,10 +1609,11 @@ function initialize() {
       // 數值項目邊打字邊判定：就地更新紅框與結果鈕，警示文字離開欄位再重繪
       if (qualityCheck.dataset.qualityField === "actual" && qualityMeasure(record)) {
         const { status } = qualityMeasureStatus(record);
-        applyAutoResult(record, status);
+        const replaced = rejudge(record, status, { valueChanged: true });
         qualityCheck.classList.toggle("is-invalid", status === "fail" || status === "invalid");
         syncAutoResultCard(qualityCheck.closest("[data-quality-card]"), record, autoLockedResults(record, status));
         renderQualityProgress();
+        noticeReplacedResult(record, replaced, renderQuality);
       }
     }
   });
@@ -1619,7 +1632,7 @@ function initialize() {
       const record = state[type].checks[Number(check.dataset.checkIndex)];
       record[check.dataset.checkField] = check.value;
       if (check.dataset.checkField === "result") {
-        if ("auto" in record) record.auto = "";
+        if ("auto" in record) markManualResult(record);
         renderCheckCards(type);
       }
     }
@@ -1627,7 +1640,7 @@ function initialize() {
     if (qualityCheck) {
       const record = state.quality.checks[Number(qualityCheck.dataset.qualityItem)];
       record[qualityCheck.dataset.qualityField] = qualityCheck.value;
-      if (qualityCheck.dataset.qualityField === "result") record.auto = "";
+      if (qualityCheck.dataset.qualityField === "result") markManualResult(record);
       // 結果改了、或數值項目輸入完（離開欄位）才重繪，更新警示文字；一般文字欄不重繪
       if (qualityCheck.dataset.qualityField === "result" || qualityMeasure(record)) renderQuality();
     }

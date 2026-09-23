@@ -2,7 +2,7 @@
 // 檔名一律帶版號：換版本就是換檔名，改 VENDOR_FILES 與引用處（plan.js），activate 時自動清掉不在清單裡的舊檔。
 const VENDOR_CACHE = "portable-inspection-vendor";
 const VENDOR_FILES = ["./vendor/mermaid-11.4.1.min.js"];
-const CACHE_NAME = "portable-inspection-v122";
+const CACHE_NAME = "portable-inspection-v123";
 // 範例 PDF（共約 8MB）不放進 shell：每次升版都要整批重抓，手機上安裝又慢又容易失敗；範例本來就需要連線。
 const APP_SHELL = ["./", "./404", "./glass.css", "./portal.css", "./portal.js", "./sw-client.js", "./draft.js", "./export-menu.js", "./form-controls.js", "./print-pages.js", "./dialog-forms.js", "./bar-sizes.js", "./inspection-standards.js", "./auto-judge.js", "./guide-wall.js", "./rebar-cage.js", "./cage-photos.js", "./plan", "./plan.js", "./plan.css", "./plans/figures-diaphragm-wall.js", "./plans/figures-formwork.js", "./plans/flowcharts-diaphragm-wall.js", "./plans/revisions.js", "./plans/diaphragm-wall-gc.js", "./plans/diaphragm-wall.js", "./plans/formwork.js", "./plans/rebar.js", "./plans/steel.js", "./example", "./example.css", "./example.js", "./diaphragm-wall", "./diaphragm-wall-gc", "./diaphragm-wall-select", "./wall-gc.js", "./app.css", "./app.js", "./template", "./template.css", "./template.js", "./rebar", "./rebar.css", "./rebar.js", "./steel-structure", "./steel.css", "./steel.js", "./record", "./checklists", "./manifest.webmanifest", "./app-icon-144.png", "./apple-touch-icon.png", "./icon-192.png", "./taisei.png"];
 

@@ -129,6 +129,7 @@
     <dialog class="sheet-dialog" id="export-dialog"><div class="dialog-header"><div><span class="dialog-eyebrow">EXPORT</span><h2>選擇輸出內容</h2></div><button type="button" data-close-dialog aria-label="關閉輸出選單">×</button></div><div class="dialog-body export-options"><button class="export-option" type="button" data-export="current-pdf"><strong>目前頁面 PDF</strong><small>只輸出目前正在查看的分頁</small></button><button class="export-option" type="button" data-export="all-pdf"><strong>完整紀錄 PDF</strong><small>工程概要、材料、配置、接頭與放行全部輸出</small></button><button class="export-option" type="button" data-export="json"><strong>JSON 資料</strong><small>保留全部欄位，適合匯入資料庫</small></button><button class="export-option" type="button" data-export="markdown"><strong>Markdown 摘要</strong><small>適合人工閱讀與歸檔</small></button></div></dialog>
     <dialog class="sheet-dialog" id="clear-dialog"><div class="dialog-header"><div><span class="dialog-eyebrow">CLEAR RECORD</span><h2>清空全部資料</h2></div><button type="button" data-close-dialog aria-label="關閉">×</button></div><div class="dialog-body clear-confirmation"><p>將清除鋼筋工程表單的所有輸入內容，且無法復原。</p></div><div class="dialog-actions"><button class="secondary-button" type="button" data-close-dialog>取消</button><button class="confirm-button danger-button" id="confirm-clear" type="button">確認清空</button></div></dialog>
     <script src="./draft.js" defer></script>
+    <script src="./form-controls.js" defer></script>
     <script src="./print-pages.js" defer></script>
     <script src="./bar-sizes.js" defer></script>
     <script src="./rebar.js" defer></script>

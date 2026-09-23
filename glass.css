@@ -7,6 +7,9 @@
 :root {
   color-scheme: light only;
 
+  /* 下拉選單的 ▼：聚焦樣式會用 background 簡寫重畫整個背景，那裡要再疊一次這層 */
+  --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0h10L5 6z' fill='%23777'/%3E%3C/svg%3E");
+
   /* ---- 頁面背景：方案 B「斜向漸層」，左上白 → 右下淡暖灰，無色相 ------------
      手動微調就改這三個值：起點色、終點色、角度／白色停留比例。 */
   --glass-page-bg: #fff;                 /* 漸層起點（頂部保持純白，也是 html 底色） */
@@ -90,8 +93,7 @@
    欄位常駐 1px 透明邊框（見各頁 .field input 基礎規則），聚焦只換背景，不會位移。
    光弧直接寫在這條規則裡：var() 是在「宣告處」代入的，若把漸層做成 :root token，
    角度會被鎖成 :root 的 0deg，欄位上的旋轉動畫就帶不動它（環只會靜止不轉）。 */
-.field :is(input:not([type="radio"]), select, textarea):focus,
-.phase-editor select:focus, .quality-standard-field select:focus {
+.field :is(input:not([type="radio"]), textarea):focus {
   outline: none;
   background:
     linear-gradient(#fff, #fff) padding-box,
@@ -100,10 +102,25 @@
   animation: glass-glow-spin 2.6s linear infinite;
 }
 
+/* 下拉選單用 :focus-visible。滑鼠點開原生選單後焦點會留在欄位上，若用 :focus，
+   收掉選單後光環仍會亮著，看起來像還在編輯中；鍵盤操作才需要看得到焦點。
+   背景用簡寫會蓋掉 ▼，所以這裡把箭頭當成最上面一層再疊回去。 */
+.field select:focus-visible,
+.phase-editor select:focus-visible, .quality-standard-field select:focus-visible {
+  outline: none;
+  background:
+    var(--select-arrow) no-repeat right 10px center padding-box,
+    linear-gradient(#fff, #fff) padding-box,
+    conic-gradient(from var(--glow-ang, 0deg),
+      var(--glass-focus-base) 0 48%, #2dd4bf 62%, #8b5cf6 80%, #ec4899 94%, var(--glass-focus-base) 100%) border-box;
+  animation: glass-glow-spin 2.6s linear infinite;
+}
+
 /* 系統要求減少動態效果：環不轉，光弧固定停在右上。 */
 @media (prefers-reduced-motion: reduce) {
-  .field :is(input:not([type="radio"]), select, textarea):focus,
-  .phase-editor select:focus, .quality-standard-field select:focus {
+  .field :is(input:not([type="radio"]), textarea):focus,
+  .field select:focus-visible,
+  .phase-editor select:focus-visible, .quality-standard-field select:focus-visible {
     --glow-ang: 300deg;
     animation: none;
   }
@@ -147,7 +164,7 @@
 select {
   appearance: none;
   -webkit-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0h10L5 6z' fill='%23777'/%3E%3C/svg%3E");
+  background-image: var(--select-arrow);
   background-repeat: no-repeat;
   background-position: right 10px center;
 }

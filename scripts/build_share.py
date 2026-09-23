@@ -10,7 +10,7 @@
 ・拿掉對外連結：返回中繼頁、施工計畫、回首頁；說明視窗與清空視窗裡提到施工計畫的文字
 ・拿掉離線快取（Service Worker）與 PWA manifest；網站名稱不出現 Portable Inspection
 ・JS／CSS 用 esbuild 壓縮並去掉註解，HTML 去掉註解；加上 noindex（_headers、robots.txt）
-・範例檢視頁只保留完整版的三份範例（說明視窗的範例按鈕），「←」回工具頁
+・範例檢視頁只保留完整版的三份範例（說明視窗的範例按鈕），「←」回工具頁；不存在的路徑回 404
 
 主程式更新後重跑即可；每次都先清空輸出資料夾。需要 Node（npx 會自動下載 esbuild）。
 """
@@ -120,6 +120,13 @@ def main():
         shutil.copy2(ROOT / "examples" / f"{name}.pdf", OUT / "examples" / f"{name}.pdf")
         for index in range(1, kept[name]["pages"] + 1):
             shutil.copy2(ROOT / "examples" / "pages" / f"{name}-{index}.webp", OUT / "examples" / "pages" / f"{name}-{index}.webp")
+
+    # 不存在的路徑回 404（Pages 沒有 404.html 時會一律回首頁，看起來像還有其他頁面）
+    (OUT / "404.html").write_text(
+        '<!doctype html><html lang="zh-Hant-TW"><head><meta charset="UTF-8" />'
+        '<meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="robots" content="noindex" />'
+        f'<title>找不到頁面｜{SITE_NAME}</title><link rel="stylesheet" href="./glass.css" /></head>'
+        '<body><p>找不到這個頁面。<a href="./">回到施工紀錄</a></p></body></html>\n', encoding="utf8")
 
     # 不讓搜尋引擎收錄
     (OUT / "_headers").write_text("/*\n  X-Robots-Tag: noindex, nofollow\n  Referrer-Policy: no-referrer\n", encoding="utf8")

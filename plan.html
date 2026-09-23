@@ -38,13 +38,12 @@
           <div><dt>編製單位</dt><dd><input type="text" data-cover="author" placeholder="例如：工務所" /></dd></div>
           <div><dt>編製日期</dt><dd><input type="date" data-cover="date" /></dd></div>
         </dl>
-        <p class="plan-cover-foot"><span>版次 <input type="text" class="inline-input" data-cover="revision" size="3" /></span><span id="plan-version-label">精簡版</span></p>
+        <p class="plan-cover-foot"><span>版次 <strong id="plan-revision"></strong></span><span id="plan-version-label">精簡版</span></p>
       </section>
 
       <section class="plan-block" id="plan-revisions" aria-labelledby="revisions-heading">
         <h2 id="revisions-heading">修訂紀錄</h2>
-        <div class="table-scroll"><table class="plan-table revisions-table"><thead><tr><th>版次</th><th>日期</th><th>修訂內容</th><th>編製</th><th class="no-print"></th></tr></thead><tbody id="revision-rows"></tbody></table></div>
-        <button class="plan-add no-print" id="add-revision" type="button"><span aria-hidden="true">＋</span> 新增一列</button>
+        <div class="table-scroll"><table class="plan-table revisions-table"><thead><tr><th>版次</th><th>日期</th><th>修訂內容</th></tr></thead><tbody id="revision-rows"></tbody></table></div>
         <h3>參考規範與文件</h3>
         <ol class="plan-sources" id="plan-sources"></ol>
       </section>
@@ -62,6 +61,8 @@
     <script src="./print-pages.js" defer></script>
     <script src="./plans/figures-diaphragm-wall.js" defer></script>
     <script src="./plans/figures-formwork.js" defer></script>
+    <script src="./plans/flowcharts-diaphragm-wall.js" defer></script>
+    <script src="./plans/revisions.js" defer></script>
     <script src="./plans/diaphragm-wall-gc.js" defer></script>
     <script src="./plans/diaphragm-wall.js" defer></script>
     <script src="./plans/formwork.js" defer></script>

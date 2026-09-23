@@ -22,7 +22,7 @@
 
     <header class="app-header">
       <nav class="header-nav" aria-label="主要功能">
-        <a class="glass-pill header-back" href="./" aria-label="返回工具首頁"><svg width="10" height="16" viewBox="0 0 12 20" fill="none" aria-hidden="true"><path d="M10 2L2 10l8 8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>工具</a>
+        <a class="glass-pill header-back" href="./diaphragm-wall-select" aria-label="返回連續壁版本選擇"><svg width="10" height="16" viewBox="0 0 12 20" fill="none" aria-hidden="true"><path d="M10 2L2 10l8 8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>連續壁</a>
         <a class="glass-pill header-plan" href="./plan?work=diaphragm-wall&amp;from=diaphragm-wall"><svg width="14" height="16" viewBox="0 0 20 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2h9l5 5v15H4z"/><path d="M13 2v5h5M7 12h6M7 16h6"/></svg>計畫</a>
       </nav>
     </header>
@@ -92,7 +92,7 @@
           </div>
           <p class="quality-context-note">工程名稱、單元編號、設計資料、開挖／前置／澆置紀錄均沿用其他分頁內容，輸出時會自動帶入。</p>
           <section class="quality-standard-panel" aria-labelledby="quality-standard-heading">
-            <div class="quality-standard-heading"><div><span>STANDARD</span><h3 id="quality-standard-heading">本公司標準值</h3></div><p>預設值可直接使用；如核定施工計畫不同，請由下拉選單調整。</p></div>
+            <div class="quality-standard-heading"><div><span>STANDARD</span><h3 id="quality-standard-heading">檢查標準值</h3></div><p>預設值可直接使用；如核定施工計畫不同，請由下拉選單調整。</p></div>
             <div class="quality-standard-list" id="quality-standard-list"></div>
             <p class="quality-standard-note" id="quality-standard-note"></p>
           </section>
@@ -258,7 +258,10 @@
         <button class="dock-tool" id="help-button" type="button"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></svg><small>說明</small></button>
         <button class="dock-tool" id="clear-button" type="button"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 10v6M14 10v6"/></svg><small>清空</small></button>
       </div>
-      <button class="dock-primary" id="export-button" type="button" aria-label="檔案輸出"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg></button>
+      <div class="export-fab" id="export-fab" data-export-items="pdf-current pdf-all json import">
+        <button class="dock-primary" id="export-button" type="button" aria-label="檔案輸出"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg></button>
+      </div>
+      <input id="json-file-input" type="file" accept="application/json,.json" hidden />
     </aside>
 
     <dialog class="sheet-dialog help-dialog" id="help-dialog">
@@ -267,7 +270,7 @@
         <ol class="help-steps">
           <li><strong>填基本資料</strong><span>填「工程資訊」，選「導溝／鋼筋籠／連續壁」</span></li>
           <li><strong>逐頁填寫</strong><span>連續壁依分頁順序填；開挖與澆置紀錄按「＋新增」</span></li>
-          <li><strong>輸出</strong><span>按右下角 ⬆，選 PDF 或 JSON（JSON 可再匯回本頁）</span></li>
+          <li><strong>輸出</strong><span>按右下角 ⬆ 展開：單頁 PDF、整份 PDF、JSON，或匯入 JSON</span></li>
         </ol>
         <ul class="help-notes">
           <li>右上角「計畫」可查看本工程施工計畫，可切換精簡／完整版並列印成 PDF</li>
@@ -346,25 +349,6 @@
       </form>
     </dialog>
 
-    <dialog class="sheet-dialog export-dialog" id="export-dialog">
-      <div class="dialog-header"><div><span class="dialog-eyebrow">FILE</span><h2>檔案處理</h2></div><button type="button" data-close-dialog aria-label="關閉">×</button></div>
-      <div class="dialog-body export-options">
-        <section class="export-option-group">
-          <h3>PDF</h3>
-          <button type="button" data-export-format="pdf-current"><span>輸出目前表單</span><strong id="export-current-label">工程概要</strong></button>
-          <button type="button" data-export-format="pdf-all"><span>輸出完整紀錄</span><strong>施工紀錄及複核表</strong><small>共 6 頁</small></button>
-        </section>
-        <section class="export-option-group">
-          <h3>資料檔</h3>
-          <button type="button" data-export-format="json"><span>匯出結構化資料</span><strong>JSON</strong><small>建議用於資料庫匯入</small></button>
-          <button type="button" id="import-json-button"><span>匯入施工紀錄</span><strong>JSON</strong><small>回填本頁全部分頁</small></button>
-          <button type="button" data-export-format="markdown"><span>匯出文字紀錄</span><strong>Markdown</strong><small>供人工閱讀及歸檔，不提供回填</small></button>
-          <input id="json-file-input" type="file" accept="application/json,.json" hidden />
-          <p class="export-status" id="import-status" aria-live="polite"></p>
-        </section>
-      </div>
-    </dialog>
-
     <div class="undo-toast" id="undo-toast" role="status" aria-live="polite" hidden><span id="undo-message"></span><button id="undo-button" type="button">復原</button></div>
 
     <section class="print-report" id="print-report" aria-label="施工紀錄列印版">
@@ -377,6 +361,7 @@
     </section>
 
     <script src="./draft.js" defer></script>
+    <script src="./export-menu.js" defer></script>
     <script src="./form-controls.js" defer></script>
     <script src="./print-pages.js" defer></script>
     <script src="./dialog-forms.js" defer></script>

@@ -1,4 +1,6 @@
-// 下拉選單的收尾行為（各工具頁與計畫頁共用，在頁面自己的 script 之前載入）。
+// 表單小元件（各工具頁與計畫頁共用，在頁面自己的 script 之前載入）：下拉選單的收尾行為、讀取中提示。
+//
+// 下拉選單的收尾行為
 //
 // 問題：用滑鼠點開原生選單、選完或關掉之後，焦點仍留在 <select> 上，欄位就一直帶著聚焦樣式，
 // 看起來像還在編輯。Chrome 在選單關閉後會自行解除 :focus-visible；Safari 不會——只要焦點在
@@ -24,3 +26,9 @@
     pointerSelect = null;
   });
 })();
+
+// 讀取中的提示（雙環，樣式見 glass.css 的 .orbit）。text 只傳程式裡的固定字串；small 是放在按鈕裡的小尺寸。
+function loadingHtml(text, { small = false } = {}) {
+  const orbit = `<span class="orbit${small ? " is-small" : ""}" aria-hidden="true"><i></i><i></i></span>`;
+  return small ? `${orbit}${text}` : `<p class="loading-note" role="status">${orbit}${text}</p>`;
+}

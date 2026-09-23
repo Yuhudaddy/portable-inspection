@@ -108,7 +108,7 @@ function rebarCageIntervalIssues(intervals) {
   });
 }
 
-// ---- JSON／Markdown ----
+// ---- JSON ----
 // JSON 匯出：數值欄位轉數字（沒填 null），補強未啟用為 null；內側部位的對稱匯出推導後的值。
 function exportRebarCageParts(cage) {
   const toNumber = value => rebarCageNumber(value);
@@ -142,27 +142,6 @@ function importRebarCageParts(records) {
       }))
     };
   }).filter(Boolean));
-}
-
-// Markdown 匯出的表格列（含表頭）；詳細模式多區間以「／」串在同一格。
-function rebarCageMarkdownRows(cage) {
-  const cell = value => String(value ?? "").trim().replaceAll("|", "\\|") || "—";
-  if (cage.mode === "detailed") {
-    return [
-      "| 項次 | 部位 | 頂部(m) | 底部(m) | 支數 | 號數@間距(cm) | 對稱 | 結果 |",
-      "| --- | --- | --- | --- | --- | --- | --- | --- |",
-      ...cage.parts.map((part, index) => {
-        const rows = rebarCagePrintRows(part, cage.parts);
-        const join = field => rows.map(row => row[field]).filter(Boolean).join("／");
-        return `| ${index + 1} | ${cell(rebarCageDef(part.key).part)} | ${cell(join("top"))} | ${cell(join("bottom"))} | ${cell(join("count"))} | ${cell(join("bars"))} | ${rebarCageSymmetric(part, cage.parts) ? "✔" : "—"} | ${cell(part.result)} |`;
-      })
-    ];
-  }
-  return [
-    "| 項次 | 部位 | 說明 | 結果 |",
-    "| --- | --- | --- | --- |",
-    ...cage.parts.map((part, index) => `| ${index + 1} | ${cell(rebarCageDef(part.key).part)} | ${cell(rebarCageDef(part.key).note || REBAR_CAGE_DEFAULT_NOTE)} | ${cell(part.result)} |`)
-  ];
 }
 
 // ---- 列印 ----

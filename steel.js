@@ -88,8 +88,8 @@ const esc = value => String(value ?? "")
   .replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 const display = value => String(value ?? "").trim() || "—";
 
-// 三段式結果膠囊：以隱藏 radio + 相鄰 span 呈現（沿用既有 .unit-type 手法）。
-// 未勾選任一段＝原本下拉選單的「待確認」狀態；點選其一會如同 <select> 觸發 change，
+// 三段式結果膠囊：以隱藏 radio + 相鄰 span 呈現。
+// 未勾選任一段＝「待確認」；點選其一會如同 <select> 觸發 change，
 // 既有的委派事件（依 data-* 屬性讀取 event.target.value）不需更動。
 const SEGMENT_ICONS = {
   pass: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>`,
@@ -143,7 +143,6 @@ function showTab(tab) {
     button.setAttribute("aria-selected", String(selected));
     button.tabIndex = selected ? 0 : -1;
   });
-  $("#export-current-label").textContent = TABS[tab];
 }
 
 function renderChecks(group) {
@@ -309,7 +308,6 @@ function preparePrint(scope) {
 }
 
 function exportPdf(scope) {
-  $("#export-dialog").close();
   preparePrint(scope);
   window.print();
 }
@@ -385,9 +383,8 @@ function initialize() {
   $("#help-button").addEventListener("click", () => $("#help-dialog").showModal());
   $("#clear-button").addEventListener("click", () => $("#clear-dialog").showModal());
   $("#confirm-clear").addEventListener("click", resetState);
-  $("#export-button").addEventListener("click", () => { $("#export-dialog").showModal(); });
   $$('[data-close-dialog]').forEach(button => button.addEventListener("click", () => button.closest("dialog").close()));
-  $$('[data-export-format]').forEach(button => button.addEventListener("click", () => button.dataset.exportFormat === "json" ? (exportJson(), $("#export-dialog").close()) : exportPdf(button.dataset.exportFormat === "pdf-all" ? "all" : "current")));
+  $$('[data-export-format]').forEach(button => button.addEventListener("click", () => button.dataset.exportFormat === "json" ? exportJson() : exportPdf(button.dataset.exportFormat === "pdf-all" ? "all" : "current")));
   $$('[data-optional]').forEach(button => button.addEventListener("click", () => { state.optional.enabled = state.optional.enabled === button.dataset.optional ? "" : button.dataset.optional; renderAll(); }));
 
   $("#add-delivery").addEventListener("click", () => openDeliveryDialog());

@@ -56,7 +56,7 @@ const createQualityCheck = ([item, standard, placeholder]) => ({ item, standard,
 
 const QUALITY_CHECKS = [
   ["連續壁單元位置、刀法順序確認", "單元位置、順序與核定圖說相符", "例如：位置及順序符合"],
-  ["底部沉渣及泥屑清除確認", "依本公司標準值（預設 15 cm 以內）", "例如：12"],
+  ["底部沉渣及泥屑清除確認", "依檢查標準值（預設 15 cm 以內）", "例如：12"],
   ["端板接頭清洗（公及公母單元時）", "以大小鋼刷確實清洗", "填寫清洗狀況"],
   ["穩定液新鮮液之貯存量是否充裕", "依照施工計畫", "填寫液量或確認說明"],
   ["槽溝穩定液面高度控制", "液面在導溝頂下 80 cm 以內；高於地下水位 1.0 m 以上（現場確認）", "例如：60"],
@@ -69,13 +69,13 @@ const QUALITY_CHECKS = [
   ["特密管插入位置、深度、組合記錄", "位置符合圖面；長度配合挖掘深度", "填寫左／中／右位置與管長"],
   ["放置橡皮碗", "澆置前放置於漏斗內", "填寫是／否"],
   ["穩定液回收池容積是否足夠", "同時間無挖掘，容積大於回收量", "填寫是／否或容積"],
-  ["混凝土坍度之確認", "依本公司標準值確認坍度及允許誤差", "例如：19"],
+  ["混凝土坍度之確認", "依檢查標準值確認坍度及允許誤差", "例如：19"],
   ["混凝土是否合乎設計強度", "實測強度不小於設計強度（設計值取壁體資訊）", "例如：280"],
-  ["特密管埋入混凝土內之確認", "依單元類型套用本公司標準值", "例如：2.0"],
-  ["超音波記錄結果說明", "垂直精度依本公司標準值（填斜率分母 n，可寫 1/420）", "例如：420"]
+  ["特密管埋入混凝土內之確認", "依單元類型套用檢查標準值", "例如：2.0"],
+  ["超音波記錄結果說明", "垂直精度依檢查標準值（填斜率分母 n，可寫 1/420）", "例如：420"]
 ];
 
-// 這些是營造廠在現場要快速確認的「本公司標準值」。
+// 這些是營造廠在現場要快速確認的「檢查標準值」。
 // 介面不顯示外部規範名稱；預設值可直接作為公司內部起始值，
 // 並保留下拉選單，讓公司日後能依核定施工計畫調整。
 const QUALITY_STANDARD_CONFIG = [
@@ -187,7 +187,7 @@ function qualityCheckPlaceholder(index, fallback) {
   return fallback;
 }
 
-// 品質自檢的數值項目：輸入容錯見 auto-judge.js，依本公司標準值自動判定。
+// 品質自檢的數值項目：輸入容錯見 auto-judge.js，依檢查標準值自動判定。
 // evaluate 回傳不合格原因；null 表示合格或還缺條件（例如還沒選單元類型、還沒填設計強度）。
 const TREMIE_CLEARANCE_MIN = 30;
 const LIQUID_LEVEL_MAX_BELOW_TOP = 80;
@@ -247,7 +247,7 @@ function qualityMeasureStatus(check) {
   return { status: message ? "fail" : "pass", message: message || "" };
 }
 
-// 列印與 Markdown 的「現場紀錄／實測」：數值項目補上單位（垂直精度印成 1/n）
+// 列印的「現場紀錄／實測」：數值項目補上單位（垂直精度印成 1/n）
 function qualityActualText(check) {
   const measure = qualityMeasure(check);
   const text = display(check.actual);
@@ -377,7 +377,7 @@ function normalizeLoadedState(loaded) {
   state.rebarCage.mode = state.rebarCage.mode === "detailed" ? "detailed" : "simple";
   state.rebarCage.parts = normalizeRebarCageParts(state.rebarCage.parts);
   delete state.rebarCage.rebars;
-  // 本公司標準值預設改版（坍度、沉泥、特密管端距、籠縱向偏差、保護層、數量差異）：舊草稿仍是舊預設的項目換成新預設
+  // 檢查標準值預設改版（坍度、沉泥、特密管端距、籠縱向偏差、保護層、數量差異）：舊草稿仍是舊預設的項目換成新預設
   state.quality.standards = mergeStandardDefaults(state.quality.standards, QUALITY_STANDARD_CONFIG);
   // 檢查項目文字以程式定義為準：判定標準改版後，舊草稿只留使用者填的值
   state.quality.checks = refreshCheckItems(state.quality.checks, QUALITY_CHECKS.map(createQualityCheck));
@@ -439,7 +439,6 @@ function designHeight() {
   const depth = number(state.wall.designDepth);
   const elevation = number(state.wall.topElevation);
   if (depth === null || elevation === null) return null;
-  // Accept both a positive downward depth (e.g. 35.8) and a signed GL level (e.g. -39.5).
   return Math.max(0, depth < 0 ? elevation - depth : depth + elevation);
 }
 
@@ -740,7 +739,7 @@ function renderPouring() {
     </article>`).join("") : emptyState("尚無澆置車次，請按＋新增車次。");
 
   const volumeWarning = volumeDifferenceExceeded()
-    ? [`<div class="warning-item"><strong>數量差異 ${volumeDifferenceRate().toFixed(2)}%：</strong>累積方量 ${fixed(pouredVolume())} m³ 與設計數量 ${fixed(number(state.wall.designVolume) ?? calculatedDesignVolume())} m³ 的差異超過本公司標準值 ${esc(state.quality.standards.volumeDifference)}%，請確認方量或超挖、坍孔可能性。</div>`]
+    ? [`<div class="warning-item"><strong>數量差異 ${volumeDifferenceRate().toFixed(2)}%：</strong>累積方量 ${fixed(pouredVolume())} m³ 與設計數量 ${fixed(number(state.wall.designVolume) ?? calculatedDesignVolume())} m³ 的差異超過檢查標準值 ${esc(state.quality.standards.volumeDifference)}%，請確認方量或超挖、坍孔可能性。</div>`]
     : [];
   const warnings = volumeWarning.concat(rows.flatMap(row => [
     ...(row.difference !== null && row.difference < -0.3 ? [`<div class="warning-item"><strong>第 ${row.index + 1} 車差異 ${fixed(row.difference)} m：</strong>請確認量測基準、實際方量、超挖或坍孔可能性。</div>`] : []),
@@ -749,8 +748,8 @@ function renderPouring() {
   $("#pour-warnings").innerHTML = warnings.join("");
 }
 
-// 三段式結果膠囊：以隱藏 radio + 相鄰 span 呈現（沿用既有 .unit-type 手法）。
-// 未勾選任一段＝原本下拉選單的「待確認」狀態；點選其一會如同 <select> 觸發 change，
+// 三段式結果膠囊：以隱藏 radio + 相鄰 span 呈現。
+// 未勾選任一段＝「待確認」；點選其一會如同 <select> 觸發 change，
 // 既有的委派事件（依 data-* 屬性讀取 event.target.value）不需更動。
 const SEGMENT_ICONS = {
   "符合": `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>`,
@@ -1002,10 +1001,12 @@ function openTruckDialog(index = null) {
 }
 
 
-function showUndo(message, action) {
+// 沒有 action 時只顯示訊息（例如匯入結果），不出現「復原」鈕
+function showUndo(message, action = null) {
   clearTimeout(undoTimer);
   undoAction = action;
   $("#undo-message").textContent = message;
+  $("#undo-button").hidden = !action;
   $("#undo-toast").hidden = false;
   undoTimer = setTimeout(() => {
     $("#undo-toast").hidden = true;
@@ -1086,9 +1087,6 @@ function pouringChartSvg(rows) {
   const yStep = niceStep(maxHeight);
   const xMax = niceMax(maxVolume, xStep);
   const yMax = niceMax(maxHeight, yStep);
-  // Keep the horizontal scale unchanged while giving the Y axis more visual
-  // room.  This makes the height curve easier to read without stretching the
-  // surrounding page/container to the bottom of the sheet.
   const width = 760, height = 470;
   const margin = { top: 22, right: 22, bottom: 52, left: 58 };
   const plotWidth = width - margin.left - margin.right;
@@ -1217,7 +1215,6 @@ function preparePrint(scope) {
 
 // window.print() 必須留在點擊事件的同步流程裡：中間只要 await 過，Safari 就會當成「自動列印」擋下來。
 function exportPdf(scope) {
-  $("#export-dialog").close();
   preparePrint(scope);
   window.print();
 }
@@ -1390,119 +1387,6 @@ function downloadText(content, mimeType, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-function markdownCell(value) {
-  return String(value ?? "—").replaceAll("|", "\\|").replaceAll("\n", " ").trim() || "—";
-}
-
-function exportMarkdown() {
-  const data = exportData();
-  const excavation = calculatedExcavation();
-  const trucks = calculatedTrucks();
-  const phaseTable = PHASES.map(phase => ({ phase, record: state.prework[phase.id], times: phaseTimes(phase) }));
-  const wall = data.wall_unit;
-  const lines = [
-    `# 連續壁施工紀錄`,
-    ``,
-    `- 匯出時間：${data.exported_at}`,
-    `- APP 版本：${data.app_version}`,
-    `- 資料版本：${data.schema_version}`,
-    ``,
-    `## 工程資訊`,
-    ``,
-    `| 欄位 | 內容 |`,
-    `| --- | --- |`,
-    `| 工程名稱 | ${markdownCell(data.project.name)} |`,
-    `| 施工廠商 | ${markdownCell(data.project.contractor)} |`,
-    `| 施工期間 | ${markdownCell(dateRangeText(data.project.construction_period.start, data.project.construction_period.end))} |`,
-    `| 填表人 | ${markdownCell(data.project.form_filler)} |`,
-    ``,
-    `## 壁體資訊`,
-    ``,
-    `| 欄位 | 內容 |`,
-    `| --- | --- |`,
-    `| 單元類型 | ${markdownCell(wall.unit_type)} |`,
-    `| 單元編號 | ${markdownCell(wall.unit_no)} |`,
-    `| 順序編號 | ${markdownCell(wall.sequence_no)} |`,
-    `| 設計深度（m） | ${markdownCell(wall.design_depth_m)} |`,
-    `| 頂端高程（m） | ${markdownCell(wall.top_elevation_m)} |`,
-    `| 壁厚（m） | ${markdownCell(wall.thickness_m)} |`,
-    `| 單元長度（m） | ${markdownCell(wall.length_m)} |`,
-    `| 混凝土強度（${wall.concrete_strength_unit || "kgf/cm²"}） | ${markdownCell(wall.concrete_strength ?? wall.concrete_strength_kgf_cm2)} |`,
-    `| 設計澆置高度（m） | ${markdownCell(wall.design_pour_height_m)} |`,
-    `| 設計數量（m³） | ${markdownCell(wall.design_volume_m3)} |`,
-    `| 實際數量（m³） | ${markdownCell(wall.actual_volume_m3)} |`,
-    ``,
-    `## 開挖紀錄`,
-    ``,
-    `- 開挖日期：${markdownCell(dateRangeText(data.excavation.start_date, data.excavation.end_date))}`,
-    `- 跨午夜的時間以 24 時以後接續表示（例：24:20＝翌日 00:20）`,
-    ``,
-    `### 出土紀錄`,
-    ``,
-    `| 次數 | 時間 |`,
-    `| --- | --- |`,
-    ...(excavation.soil.length ? excavation.soil.map(record => `| ${record.index + 1} | ${markdownCell(record.time30)} |`) : [`| — | 尚無紀錄 |`]),
-    ``,
-    `### 深度確認`,
-    ``,
-    `| 次數 | 確認時間 | 深度（m） | 與設計差異（m） |`,
-    `| --- | --- | ---: | ---: |`,
-    ...(excavation.depth.length ? excavation.depth.map(record => `| ${record.index + 1} | ${markdownCell(record.time30)} | ${markdownCell(record.value)} | ${markdownCell(record.difference)} |`) : [`| — | 尚無紀錄 | — | — |`]),
-    ``,
-    `## 前置紀錄`,
-    ``,
-    `| 作業項目 | 作業日期 | 開始時間 | 完成時間 |`,
-    `| --- | --- | --- | --- |`,
-    ...phaseTable.map(({ phase, record, times }) => `| ${markdownCell(phase.label)} | ${markdownCell(record.date)} | ${markdownCell(times.start)} | ${markdownCell(times.end)} |`),
-    ``,
-    `## 澆置紀錄`,
-    ``,
-    `- 澆置日期：${markdownCell(data.pouring.date)}`,
-    ``,
-    `| 車次 | 車號 | 出廠 | 卸料 | 結束 | 坍度（cm） | 方量（m³） | 累積（m³） | 預估高（m） | 實際高（m） | 澆置時間（分） |`,
-    `| ---: | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |`,
-    ...(trucks.length ? trucks.map(row => `| ${row.index + 1} | ${markdownCell(row.truckNo)} | ${markdownCell(row.dispatch30)} | ${markdownCell(row.unload30)} | ${markdownCell(row.finish30)} | ${markdownCell(row.slumpLabel)} | ${markdownCell(fixed(row.volume))} | ${markdownCell(fixed(row.cumulative))} | ${markdownCell(fixed(row.expected))} | ${markdownCell(fixed(row.measured))} | ${markdownCell(row.minutes)} |`) : [`| — | 尚無紀錄 | — | — | — | — | — | — | — | — | — |`]),
-    ``,
-    `## 品質自檢`,
-    ``,
-    `### 檢查項目`,
-    ``,
-    `| 項目 | 判定標準 | 數值 | 單位 |`,
-    `| --- | --- | ---: | --- |`,
-    ...QUALITY_STANDARD_CONFIG
-      .filter(config => Object.prototype.hasOwnProperty.call(data.quality_self_check.standards, config.key))
-      .map(config => `| ${markdownCell(config.label)} | ${markdownCell(data.quality_self_check.standards[config.key]?.display)} | ${markdownCell(data.quality_self_check.standards[config.key]?.value)} | ${markdownCell(config.unit)} |`),
-    ``,
-    `### 檢查項目`,
-    ``,
-    `| 項次 | 檢查項目 | 檢查標準 | 現場紀錄／實測 | 結果 |`,
-    `| ---: | --- | --- | --- | --- |`,
-    ...data.quality_self_check.items.map(item => `| ${item.item_no} | ${markdownCell(item.item)} | ${markdownCell(item.standard)} | ${markdownCell(qualityActualText({ item: item.item, actual: item.actual ?? "" }))} | ${markdownCell(item.result)} |`),
-    ``,
-    `**缺失及改善結果：** ${markdownCell(data.quality_self_check.note)}`,
-    ``,
-    `## Guide Wall／導溝複核`,
-    ``,
-    `- 軸線／方向編號：${markdownCell(data.guide_wall_review.axis_no)}`,
-    ...data.guide_wall_review.items.map(item => `- ${item.item_no}. ${item.item}：${item.result}；現場紀錄：${markdownCell(guideCheckActual({ item: item.item, design: item.design_value ?? "", actual: item.actual ?? "", designBarNo: item.design_bar_size ?? "", designBarSpacing: item.design_bar_spacing_cm ?? "", barNo: item.bar_size ?? "", barSpacing: item.bar_spacing_cm ?? "" }))}`),
-    ``,
-    `## Rebar Cage／鋼筋籠複核`,
-    ``,
-    `### 配筋明細`,
-    ``,
-    ...rebarCageMarkdownRows(state.rebarCage),
-    ``,
-    `### 組裝與吊放條件`,
-    ``,
-    ...data.rebar_cage_review.inspection_items.map(item => `- ${item.item_no}. ${item.item}：${item.result}；現場紀錄：${markdownCell(item.actual)}`),
-    ``,
-    `照片：${data.rebar_cage_review.photos.length} 張${data.rebar_cage_review.photos.map(photo => `；${photo.no}. ${markdownCell(photo.caption)}`).join("")}（影像僅在 JSON 與 PDF）`,
-    ``,
-    `> 本 Markdown 由施工紀錄工具依同一份結構化資料產生；資料庫匯入請優先使用同次輸出的 JSON。`
-  ];
-  downloadText(lines.join("\n"), "text/markdown;charset=utf-8", exportFileName("md"));
-}
-
 function exportJson() {
   downloadText(`${JSON.stringify(exportData(), null, 2)}\n`, "application/json;charset=utf-8", exportFileName("json"));
 }
@@ -1673,29 +1557,20 @@ function importJsonPayload(payload) {
 }
 
 async function importJsonFile(file) {
-  const status = $("#import-status");
   try {
     const payload = JSON.parse(await file.text());
     importJsonPayload(payload);
     draft.schedule(); // file input 的 change 事件在讀檔完成前就冒泡過了，這裡補存匯入後的狀態
-    status.textContent = "匯入完成：已回填連續壁、導溝與鋼筋籠全部分頁。";
+    showUndo("匯入完成：已回填連續壁、導溝與鋼筋籠全部分頁。");
   } catch (error) {
-    status.textContent = `匯入失敗：${error.message || "JSON 格式無法讀取"}`;
+    showUndo(`匯入失敗：${error.message || "JSON 格式無法讀取"}`);
   }
 }
 
 function handleExport(format) {
   if (format === "pdf-current") return exportPdf("current");
   if (format === "pdf-all") return exportPdf("all");
-  if (format === "json") {
-    exportJson();
-    $("#export-dialog").close();
-    return;
-  }
-  if (format === "markdown") {
-    exportMarkdown();
-    $("#export-dialog").close();
-  }
+  if (format === "json") exportJson();
 }
 
 function initialize() {
@@ -1810,12 +1685,7 @@ function initialize() {
   // 「還原預設」連同本工具的施工計畫草稿（封面、修訂紀錄、版本）一起清掉；匯入 JSON 也會呼叫 clearAllData，那時不動計畫
   $("#confirm-clear").addEventListener("click", () => {
     clearAllData();
-    try { localStorage.removeItem("project-portal.plan.diaphragm-wall.draft"); } catch (error) { /* 靜默 */ }
-  });
-  $("#export-button").addEventListener("click", () => {
-    $("#export-current-label").textContent = currentExportLabel();
-    $("#import-status").textContent = "";
-    $("#export-dialog").showModal();
+    try { localStorage.removeItem(planDraftKey("diaphragm-wall")); } catch (error) { /* 靜默 */ }
   });
   $$('[data-close-dialog]').forEach(button => button.addEventListener("click", () => button.closest("dialog").close()));
   $$('[data-export-format]').forEach(button => button.addEventListener("click", () => handleExport(button.dataset.exportFormat)));

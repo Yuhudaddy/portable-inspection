@@ -29,7 +29,7 @@ const PRINT_GROUP_LABELS = {
   "inspection-b": "查驗表 2／停檢點 3·4＋查驗結論"
 };
 
-// 營造廠在現場要快速確認的「本公司標準值」。
+// 營造廠在現場要快速確認的「檢查標準值」。
 // 介面不顯示外部規範名稱；預設值可直接作為公司內部起始值，
 // 並保留下拉選單，讓公司日後能依核定施工計畫調整。
 const STANDARD_CONFIG = [
@@ -569,7 +569,7 @@ function normalizeLoadedState(loaded) {
   state.rebarCage.parts = normalizeRebarCageParts(state.rebarCage.parts);
   delete state.rebarCage.rebars;
   state.holds = normalizeHoldRecords(loaded.holds || state.holds);
-  // 本公司標準值預設改版（沉泥、護耳、保護層、坍度、初灌、超方率）：舊草稿仍是舊預設的項目換成新預設
+  // 檢查標準值預設改版（沉泥、護耳、保護層、坍度、初灌、超方率）：舊草稿仍是舊預設的項目換成新預設
   state.standards = mergeStandardDefaults(state.standards, STANDARD_CONFIG);
   // 複核項目文字以程式定義為準：判定標準改版後，舊草稿只留使用者填的值
   state.guideWall.checks = refreshCheckItems(state.guideWall.checks, GUIDE_WALL_CHECKS.map(createGuideWallCheck));
@@ -609,7 +609,6 @@ function designHeight() {
   const depth = number(state.unit.designDepth);
   const elevation = number(state.unit.topElevation);
   if (depth === null || elevation === null) return null;
-  // Accept both a positive downward depth (e.g. 35.8) and a signed GL level (e.g. -39.5).
   return Math.max(0, depth < 0 ? elevation - depth : depth + elevation);
 }
 
@@ -714,8 +713,8 @@ function emptyState(text) {
   return `<p class="empty-state">${esc(text)}</p>`;
 }
 
-// 三段式結果膠囊：以隱藏 radio + 相鄰 span 呈現（沿用既有 .unit-type 手法）。
-// 未勾選任一段＝原本下拉選單的「待確認」狀態；點選其一會如同 <select> 觸發 change，
+// 三段式結果膠囊：以隱藏 radio + 相鄰 span 呈現。
+// 未勾選任一段＝「待確認」；點選其一會如同 <select> 觸發 change，
 // 既有的委派事件（依 data-* 屬性讀取 event.target.value）不需更動。
 const SEGMENT_ICONS = {
   "符合": `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>`,
@@ -923,10 +922,12 @@ function clearAllData() {
 }
 
 
-function showUndo(message, action) {
+// 沒有 action 時只顯示訊息（例如匯入結果），不出現「復原」鈕
+function showUndo(message, action = null) {
   clearTimeout(undoTimer);
   undoAction = action;
   $("#undo-message").textContent = message;
+  $("#undo-button").hidden = !action;
   $("#undo-toast").hidden = false;
   undoTimer = setTimeout(() => {
     $("#undo-toast").hidden = true;
@@ -1072,7 +1073,6 @@ function preparePrint(scope) {
 
 // window.print() 必須留在點擊事件的同步流程裡：中間只要 await 過，Safari 就會當成「自動列印」擋下來。
 function exportPdf(scope) {
-  $("#export-dialog").close();
   preparePrint(scope);
   window.print();
 }
@@ -1212,85 +1212,6 @@ function downloadText(content, mimeType, filename) {
   link.click();
   link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
-function markdownCell(value) {
-  return String(value ?? "—").replaceAll("|", "\\|").replaceAll("\n", " ").trim() || "—";
-}
-
-function exportMarkdown() {
-  const data = exportData();
-  const wall = data.wall_unit;
-  const lines = [
-    `# 連續壁營造廠施工品質查驗表`,
-    ``,
-    `- 匯出時間：${data.exported_at}`,
-    `- APP 版本：${data.app_version}`,
-    `- 資料版本：${data.schema_version}`,
-    ``,
-    `## 工程資訊`,
-    ``,
-    `| 欄位 | 內容 |`,
-    `| --- | --- |`,
-    `| 工程名稱 | ${markdownCell(data.project.name)} |`,
-    `| 施工廠商 | ${markdownCell(data.project.contractor)} |`,
-    `| 查驗期間 | ${markdownCell(dateRangeText(data.project.inspection_period.start, data.project.inspection_period.end))} |`,
-    `| 填表人 | ${markdownCell(data.project.site_engineer)} |`,
-    ``,
-    `## 設計基準`,
-    ``,
-    `| 欄位 | 內容 |`,
-    `| --- | --- |`,
-    `| 單元類型 | ${markdownCell(wall.unit_type)} |`,
-    `| 單元編號 | ${markdownCell(wall.unit_no)} |`,
-    `| 順序編號 | ${markdownCell(wall.sequence_no)} |`,
-    `| 穩定液種類 | ${markdownCell(wall.slurry_type)} |`,
-    `| 導溝頂基準高程（m） | ${markdownCell(wall.guide_wall_top_elevation_m)} |`,
-    `| 設計深度（m） | ${markdownCell(wall.design_depth_m)} |`,
-    `| 壁頂設計高程（m） | ${markdownCell(wall.top_elevation_m)} |`,
-    `| 設計壁厚（m） | ${markdownCell(wall.thickness_m)} |`,
-    `| 單元長度（m） | ${markdownCell(wall.length_m)} |`,
-    `| 設計強度（${wall.concrete_strength_unit || "kgf/cm²"}） | ${markdownCell(wall.concrete_strength ?? wall.concrete_strength_kgf_cm2)} |`,
-    `| 設計澆置高度（m） | ${markdownCell(wall.design_pour_height_m)} |`,
-    `| 設計數量（m³） | ${markdownCell(wall.design_volume_m3)} |`,
-    ``,
-    ...data.hold_points.flatMap(hold => [
-      `## 【${hold.hold_point}】${hold.title}（${hold.release}）${hold.inspection_date ? `｜查驗日期 ${hold.inspection_date}` : ""}`,
-      ``,
-      `| 項次 | 查驗項目 | 判定標準 | 現場紀錄／實測 | 警示 | 結果 |`,
-      `| ---: | --- | --- | --- | --- | --- |`,
-      ...hold.items.map(item => `| ${item.item_no} | ${markdownCell(item.item)} | ${markdownCell(item.standard)} | ${markdownCell(item.actual)} | ${markdownCell(item.warning)} | ${markdownCell(item.result)} |`),
-      ``
-    ]),
-    `## 查驗結論`,
-    ``,
-    `- 查驗結果：${markdownCell(data.conclusion.verdict)}`,
-    `- 改善或備註說明：${markdownCell(data.conclusion.note)}`,
-    ``,
-    `### 應檢附之專業分包商紀錄附件`,
-    ``,
-    ...ATTACHMENTS.map(text => `- ${text}`),
-    ``,
-    `## 導溝施工複核`,
-    ``,
-    `- 軸線／方向編號：${markdownCell(data.guide_wall_review.axis_no)}`,
-    ...data.guide_wall_review.items.map(item => `- ${item.item_no}. ${item.item}：${item.result}；現場紀錄：${markdownCell(guideCheckActual({ item: item.item, design: item.design_value ?? "", actual: item.actual ?? "", designBarNo: item.design_bar_size ?? "", designBarSpacing: item.design_bar_spacing_cm ?? "", barNo: item.bar_size ?? "", barSpacing: item.bar_spacing_cm ?? "" }))}`),
-    ``,
-    `## 鋼筋籠吊放前複核`,
-    ``,
-    `### 配筋抽查明細`,
-    ``,
-    ...rebarCageMarkdownRows(state.rebarCage),
-    ``,
-    `### 組裝與吊放條件`,
-    ``,
-    ...data.rebar_cage_review.inspection_items.map(item => `- ${item.item_no}. ${item.item}：${item.result}；現場紀錄：${markdownCell(item.actual)}`),
-    ``,
-    `照片：${data.rebar_cage_review.photos.length} 張${data.rebar_cage_review.photos.map(photo => `；${photo.no}. ${markdownCell(photo.caption)}`).join("")}（影像僅在 JSON 與 PDF）`,
-    ``,
-    `> 本 Markdown 由營造廠查驗工具依同一份結構化資料產生；資料庫匯入請優先使用同次輸出的 JSON。`
-  ];
-  downloadText(lines.join("\n"), "text/markdown;charset=utf-8", exportFileName("md"));
 }
 
 function exportJson() {
@@ -1487,28 +1408,19 @@ function importJsonPayload(payload) {
 }
 
 async function importJsonFile(file) {
-  const status = $("#import-status");
   try {
     const payload = JSON.parse(await file.text());
-    status.textContent = importJsonPayload(payload);
+    showUndo(importJsonPayload(payload));
     draft.schedule(); // file input 的 change 事件在讀檔完成前就冒泡過了，這裡補存匯入後的狀態
   } catch (error) {
-    status.textContent = `匯入失敗：${error.message || "JSON 格式無法讀取"}`;
+    showUndo(`匯入失敗：${error.message || "JSON 格式無法讀取"}`);
   }
 }
 
 function handleExport(format) {
   if (format === "pdf-current") return exportPdf("current");
   if (format === "pdf-all") return exportPdf("all");
-  if (format === "json") {
-    exportJson();
-    $("#export-dialog").close();
-    return;
-  }
-  if (format === "markdown") {
-    exportMarkdown();
-    $("#export-dialog").close();
-  }
+  if (format === "json") exportJson();
 }
 
 function initialize() {
@@ -1639,12 +1551,7 @@ function initialize() {
   // 「還原預設」連同本工具的施工計畫草稿（封面、修訂紀錄、版本）一起清掉；匯入 JSON 也會呼叫 clearAllData，那時不動計畫
   $("#confirm-clear").addEventListener("click", () => {
     clearAllData();
-    try { localStorage.removeItem("project-portal.plan.diaphragm-wall-gc.draft"); } catch (error) { /* 靜默 */ }
-  });
-  $("#export-button").addEventListener("click", () => {
-    $("#export-current-label").textContent = currentExportLabel();
-    $("#import-status").textContent = "";
-    $("#export-dialog").showModal();
+    try { localStorage.removeItem(planDraftKey("diaphragm-wall-gc")); } catch (error) { /* 靜默 */ }
   });
   $$('[data-close-dialog]').forEach(button => button.addEventListener("click", () => button.closest("dialog").close()));
   $$('[data-export-format]').forEach(button => button.addEventListener("click", () => handleExport(button.dataset.exportFormat)));

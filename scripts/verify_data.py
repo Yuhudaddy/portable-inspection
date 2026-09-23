@@ -201,7 +201,7 @@ def verify_roundtrip(browser, html, tool, unit_path):
     page.context.close()
 
 
-# ---------------------------------------------------------------- 本公司標準值預設改版後的舊草稿
+# ---------------------------------------------------------------- 檢查標準值預設改版後的舊草稿
 def verify_standard_default_migration(browser, html, tool, standards_path, json_path, seed, expected):
     """2026-09-21 預設值改版（沉泥 15、保護層 10、籠雙向 ±5…）：舊草稿裡仍是舊預設的項目換成新預設，
     使用者自己選的值保留，草稿缺的鍵補上預設；匯入 JSON 不套用（紀錄檔照原值）。"""
@@ -249,7 +249,7 @@ def verify_vendor_links(browser):
     check("廠商版：範例 8 車累積 102.26 m³ 自動帶入實際數量（唯讀），差異 3.46% 顯示在澆置看板與標準值下方", linked["actual"] == "102.26" and linked["readonly"] and linked["rate"] == "3.46" and linked["board"].startswith("3.46") and "3.46%" in (linked["hint"] or "") and "澆置紀錄累積" in linked["hint"] and "數量差異" not in linked["warning"], linked)
     check("廠商版：標準值改名為「混凝土實際與設計數量差異上限」", linked["label"] == "混凝土實際與設計數量差異上限（%）", linked["label"])
     exceeded = page.evaluate("""() => { state.trucks[0].volume = "20"; renderAll(); return { rate: volumeDifferenceRate().toFixed(2), warning: document.querySelector('#pour-warnings').textContent, cell: document.querySelector('#pour-volume-difference-cell').classList.contains('is-warning'), hint: document.querySelector('.quality-standard-current').className }; }""")
-    check("廠商版：累積方量超過設計 5% 時澆置看板轉警示、警示清單與標準值提示標示超過標準", exceeded["rate"] == "10.54" and "超過本公司標準值 5%" in exceeded["warning"] and exceeded["cell"] and "is-exceeded" in exceeded["hint"], exceeded)
+    check("廠商版：累積方量超過設計 5% 時澆置看板轉警示、警示清單與標準值提示標示超過標準", exceeded["rate"] == "10.54" and "超過檢查標準值 5%" in exceeded["warning"] and exceeded["cell"] and "is-exceeded" in exceeded["hint"], exceeded)
     manual = page.evaluate("""() => { state.trucks = []; state.wall.actualVolume = "95.00"; renderAll(); return { rate: volumeDifferenceRate().toFixed(2), readonly: document.querySelector('[data-bind="wall.actualVolume"]').readOnly, hint: document.querySelector('.quality-standard-current').textContent }; }""")
     check("廠商版：沒有車次時用壁體資訊手填的實際數量算差異，欄位恢復可編輯", manual["rate"] == "3.89" and not manual["readonly"] and "壁體資訊實際數量" in manual["hint"], manual)
     page.evaluate("() => { clearAllData(); loadExample(); renderAll(); showTab('pouring'); }")
@@ -385,7 +385,7 @@ def verify_formwork_units(browser):
 # ---------------------------------------------------------------- 檢查項目文字改版後的舊草稿、動態判定標準
 def verify_check_text_refresh(browser):
     """判定標準與 placeholder 以程式定義為準：舊草稿只留 actual／result；名稱改掉的項目填值不帶入。
-    品質自檢畫面上的判定標準跟著本公司標準值與單元類型（埋入深度未選單元類型時列出三種）。"""
+    品質自檢畫面上的判定標準跟著檢查標準值與單元類型（埋入深度未選單元類型時列出三種）。"""
     page = open_clean(browser, "diaphragm-wall")
     page.evaluate("() => { loadExample(); draft.schedule(); }")
     page.wait_for_timeout(700)
@@ -412,7 +412,7 @@ def verify_check_text_refresh(browser):
       const none = text(16);
       state.wall.unitType = "母單元"; state.quality.standards.embedmentFemale = "2.0"; renderQuality();
       return { none, chosen: text(16), sediment: text(1), tremie: text(9), slump: text(14) }; }""")
-    check("廠商版：品質自檢畫面的判定標準跟著本公司標準值（沉泥 15、初灌 30～50、坍度 20±2）", dynamic["sediment"] == "沉泥厚度 ≤ 15 cm" and dynamic["tremie"] == "初灌管底離槽溝底 30～50 cm" and dynamic["slump"].startswith("坍度 20 cm；允許誤差 2 cm"), dynamic)
+    check("廠商版：品質自檢畫面的判定標準跟著檢查標準值（沉泥 15、初灌 30～50、坍度 20±2）", dynamic["sediment"] == "沉泥厚度 ≤ 15 cm" and dynamic["tremie"] == "初灌管底離槽溝底 30～50 cm" and dynamic["slump"].startswith("坍度 20 cm；允許誤差 2 cm"), dynamic)
     check("廠商版：埋入深度未選單元類型時列出公／母／公母三種標準值，選了就只顯示該類型", dynamic["none"].startswith("依壁體資訊的單元類型套用：公單元 ≥ 1.5 m／母單元 ≥ 1.5 m／公母單元 ≥ 1.5 m") and dynamic["chosen"] == "母單元：埋入深度 ≥ 2.0 m", dynamic)
     spin = page.evaluate("""() => { const rules = [...document.styleSheets].flatMap(sheet => { try { return [...sheet.cssRules]; } catch (e) { return []; } });
       const spinRule = rules.find(rule => rule.selectorText?.includes('::-webkit-inner-spin-button'));
@@ -557,14 +557,14 @@ def verify_auto_judge(browser):
     check("06 品質自檢：液面、初灌、坍度、強度、埋入、垂直精度不合格都自動 ✗；文字項目不判定", quality["results"] == ["不符合"] * 6 and quality["text"] == "待確認", quality)
     check("06 品質自檢：數值欄輸入文字 → ✓ 停用、退回待確認；液面列印「導溝頂下 90 cm」", quality["invalid"] == ["待確認", True] and quality["print"] == "導溝頂下 90 cm", quality)
 
-    # 計畫封面跟著 JSON 走
+    # 計畫封面跟著 JSON 走（修訂紀錄由 plans/revisions.js 維護，不進 JSON）
     page.evaluate("""() => localStorage.setItem('project-portal.plan.diaphragm-wall.draft', JSON.stringify({ schema: 'project-portal.draft.v1',
-      data: { version: 'full', cover: { project: 'P', contractor: 'C', author: '工務所', date: '2026-09-01', revision: 'B' }, revisions: [{ version: 'A', date: '2026-08-01', note: '初版', author: '甲' }, { version: 'B', date: '2026-09-01', note: '改標準值', author: '乙' }] } }))""")
+      data: { version: 'full', cover: { project: 'P', contractor: 'C', author: '工務所', date: '2026-09-01' } } }))""")
     plan = page.evaluate("""() => { const payload = exportData(); localStorage.removeItem('project-portal.plan.diaphragm-wall.draft');
       clearAllData(); importJsonPayload(JSON.parse(JSON.stringify(payload)));
       const restored = JSON.parse(localStorage.getItem('project-portal.plan.diaphragm-wall.draft')).data;
-      return { exported: payload.construction_plan, restored: [restored.version, restored.cover.author, restored.cover.revision, restored.revisions.length, restored.revisions[1].note], payload }; }""")
-    check("計畫封面與修訂紀錄寫進 JSON，匯入後還原到計畫草稿", plan["exported"]["work"] == "diaphragm-wall" and plan["restored"] == ["full", "工務所", "B", 2, "改標準值"], plan["restored"])
+      return { exported: payload.construction_plan, restored: [restored.version, restored.cover.author, restored.cover.date, 'revisions' in restored], payload }; }""")
+    check("計畫封面（編製單位、日期、版本）寫進 JSON，匯入後還原；修訂紀錄不進 JSON", plan["exported"]["work"] == "diaphragm-wall" and "revisions" not in plan["exported"] and plan["restored"] == ["full", "工務所", "2026-09-01", False], plan["restored"])
     page.context.close()
 
     page = open_clean(browser, "diaphragm-wall-gc")
@@ -719,10 +719,14 @@ def verify_plan_page(browser):
           state.version = 'brief'; renderArticle(); const brief = count(), briefToc = tocCount();
           state.version = 'full'; renderArticle(); const full = count(), fullToc = tocCount();
           const html = document.body.innerHTML;
-          return { brief, briefToc, full, fullToc, title: document.querySelector('#plan-title').textContent, placeholders: /Task [678] 補/.test(html) };
+          const revisions = PLAN_REVISIONS[new URLSearchParams(location.search).get('work')];
+          const revision = { cover: document.querySelector('#plan-revision').textContent, last: revisions.at(-1).version, rows: document.querySelectorAll('#revision-rows tr').length, count: revisions.length, inputs: document.querySelectorAll('#revision-rows input, [data-cover="revision"], #add-revision').length };
+          return { brief, briefToc, full, fullToc, revision, title: document.querySelector('#plan-title').textContent, placeholders: /Task [678] 補/.test(html) };
         }""")
         check(f"計畫頁 {work}：兩版都能彩現、目錄項目數＝章節數、精簡版章節少於完整版", result["brief"] == result["briefToc"] and result["full"] == result["fullToc"] and 0 < result["brief"] < result["full"] and result["title"], result)
         check(f"計畫頁 {work}：沒有殘留的佔位文字", not result["placeholders"], result)
+        rev = result["revision"]
+        check(f"計畫頁 {work}：修訂紀錄照 plans/revisions.js 顯示、封面版次＝最後一列，使用者不能改", rev["cover"] == rev["last"] and rev["rows"] == rev["count"] and rev["inputs"] == 0, rev)
         page.context.close()
 
     page = open_clean(browser, "diaphragm-wall-gc")

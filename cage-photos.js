@@ -104,18 +104,29 @@ function bindCagePhotosUi({ getPhotos, onChange }) {
     armed = null;
   };
   const pick = () => {
-    if (getPhotos().length >= CAGE_PHOTO_LIMIT) return;
+    if (getPhotos().length >= CAGE_PHOTO_LIMIT || list.getAttribute("aria-busy") === "true") return;
     input.value = "";
     input.click();
   };
+  // 手機原圖要讀檔、轉正、縮圖、壓縮，一張約 0.3～1 秒：處理期間顯示讀取中並停用匯入鈕，避免重複匯入
   input.addEventListener("change", async () => {
     const files = [...input.files].slice(0, Math.max(0, CAGE_PHOTO_LIMIT - getPhotos().length));
-    for (const file of files) {
-      try { getPhotos().push({ data: await compressCagePhoto(file), caption: "" }); }
-      catch (error) { /* 讀不到的檔案略過 */ }
+    if (!files.length) return;
+    list.insertAdjacentHTML("beforebegin", loadingHtml("照片處理中…"));
+    const status = list.previousElementSibling;
+    list.setAttribute("aria-busy", "true");
+    if (addButton) addButton.disabled = true;
+    try {
+      for (const file of files) {
+        try { getPhotos().push({ data: await compressCagePhoto(file), caption: "" }); }
+        catch (error) { /* 讀不到的檔案略過 */ }
+      }
+    } finally {
+      status.remove();
+      list.removeAttribute("aria-busy");
+      input.value = "";
+      onChange();
     }
-    input.value = "";
-    onChange();
   });
   addButton?.addEventListener("click", pick);
   list.addEventListener("click", event => {

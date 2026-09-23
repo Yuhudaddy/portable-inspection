@@ -1,5 +1,5 @@
 // 施工計畫頁：?work=<diaphragm-wall-gc|diaphragm-wall|formwork|rebar|steel>&from=<工具頁>。
-// 正文來自 plans/<work>.js（PLAN_CONTENT），封面與修訂紀錄存本機草稿；精簡版只取 level "brief" 的章節與區塊。
+// 正文來自 plans/<work>.js（PLAN_CONTENT），修訂紀錄來自 plans/revisions.js；封面（編製單位、日期、版本）存本機草稿；精簡版只取 level "brief" 的章節與區塊。
 const PLAN_WORKS = ["diaphragm-wall-gc", "diaphragm-wall", "formwork", "rebar", "steel"];
 const PLAN_FROM = {
   "diaphragm-wall-gc": { label: "營造廠查驗表", draft: "project-portal.diaphragmWallGc.draft" },
@@ -20,10 +20,9 @@ const esc = value => String(value ?? "").replaceAll("&", "&amp;").replaceAll("<"
 
 const state = {
   version: "brief",
-  cover: { project: "", contractor: "", author: "", date: today, revision: "A" },
-  revisions: [{ version: "A", date: today, note: "初版", author: "" }]
+  cover: { project: "", contractor: "", author: "", date: today }
 };
-const draft = work ? createDraftStore(`project-portal.plan.${work}.draft`, () => state) : null;
+const draft = work ? createDraftStore(planDraftKey(work), () => state) : null;
 
 // 工程名稱、施工廠商與工具頁的「工程資訊」同步：開啟時以工具頁草稿為準（工具頁沒填才保留封面自己的值），
 // 在封面修改也寫回工具頁草稿。編製單位、日期、版次只屬於計畫。
@@ -69,6 +68,66 @@ const itemHtml = item => typeof item === "string" ? esc(item)
   : `${esc(item.text)}<ul class="plan-sublist">${(item.items || []).map(sub => `<li>${esc(sub)}</li>`).join("")}</ul>`;
 const cellHtml = cell => esc(cell).replaceAll("\n", "<br>");
 
+// Mermaid 流程圖：區塊只放原始碼的 key（見 plans/flowcharts-*.js），畫面彩現後才載入 vendor/mermaid.min.js（約 2.5 MB）
+// 轉成 SVG；沒有流程圖的計畫完全不載入。列印前等圖畫完（flowchartsReady）。文字用 SVG text（htmlLabels: false），
+// PDF 裡才抓得到字、也不會因為 foreignObject 在列印時跑版。
+let mermaidLoading = null;
+let flowchartRun = 0;
+let flowchartsReady = Promise.resolve();
+
+function loadMermaid() {
+  mermaidLoading ||= new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "./vendor/mermaid.min.js";
+    script.onload = () => {
+      window.mermaid.initialize({
+        startOnLoad: false,
+        theme: "base",
+        fontFamily: '"PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif',
+        themeVariables: {
+          fontSize: "14px",
+          primaryColor: "#f5f3ef", primaryBorderColor: "#8c857a", primaryTextColor: "#2b2724",
+          lineColor: "#8c857a", clusterBkg: "#fbfaf8", clusterBorder: "#d6d0c6", edgeLabelBackground: "#ffffff"
+        },
+        flowchart: { htmlLabels: false, nodeSpacing: 22, rankSpacing: 28, padding: 8, useMaxWidth: true }
+      });
+      resolve(window.mermaid);
+    };
+    script.onerror = () => { mermaidLoading = null; reject(new Error("mermaid")); };
+    document.head.append(script);
+  });
+  return mermaidLoading;
+}
+
+// 流程圖畫完之前「輸出 PDF」顯示「準備中…」並停用，免得印出還在載入的圖
+let printButtonHtml = null;
+function setPrintBusy(busy) {
+  const button = $("#print-button");
+  if (!button) return;
+  printButtonHtml ??= button.innerHTML;
+  button.disabled = busy;
+  button.toggleAttribute("aria-busy", busy);
+  button.innerHTML = busy ? loadingHtml("準備中…", { small: true }) : printButtonHtml;
+}
+
+function renderFlowcharts() {
+  const targets = [...document.querySelectorAll("[data-flowchart]")];
+  if (!targets.length) return (flowchartsReady = Promise.resolve());
+  const run = ++flowchartRun;
+  setPrintBusy(true);
+  flowchartsReady = loadMermaid().then(async mermaid => {
+    for (const [index, target] of targets.entries()) {
+      if (run !== flowchartRun) return;   // 期間又重新彩現（例如切換精簡／完整版），交給新的一輪
+      const { svg } = await mermaid.render(`plan-flowchart-${run}-${index}`, window.PLAN_FLOWCHARTS[target.dataset.flowchart]);
+      target.innerHTML = svg;
+    }
+  }).catch(() => {
+    targets.forEach(target => { target.textContent = "流程圖需要連線載入一次圖表元件，請連線後重新整理。"; });
+  }).finally(() => { if (run === flowchartRun) setPrintBusy(false); });
+  return flowchartsReady;
+}
+window.planFlowchartsReady = () => flowchartsReady;
+
 function blockHtml(block) {
   switch (block.type) {
     case "p": return `<p>${esc(block.text)}</p>`;
@@ -79,6 +138,9 @@ function blockHtml(block) {
       const drawn = window.PLAN_FIGURES?.[block.figure]?.() || "";
       return `<figure class="plan-figure plan-diagram">${block.caption ? `<figcaption>${esc(block.caption)}</figcaption>` : ""}<div class="plan-diagram-body">${drawn}</div>${block.note ? `<p class="plan-note">${esc(block.note)}</p>` : ""}</figure>`;
     }
+    case "mermaid": return window.PLAN_FLOWCHARTS?.[block.flowchart]
+      ? `<figure class="plan-figure plan-flowchart">${block.caption ? `<figcaption>${esc(block.caption)}</figcaption>` : ""}<div class="plan-flowchart-body" data-flowchart="${esc(block.flowchart)}" role="img" aria-label="${esc(block.caption || "流程圖")}">${loadingHtml("流程圖載入中…")}</div>${block.note ? `<p class="plan-note">${esc(block.note)}</p>` : ""}</figure>`
+      : "";
     case "figureTable": {
       const head = block.head.map(cell => `<th>${esc(cell)}</th>`).join("") + `<th class="plan-col-figure">示意圖</th>`;
       const rows = block.rows.map(row => `<tr>${row.cells.map(cell => `<td>${cellHtml(cell)}</td>`).join("")}<td class="plan-cell-figure">${window.PLAN_FIGURES?.[row.figure]?.() || ""}</td></tr>`).join("");
@@ -104,6 +166,7 @@ function renderArticle() {
   $("#toc-list").innerHTML = sections.map((section, index) => `<li><a href="#section-${esc(section.id)}"><span class="plan-number">${index + 1}</span>${esc(section.heading)}</a>${section.children?.length ? `<ol>${section.children.map((child, childIndex) => `<li><a href="#section-${esc(child.id)}"><span class="plan-number">${index + 1}.${childIndex + 1}</span>${esc(child.heading)}</a></li>`).join("")}</ol>` : ""}</li>`).join("");
   $("#plan-version-label").textContent = VERSION_LABEL[state.version];
   $("#plan-version").value = state.version;
+  renderFlowcharts();
 }
 
 function renderCover() {
@@ -113,14 +176,13 @@ function renderCover() {
   $("#plan-sources").innerHTML = content.sources.map(item => `<li>${esc(item)}</li>`).join("");
 }
 
+// 修訂紀錄與版次由製作者維護（plans/revisions.js），這裡只顯示；封面版次＝最後一列
+const planRevisions = () => window.PLAN_REVISIONS?.[work] || [];
+
 function renderRevisions() {
-  $("#revision-rows").innerHTML = state.revisions.map((row, index) => `<tr>
-    <td><input type="text" data-revision="version" data-index="${index}" value="${esc(row.version)}" size="3" /></td>
-    <td><input type="date" data-revision="date" data-index="${index}" value="${esc(row.date)}" /></td>
-    <td><input type="text" data-revision="note" data-index="${index}" value="${esc(row.note)}" /></td>
-    <td><input type="text" data-revision="author" data-index="${index}" value="${esc(row.author)}" /></td>
-    <td class="no-print">${state.revisions.length > 1 ? `<button type="button" class="link-button" data-remove-revision="${index}">移除</button>` : ""}</td>
-  </tr>`).join("");
+  const rows = planRevisions();
+  $("#revision-rows").innerHTML = rows.map(row => `<tr><td>${esc(row.version)}</td><td>${esc(row.date)}</td><td>${esc(row.note)}</td></tr>`).join("");
+  $("#plan-revision").textContent = rows.at(-1)?.version || "—";
 }
 
 function renderPlan() { renderCover(); renderRevisions(); renderArticle(); }
@@ -138,6 +200,9 @@ function initialize() {
   document.title = `${content.title}｜Portable Inspection`;
   if (from) { $("#back-link").href = `./${from}`; $("#back-label").textContent = PLAN_FROM[from].label; }
   Object.assign(state, draft.load() ?? {});
+  // 舊草稿裡使用者自填的版次與修訂紀錄不再使用（改由 plans/revisions.js 統一維護）
+  delete state.revisions;
+  delete state.cover.revision;
   syncCoverFromTool();
   renderPlan();
   draft.watch();
@@ -147,18 +212,12 @@ function initialize() {
   $("#plan-version").addEventListener("change", event => { state.version = event.target.value === "full" ? "full" : "brief"; renderArticle(); });
   document.addEventListener("input", event => {
     const cover = event.target.closest("[data-cover]");
-    const revision = event.target.closest("[data-revision]");
     if (cover) {
       state.cover[cover.dataset.cover] = cover.value;
       if (SYNCED_COVER_FIELDS.includes(cover.dataset.cover)) writeCoverToTool(cover.dataset.cover);
     }
-    if (revision) state.revisions[Number(revision.dataset.index)][revision.dataset.revision] = revision.value;
   });
-  document.addEventListener("click", event => {
-    if (event.target.closest("#add-revision")) { state.revisions.push({ version: "", date: today, note: "", author: "" }); renderRevisions(); }
-    const remove = event.target.closest("[data-remove-revision]");
-    if (remove) { state.revisions.splice(Number(remove.dataset.removeRevision), 1); renderRevisions(); }
-  });
+  // window.print() 要留在點擊的同步流程裡（await 過 Safari 會擋）；流程圖還沒畫完時按鈕是停用的（setPrintBusy）
   $("#print-button").addEventListener("click", () => { setPrintDocumentTitle(planFileName()); window.print(); });
 }
 

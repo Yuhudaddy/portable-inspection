@@ -61,7 +61,9 @@ button { font: inherit; }
   box-shadow: none;
 }
 
-.brand span {
+/* 小標（首頁品牌字、連續壁版本選擇頁的 DIAPHRAGM WALL） */
+.brand span,
+.select-heading p {
   font-family: var(--glass-font-num);
   color: var(--glass-muted);
   font-size: 0.625rem;
@@ -184,6 +186,21 @@ h1 {
   font-family: var(--glass-font-num);
   font-size: 0.625rem;
   font-weight: 700;
+}
+
+/* 連續壁版本選擇頁：標題 ＋ 兩張版本卡（手機兩欄並排、桌機不拉成三欄） */
+.select-heading { margin-top: clamp(28px, 4vh, 40px); padding: 0 4px; }
+.select-heading p { margin: 0 0 6px; }
+.version-index { margin-top: 20px; }
+@media (min-width: 720px) {
+  .version-index { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 640px; }
+}
+.version-tag {
+  font-family: var(--glass-font-num);
+  color: var(--glass-accent);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
 }
 
 .error-page { display: grid; justify-items: start; }

@@ -27,10 +27,9 @@ body { margin: 0; background: var(--glass-page-bg); background-image: var(--glas
 .plan-cover-grid > div { display: grid; gap: 4px; padding-top: 10px; border-top: 1px solid var(--glass-line); }
 .plan-cover-grid dt { font-size: 0.6875rem; color: var(--glass-label); }
 .plan-cover-grid dd { margin: 0; }
-.plan-cover-grid input, .inline-input { width: 100%; border: 0; border-bottom: 1px dashed var(--glass-dash); border-radius: 0; background: transparent; padding: 4px 0; font: inherit; font-size: 1rem; color: var(--glass-ink); }
+.plan-cover-grid input { width: 100%; border: 0; border-bottom: 1px dashed var(--glass-dash); border-radius: 0; background: transparent; padding: 4px 0; font: inherit; font-size: 1rem; color: var(--glass-ink); }
 .plan-cover-grid input::placeholder { color: var(--glass-placeholder); }
-.plan-cover-grid input:focus, .inline-input:focus { outline: none; border-bottom-color: var(--glass-accent); }
-.inline-input { width: 3em; text-align: center; }
+.plan-cover-grid input:focus { outline: none; border-bottom-color: var(--glass-accent); }
 .plan-cover-foot { display: flex; justify-content: space-between; align-items: baseline; margin: 36px 0 0; font-size: 0.8125rem; color: var(--glass-soft); }
 
 /* ---- 修訂紀錄與正文 ---- */
@@ -41,10 +40,12 @@ body { margin: 0; background: var(--glass-page-bg); background-image: var(--glas
 .plan-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
 .plan-table th, .plan-table td { padding: 8px 10px; border-bottom: 1px solid var(--glass-line); text-align: left; vertical-align: top; line-height: 1.55; }
 .plan-table th { background: var(--glass-sunken); font-weight: 600; color: var(--glass-soft); white-space: nowrap; }
-.plan-table input { width: 100%; min-width: 4em; border: 0; background: transparent; padding: 0; font: inherit; color: var(--glass-ink); }
 .revisions-table th:first-child { width: 4em; }
-.plan-add { display: inline-flex; align-items: center; gap: 4px; margin-top: 10px; min-height: 36px; padding: 0 14px 0 10px; border: 0; border-radius: 999px; background: var(--glass-sunken); font: inherit; font-size: 0.8125rem; font-weight: 600; color: var(--glass-ink); cursor: pointer; }
+.revisions-table td:nth-child(2) { white-space: nowrap; }
 .plan-figure { margin: 12px 0 16px; }
+/* Mermaid 流程圖：SVG 依原始寬度置中，最寬撐滿內文 */
+.plan-flowchart-body { min-height: 60px; }
+.plan-flowchart-body svg { display: block; height: auto; margin: 0 auto; }
 .plan-figure figcaption { margin-bottom: 6px; font-size: 0.8125rem; font-weight: 600; color: var(--glass-soft); }
 .plan-note { margin: 6px 0 0; font-size: 0.75rem; color: var(--glass-faint); }
 /* 示意圖置中：圖說、圖、附註同寬並置中，附註與圖之間留一點距離 */
@@ -60,7 +61,6 @@ body { margin: 0; background: var(--glass-page-bg); background-image: var(--glas
 .plan-table-figure .plan-cell-figure { padding: 6px 10px; }
 .plan-table-figure .plan-cell-figure svg { display: block; width: 100%; height: auto; }
 .plan-sources { margin: 0; padding-left: 1.4em; font-size: 0.8125rem; line-height: 1.7; color: var(--glass-soft); }
-.link-button { border: 0; background: transparent; padding: 0; font: inherit; font-size: 0.75rem; color: var(--glass-danger-ink); cursor: pointer; }
 
 .plan-body-wrap { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 24px; align-items: start; }
 .plan-body-wrap > * { min-width: 0; }
@@ -105,15 +105,15 @@ body { margin: 0; background: var(--glass-page-bg); background-image: var(--glas
 @media print {
   @page { size: A4 portrait; margin: 18mm 16mm; }
   body { background: #fff; color: #000; }
-  .app-header, .plan-toc-details summary, .no-print, #add-revision { display: none !important; }
+  .app-header, .plan-toc-details summary, .no-print { display: none !important; }
   .plan-shell { width: auto; margin: 0; }
   .plan-cover, .plan-block, .plan-article, .plan-toc-details { padding: 0; border-radius: 0; background: transparent; box-shadow: none; }
   .plan-cover { min-height: 240mm; display: flex; flex-direction: column; margin: 0; break-after: page; }
   .plan-logo { align-self: flex-start; height: 14mm; }
-  .plan-cover-grid input::placeholder, .plan-table input::placeholder, .inline-input::placeholder { color: transparent; }
+  .plan-cover-grid input::placeholder { color: transparent; }
   input[type="date"]::-webkit-calendar-picker-indicator { display: none; }
   .plan-cover-foot { margin-top: auto; }
-  .plan-cover-grid input, .inline-input, .plan-table input { border: 0 !important; }
+  .plan-cover-grid input { border: 0 !important; }
   .plan-block { break-after: page; }
   .plan-body-wrap { display: block; }
   .plan-toc { position: static; break-after: page; }

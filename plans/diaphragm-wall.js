@@ -124,6 +124,7 @@ PLAN_CONTENT["diaphragm-wall"] = {
     {
       id: "workflow", heading: "施工流程", level: "brief",
       blocks: [
+        { type: "mermaid", flowchart: "diaphragmWall", caption: "連續壁施工流程", note: "每一單元依一、二順序施工；穩定液循環與成槽、澆置同步進行。下列為各工序與紀錄點。" },
         { type: "ol", items: [
           "準備工程：清障、附屬工程（如有）、舖面與走道、穩定液池與棄土坑、洗車台、鋼筋籠加工床、施工用水電",
           "導溝放樣、開挖、配筋、澆置與回撐 → 導溝施工複核",
@@ -148,6 +149,7 @@ PLAN_CONTENT["diaphragm-wall"] = {
         {
           id: "temporary-guide", heading: "導溝", level: "brief",
           blocks: [
+            { type: "mermaid", flowchart: "guideWall", caption: "導溝施工流程" },
             { type: "ol", items: [
               "現地放樣並拉線標示，開挖至結構設計圖所示深度（至少 1.8 m，且回填土層以下至少 30 cm）",
               "導溝牆鋼筋綁紮：依核定圖說，至少 #4@20 cm 單層雙向；預留與舖面搭接之鋼筋",

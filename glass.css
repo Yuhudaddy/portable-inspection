@@ -1,5 +1,5 @@
 /* =========================================================================
-   共用設計 tokens（文字／按鈕色調依 Claude Design mockup 方向 A「紙與石板」）
+   共用設計 tokens
    純白底、暖灰文字、石板藍主色；固定淺色，不隨系統深色切換。
    所有頁面共用：色彩 tokens、頂部膠囊、三段結果鈕、輸入焦點漸層環。
    ========================================================================= */
@@ -10,13 +10,13 @@
   /* 下拉選單的 ▼：聚焦樣式會用 background 簡寫重畫整個背景，那裡要再疊一次這層 */
   --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0h10L5 6z' fill='%23777'/%3E%3C/svg%3E");
 
-  /* ---- 頁面背景：方案 B「斜向漸層」，左上白 → 右下淡暖灰，無色相 ------------
+  /* ---- 頁面背景：斜向漸層，左上白 → 右下淡暖灰，無色相 ------------
      手動微調就改這三個值：起點色、終點色、角度／白色停留比例。 */
   --glass-page-bg: #fff;                 /* 漸層起點（頂部保持純白，也是 html 底色） */
   --glass-page-bg-end: #f0efeb;          /* 漸層終點（右下角的淡暖灰） */
   --glass-page-gradient: linear-gradient(165deg, var(--glass-page-bg) 0%, var(--glass-page-bg) 26%, var(--glass-page-bg-end) 100%);
 
-  /* ---- 文字（暖灰，mockup 1b 原值）---------------------------------------- */
+  /* ---- 文字（暖灰）---------------------------------------- */
   --glass-ink: oklch(27% 0.02 60);
   --glass-soft: oklch(45% 0.02 60);
   --glass-muted: oklch(52% 0.02 60);
@@ -46,7 +46,7 @@
   --glass-neutral-bg: rgba(60, 50, 30, 0.06);
   --glass-neutral-ink: oklch(50% 0.02 60);
 
-  /* ---- 面材：白卡＋暖色淡陰影（rgba(60,50,30) 是 1b 的陰影色）------------------ */
+  /* ---- 面材：白卡＋暖色淡陰影 ------------------ */
   --glass-line: rgba(60, 50, 30, 0.08);
   --glass-sunken: rgba(60, 50, 30, 0.05);
   --glass-card-bg: #fff;
@@ -344,3 +344,107 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; marg
 .two-step-delete.is-armed { min-width: 40px; background: var(--glass-danger); color: #fff; }
 .two-step-delete.is-armed .two-step-x { display: none; }
 .two-step-delete.is-armed svg { display: block; }
+
+/* ---- 右下角輸出選單（export-menu.js）：按下主按鈕，項目往左、左上、上彈出 ----------------
+   兩層疊在一起：底下 .export-fab-goo 是套 SVG goo 濾鏡的圓形色塊，展開時像液滴從主按鈕分出去；
+   上面 .export-fab-items 是真正可點的按鈕（透明底，圖示＋文字），不經過濾鏡所以不會糊。
+   兩層用同一組 --x／--y（由 export-menu.js 依項目數量算好）移動，保持重疊。 */
+.export-fab { position: relative; flex: none; width: 60px; height: 60px; }
+.export-fab > .dock-primary { position: relative; z-index: 2; }
+.export-fab-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+.export-fab-goo {
+  position: absolute;
+  top: -150px;
+  left: -150px;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  filter: url(#export-goo);
+  pointer-events: none;
+  visibility: hidden;                       /* 收起時不跑濾鏡；等收合動畫播完才藏起來 */
+  transition: visibility 0s linear 600ms;
+}
+.export-fab.is-open .export-fab-goo { visibility: visible; transition-delay: 0s; }
+.export-fab-blob,
+.export-fab-item {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+  transform: translate(0, 0) scale(0.5);
+  transition: transform 420ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 200ms ease;
+  transition-delay: calc(var(--i, 0) * 45ms);
+}
+.export-fab-blob { background: var(--glass-accent); }
+.export-fab-blob.is-main { right: 0; bottom: 0; width: 60px; height: 60px; transform: none; }
+.export-fab-items { position: absolute; inset: 0; z-index: 1; }
+/* 圖示在上、兩字說明在下 */
+.export-fab-item {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 1px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--glass-accent-on);
+  line-height: 1.1;
+  text-align: center;
+  opacity: 0;
+  cursor: pointer;
+}
+.export-fab-item svg { display: block; }
+.export-fab-item span { font-size: 0.625rem; font-weight: 700; letter-spacing: 0.04em; }
+.export-fab.is-open .export-fab-blob:not(.is-main),
+.export-fab.is-open .export-fab-item { transform: translate(var(--x), var(--y)) scale(1); }
+.export-fab.is-open .export-fab-item { opacity: 1; }
+.export-fab-item:focus-visible { outline: 3px solid var(--glass-accent); outline-offset: 3px; }
+@media (hover: hover) {
+  .export-fab-item:hover { background: rgba(255, 255, 255, 0.14); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .export-fab-blob, .export-fab-item { transition: none; }
+}
+
+/* ---- 讀取中：雙環逆轉（外環青、內環紫）。錐形漸層畫弧、遮罩挖空成環，尺寸改 --orbit-size 即可。
+   .loading-note 延遲 300ms 才淡入：很快就完成的動作不會閃一下。 ---- */
+.orbit { --orbit-size: 48px; position: relative; flex: none; width: var(--orbit-size); aspect-ratio: 1; }
+.orbit.is-small { --orbit-size: 18px; }
+.orbit i {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0 62%, #06b6d4 92%, #06b6d4);
+  mask: radial-gradient(farthest-side, transparent calc(100% - max(2px, var(--orbit-size) * 0.05)), #000 0);
+  animation: orbit-spin 1.15s cubic-bezier(.5, 0, .5, 1) infinite;
+}
+.orbit i:nth-child(2) {
+  inset: 16%;
+  background: conic-gradient(from 180deg, transparent 0 70%, #8b5cf6 95%, #8b5cf6);
+  mask: radial-gradient(farthest-side, transparent calc(100% - max(1.5px, var(--orbit-size) * 0.04)), #000 0);
+  animation-duration: .85s;
+  animation-direction: reverse;
+}
+@keyframes orbit-spin { to { transform: rotate(1turn); } }
+.loading-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 0;
+  padding: 16px 0;
+  color: var(--glass-soft);
+  font-size: 0.8125rem;
+  opacity: 0;
+  animation: loading-appear 160ms ease 300ms forwards;
+}
+@keyframes loading-appear { to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .orbit i { animation: none; }
+}
+@media print {
+  .loading-note { display: none !important; }
+}

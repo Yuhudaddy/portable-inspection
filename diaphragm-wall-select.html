@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description" content="連續壁檢查表：選擇品管版或完整版" />
+    <meta name="referrer" content="no-referrer" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; worker-src 'self'" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Portable Inspection" />
+    <link rel="icon" href="./app-icon-144.png" type="image/png" sizes="144x144" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="stylesheet" href="./glass.css" />
+    <link rel="stylesheet" href="./portal.css" />
+    <script src="./portal.js" defer></script>
+    <script src="./sw-client.js" defer></script>
+    <title>連續壁｜Portable Inspection</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#version-index">跳至版本選擇</a>
+
+    <main class="portal-shell">
+      <header class="portal-header">
+        <a class="brand" href="./" aria-label="回到施工記錄工具入口">
+          <img src="./apple-touch-icon.png" alt="" width="36" height="36" />
+          <span>Portable Inspection</span>
+        </a>
+      </header>
+
+      <div class="select-heading">
+        <p>DIAPHRAGM WALL</p>
+        <h1>連續壁</h1>
+      </div>
+
+      <!-- 兩個版本是各自獨立的工具：草稿、JSON、施工計畫都分開存，只共用這個入口 -->
+      <section class="tool-index version-index" id="version-index" aria-label="選擇連續壁檢查表版本">
+        <a class="tool-card tool-card-active" href="./diaphragm-wall-gc">
+          <span class="version-tag">QUALITY CONTROL</span>
+          <span class="tool-card-copy">
+            <strong>品管版</strong>
+            <small>停檢點查驗與放行：成槽、吊放、澆置、監測；附導溝、鋼筋籠複核</small>
+          </span>
+        </a>
+
+        <a class="tool-card tool-card-active" href="./diaphragm-wall">
+          <span class="version-tag">FULL RECORD</span>
+          <span class="tool-card-copy">
+            <strong>完整版</strong>
+            <small>逐單元施工紀錄：壁體資訊、品質自檢、開挖、前置、澆置；附導溝、鋼筋籠複核</small>
+          </span>
+        </a>
+      </section>
+    </main>
+  </body>
+</html>

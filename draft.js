@@ -11,7 +11,7 @@
 //
 //   state.standards = mergeStandardDefaults(state.standards, STANDARD_CONFIG);   // 還原草稿後
 //
-// 本公司標準值的預設改版時，舊草稿裡存的仍是「當時的預設值」：這些項目視同使用者沒改過，換成
+// 檢查標準值的預設改版時，舊草稿裡存的仍是「當時的預設值」：這些項目視同使用者沒改過，換成
 // 新預設（config 的 legacy 列出歷次舊預設）；使用者自己選的其他值保留，草稿缺的鍵補上預設。
 function mergeStandardDefaults(saved, config) {
   const standards = Object.fromEntries(config.map(item => [item.key, item.default]));
@@ -89,7 +89,8 @@ function createDraftStore(key, getState, { enabled = true, delay = 400 } = {}) {
   };
 }
 
-// 施工計畫頁的封面與修訂紀錄跟著工具的 JSON 走（換手機時一起帶過去）。
+// 施工計畫頁的封面（編製單位、日期、精簡／完整版）跟著工具的 JSON 走（換手機時一起帶過去）。
+// 修訂紀錄與版次由製作者維護（plans/revisions.js），不存也不匯入。
 // 工程名稱、施工廠商本來就與工具頁的工程資訊同步，這裡只帶計畫自己的欄位。
 // work 對應 plan.html?work=…；匯入時 work 不同（例如營造廠版匯入廠商 JSON）就不動計畫。
 const PLAN_DRAFT_SCHEMA = "project-portal.draft.v1";
@@ -104,11 +105,7 @@ function exportPlanDraft(work) {
       work,
       version: data.version === "full" ? "full" : "brief",
       author: cover.author || null,
-      date: cover.date || null,
-      revision: cover.revision || null,
-      revisions: (Array.isArray(data.revisions) ? data.revisions : []).map(row => ({
-        version: row.version || null, date: row.date || null, note: row.note || null, author: row.author || null
-      }))
+      date: cover.date || null
     };
   } catch (error) {
     return null;
@@ -120,9 +117,7 @@ function importPlanDraft(work, plan, overview = {}) {
   const text = value => value === null || value === undefined ? "" : String(value);
   const data = {
     version: plan.version === "full" ? "full" : "brief",
-    cover: { project: text(overview.project), contractor: text(overview.contractor), author: text(plan.author), date: text(plan.date), revision: text(plan.revision) },
-    revisions: (Array.isArray(plan.revisions) ? plan.revisions : []).map(row => ({ version: text(row.version), date: text(row.date), note: text(row.note), author: text(row.author) }))
+    cover: { project: text(overview.project), contractor: text(overview.contractor), author: text(plan.author), date: text(plan.date) }
   };
-  if (!data.revisions.length) data.revisions = [{ version: data.cover.revision || "A", date: data.cover.date, note: "初版", author: "" }];
   try { localStorage.setItem(planDraftKey(work), JSON.stringify({ schema: PLAN_DRAFT_SCHEMA, data })); } catch (error) { /* 靜默 */ }
 }

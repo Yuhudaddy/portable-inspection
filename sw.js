@@ -1,6 +1,9 @@
-const CACHE_NAME = "portable-inspection-v113";
+// 第三方函式庫（vendor/，檔名固定、內容不變，例如 2.5 MB 的 mermaid）放在獨立快取，升版不清掉；
+// 要換版本時改檔名或這裡的名稱。
+const VENDOR_CACHE = "portable-inspection-vendor-v1";
+const CACHE_NAME = "portable-inspection-v117";
 // 範例 PDF（共約 8MB）不放進 shell：每次升版都要整批重抓，手機上安裝又慢又容易失敗；範例本來就需要連線。
-const APP_SHELL = ["./", "./404", "./glass.css", "./portal.css", "./portal.js", "./sw-client.js", "./draft.js", "./form-controls.js", "./print-pages.js", "./dialog-forms.js", "./bar-sizes.js", "./auto-judge.js", "./guide-wall.js", "./rebar-cage.js", "./cage-photos.js", "./plan", "./plan.js", "./plan.css", "./plans/figures-diaphragm-wall.js", "./plans/figures-formwork.js", "./plans/diaphragm-wall-gc.js", "./plans/diaphragm-wall.js", "./plans/formwork.js", "./plans/rebar.js", "./plans/steel.js", "./example", "./example.css", "./example.js", "./diaphragm-wall", "./diaphragm-wall-gc", "./wall-gc.js", "./app.css", "./app.js", "./template", "./template.css", "./template.js", "./rebar", "./rebar.css", "./rebar.js", "./steel-structure", "./steel.css", "./steel.js", "./record", "./checklists", "./manifest.webmanifest", "./app-icon-144.png", "./apple-touch-icon.png", "./icon-192.png", "./taisei.png"];
+const APP_SHELL = ["./", "./404", "./glass.css", "./portal.css", "./portal.js", "./sw-client.js", "./draft.js", "./export-menu.js", "./form-controls.js", "./print-pages.js", "./dialog-forms.js", "./bar-sizes.js", "./auto-judge.js", "./guide-wall.js", "./rebar-cage.js", "./cage-photos.js", "./plan", "./plan.js", "./plan.css", "./plans/figures-diaphragm-wall.js", "./plans/figures-formwork.js", "./plans/flowcharts-diaphragm-wall.js", "./plans/revisions.js", "./plans/diaphragm-wall-gc.js", "./plans/diaphragm-wall.js", "./plans/formwork.js", "./plans/rebar.js", "./plans/steel.js", "./example", "./example.css", "./example.js", "./diaphragm-wall", "./diaphragm-wall-gc", "./diaphragm-wall-select", "./wall-gc.js", "./app.css", "./app.js", "./template", "./template.css", "./template.js", "./rebar", "./rebar.css", "./rebar.js", "./steel-structure", "./steel.css", "./steel.js", "./record", "./checklists", "./manifest.webmanifest", "./app-icon-144.png", "./apple-touch-icon.png", "./icon-192.png", "./taisei.png"];
 
 self.addEventListener("install", event => {
   event.waitUntil(
@@ -14,7 +17,7 @@ self.addEventListener("install", event => {
 self.addEventListener("activate", event => {
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))))
+      .then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME && key !== VENDOR_CACHE).map(key => caches.delete(key))))
       .then(() => self.clients.claim())
   );
 });
@@ -43,7 +46,7 @@ self.addEventListener("fetch", event => {
       .then(cached => cached || fetch(event.request).then(response => {
         if (response.ok && new URL(event.request.url).origin === self.location.origin) {
           const copy = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+          caches.open(path.includes("/vendor/") ? VENDOR_CACHE : CACHE_NAME).then(cache => cache.put(event.request, copy));
         }
         return response;
       }))

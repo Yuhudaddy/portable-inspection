@@ -72,11 +72,15 @@ try:
             page.goto(f"http://127.0.0.1:{PORT}/plan.html?work={work}", wait_until="networkidle")
             page.evaluate("() => { try { localStorage.clear(); } catch (e) {} }")
             page.evaluate("() => { state.version = 'full'; state.cover.project = '版面測試工程'; renderPlan(); }")
+            page.evaluate("() => planFlowchartsReady()")   # Mermaid 流程圖非同步彩現，畫完再印
             page.emulate_media(media="print")
             pdf_path = OUT / f"plan-{work}.pdf"
             page.pdf(path=str(pdf_path), prefer_css_page_size=True, print_background=True)
             texts = [p.get_text() for p in fitz.open(pdf_path)]
             ok = len(texts) >= 4 and "修訂紀錄" not in texts[0] and "修訂紀錄" in texts[1] and "目錄" in texts[2] and "版面測試工程" in texts[0]
+            if work.startswith("diaphragm-wall"):   # 兩張流程圖都要畫進 PDF（SVG 文字抓得到）
+                body = "".join(texts)
+                ok = ok and "沉泥" in body and "穩定液循環" in body and "導溝施工" in body and "流程圖需要連線" not in body
             print(("✅" if ok else "❌"), f"plan {work} 完整版 → {pdf_path.name}（{len(texts)} 頁）")
             failed = failed or not ok
             page.close()

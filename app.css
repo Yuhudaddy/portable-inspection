@@ -266,8 +266,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  /* iOS WebKit incorrectly adds horizontal padding to the calculated width
-     of date/time controls. Spacing is provided by .native-field-display. */
   padding: 0;
   height: 44px;
   max-height: 44px;
@@ -289,9 +287,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   opacity: 1;
 }
 
-/* iOS renders the native date/time value at a system-controlled text size that
-   page CSS cannot reliably override. Keep the native control for its picker
-   behaviour but paint the value ourselves at a fixed, correct size on top. */
 .native-field-wrap { position: relative; display: block; }
 .native-field-display {
   position: absolute;
@@ -639,7 +634,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .note-field > span { font-size: 0.6875rem; font-weight: 500; }
 .note-field textarea { width: calc(100% + 20px); min-height: 72px; margin: 0 -10px; padding: 4px 10px; border-radius: 10px; background: transparent; font-size: 1rem; }
 
-/* ---- 配筋抽查明細：簡易／詳細切換（Transitions.dev 藥丸，顏色改用 glass 變數）---- */
+/* ---- 配筋抽查明細：簡易／詳細切換 ---- */
 .t-tabs { --tabs-dur: 250ms; --tabs-ease: cubic-bezier(0.22, 1, 0.36, 1); position: relative; display: inline-flex; align-items: center; gap: 3px; padding: 3px; border-radius: 48px; background: var(--glass-sunken); box-shadow: var(--glass-hairline); }
 .t-tab { position: relative; z-index: 1; appearance: none; border: 0; background: transparent; height: 30px; padding: 4px 14px; border-radius: 48px; color: var(--glass-muted); font: inherit; font-size: 0.8125rem; font-weight: 600; cursor: pointer; transition: color var(--tabs-dur) var(--tabs-ease); }
 .t-tab[aria-selected="true"], .t-tab:not([aria-selected="true"]):hover { color: var(--glass-ink); }
@@ -875,6 +870,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .field-unit-row { display: flex; gap: 8px; align-items: center; min-width: 0; }
 .form-grid > .field > .field-unit-row > input { flex: 1 1 auto; width: auto; margin: 0 0 0 -10px; }
 .form-grid > .field > .field-unit-row > select { flex: none; width: auto; margin: 0 -10px 0 0; padding: 0 24px 0 8px; font-size: 0.875rem; }   /* 單位比數值小 2px */
+/* 觸控裝置的輸入欄一律 16px（glass.css，防 iOS 聚焦放大），字級壓不下來，改用縮放讓單位看起來同樣小 2px */
+@media (pointer: coarse) {
+  .form-grid > .field > .field-unit-row > select { transform: scale(0.875); transform-origin: right center; }
+}
 .calculated-field > span em[hidden] { display: none; }
 .quality-standard-note { margin-top: 10px; }
 .example-actions { display: grid; width: 100%; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
@@ -898,32 +897,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .example-button small { color: var(--glass-muted); font-size: 0.6875rem; }
 .clear-confirmation p { margin: 0; color: var(--glass-soft); font-size: 0.8125rem; line-height: 1.7; }
 .danger-button { background: var(--glass-danger); box-shadow: 0 4px 12px oklch(58% 0.13 30 / 0.3); }
-.export-options { display: grid; gap: 8px; }
-.export-option-group { display: grid; gap: 7px; }
-.export-option-group h3 {
-  margin: 0;
-  font-family: var(--glass-font-num);
-  color: var(--glass-muted);
-  font-size: 0.6875rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-.export-options button {
-  display: grid;
-  gap: 2px;
-  min-height: 70px;
-  padding: 12px 14px;
-  border: 0;
-  border-radius: var(--glass-radius-sm);
-  background: var(--glass-sunken);
-  box-shadow: var(--glass-hairline);
-  text-align: left;
-}
-.export-options button:active { transform: translateY(1px); }
-.export-options span { color: var(--glass-muted); font-size: 0.6875rem; }
-.export-options strong { font-size: 0.875rem; font-weight: 600; }
-.export-status { min-height: 1.2em; margin: 2px 0 0; color: var(--glass-soft); font-size: 0.72rem; line-height: 1.5; }
 
 .undo-toast {
   position: fixed;
@@ -1058,9 +1031,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .print-document-header p { margin: 2.5mm 0 0; color: #555; font-size: 6.5pt; letter-spacing: 0.12em; }
   .print-document-header h1 { margin: 1mm 0 0; font-family: "Noto Serif TC", "PMingLiU", serif; font-size: 16pt; }
   .print-header-meta { display: flex; flex: 0 0 100mm; align-items: center; justify-content: center; gap: 3mm; min-width: 0; }
-  /* Keep the project meta block immediately to the right of the title and
-     reserve the final track for the logo.  The previous auto-sized middle
-     track let the block drift toward the upper-right corner on wide pages. */
   .print-document-header { grid-template-columns: 72mm minmax(0, 1fr) 18mm; gap: 5mm; }
   .print-header-title { min-width: 0; }
   .print-header-meta-body { min-width: 0; width: calc(90mm + 16px); max-width: none; justify-self: start; align-self: center; transform: translate(-34px, calc(2.5mm + 2px)); }

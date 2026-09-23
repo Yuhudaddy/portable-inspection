@@ -91,8 +91,8 @@ const $$ = selector => [...document.querySelectorAll(selector)];
 const esc = value => String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 const display = value => String(value ?? "").trim() || "—";
 const formatDate = value => { const [y, m, d] = String(value ?? "").split("-"); return y && m && d ? `${y}/${m}/${d}` : ""; };
-// 三段式結果膠囊：以隱藏 radio + 相鄰 span 呈現（沿用既有 .unit-type 手法）。
-// 未勾選任一段＝原本下拉選單的「待確認」狀態；點選其一會如同 <select> 觸發 change，
+// 三段式結果膠囊：以隱藏 radio + 相鄰 span 呈現。
+// 未勾選任一段＝「待確認」；點選其一會如同 <select> 觸發 change，
 // 既有的委派事件（依 data-* 屬性讀取 event.target.value）不需更動。
 const SEGMENT_ICONS = {
   pass: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>`,
@@ -184,7 +184,6 @@ function updateCheck(collection, id, key, value) { if (collection === "material"
 function updateMemberField(index, key, value) { if (!state.members[index]) return; state.members[index][key] = value; }
 function exportObject() { return { schema: "project-portal.rebar-review.v1", exported_at: new Date().toISOString(), tool: "RC鋼筋工程營造廠施工查驗", overview: { ...state.overview }, members: state.members.map(member => ({ ...member, reviewResult: memberReviewResult(member), bars: member.bars.map(bar => ({ ...bar })), checks: { ...member.checks }, detailChecks: { ...member.detailChecks } })), material: { ...state.material }, release: { ...state.release, checks: { ...state.release.checks } } }; }
 function fileDownload(filename, content, type) { const blob = new Blob([content], { type }); const url = URL.createObjectURL(blob); const anchor = document.createElement("a"); anchor.href = url; anchor.download = filename; anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
-function markdownExport() { const lines = ["# 鋼筋工程查驗表", "", `- 工程名稱：${display(state.overview.project)}`, `- 施工廠商：${display(state.overview.contractor)}`, `- 檢查日期：${display(state.overview.inspectionDate)}`, `- 檢查樓層／區域：${display(state.overview.floor)}`, "", "## 配筋明細"]; state.members.forEach((member, index) => { lines.push(`\n### ${index + 1}. ${member.type}｜${display(member.id)}｜${display(memberReviewResult(member))}`); lines.push(`- 軸線／位置：${display(member.grid)}；強度：${display(member.strength)}；尺寸：${display(member.width)} × ${display(member.height)} cm；保護層：${display(member.cover)} cm`); lines.push(`- 配筋：${member.bars.map(bar => `${bar.kind} ${display(barSizeMark(bar.size))}${bar.count ? ` × ${bar.count}支` : ""}${bar.spacing ? ` @${bar.spacing}cm` : ""}${bar.note ? `（${bar.note}）` : ""}`).join("；")}`); if (member.note) lines.push(`- 備註：${member.note}`); }); lines.push("", "## 材料與施工前"); MATERIAL_CHECKS.forEach(item => lines.push(`- ${item[1]}：${display(state.material[item[0]]?.actual)}（${display(state.material[item[0]]?.result)}）`)); lines.push("", "## 澆置前放行", `- 判定：${state.release.decision}`, `- 備註：${display(state.release.decisionNote)}`); return lines.join("\n"); }
 function printHeader(title, sequence) { const display = printText; const member = activeMember(); const identity = [state.overview.floor, member?.type, member?.id].filter(Boolean).join("｜") || "未指定構件"; return `<header class="print-document-header"><div class="print-header-title"><p>RC REBAR / FIELD REVIEW / ${sequence}</p><h1>${esc(title)}</h1></div><div class="print-header-meta-body"><div class="print-header-project-lines"><div><span>工程名稱：</span><strong>${esc(display(state.overview.project))}</strong></div><div><span>施工日期：</span><strong>${esc(display(state.overview.date))}</strong></div><div><span>施工廠商：</span><strong>${esc(display(state.overview.contractor))}</strong></div><div><span>填表人：</span><strong>${esc(display(state.overview.reviewer))}</strong></div></div></div><div class="print-header-logo-wrap"><img class="print-logo" src="./taisei.png" alt="大成建設標誌" /><strong class="print-header-identity">${esc(identity)}</strong></div></header>`; }
 function printValue(value) { return esc(printText(value)); }
 function checkRows(items, getRecord) { return items.map((item, index) => { const record = getRecord(item[0]) || {}; return `<tr><td>${index + 1}</td><td class="text-left">${printValue(item[1])}</td><td class="text-left">${printValue(item[2])}</td><td class="text-left">${printValue(record.actual)}</td><td>${printValue(record.result)}</td></tr>`; }).join(""); }
@@ -206,7 +205,7 @@ function setPdfDocumentTitle(scope) {
 }
 
 function preparePrint(scope) { renderPrint(); document.body.dataset.printScope = scope; const page = activeTab === "overview" || activeTab === "members" ? "overview" : activeTab; $$(".print-page").forEach(item => item.classList.toggle("print-selected", item.dataset.printPage === page)); setPdfDocumentTitle(scope); paginatePrintReport(); }
-function exportPdf(scope) { $("#export-dialog").close(); preparePrint(scope); window.print(); }
+function exportPdf(scope) { preparePrint(scope); window.print(); }
 function clearAll() { draft.clear(); state = createState(); activeTab = "overview"; renderAll(); setTab("overview"); $("#clear-dialog").close(); }
 
 function loadExample() {
@@ -243,7 +242,7 @@ document.addEventListener("change", handleEvent);
 draft.watch();
 document.addEventListener("click", event => {
   if (armedDelete && !event.target.closest("[data-remove-member]")) disarmDelete();
-  const target = event.target.closest("button, [data-remove-member], [data-remove-bar], [data-add-bar], [data-export], [data-close-dialog]");
+  const target = event.target.closest("button, [data-remove-member], [data-remove-bar], [data-add-bar], [data-export-format], [data-close-dialog]");
   if (!target) return;
   if (target.matches("[data-tab]")) setTab(target.dataset.tab);
   if (target.matches("[data-remove-member]")) { handleDeleteClick(target); return; }
@@ -251,13 +250,12 @@ document.addEventListener("click", event => {
   if (target.matches("[data-remove-bar]")) { const member = state.members[Number(target.dataset.removeBar)]; if (member?.bars.length > 1) member.bars.splice(Number(target.dataset.barIndex), 1); renderMembers(); }
   if (target.matches("[data-toggle-member]")) { const detail = document.querySelector(`#member-detail-${target.dataset.toggleMember}`); if (detail) detail.hidden = !detail.hidden; target.textContent = detail?.hidden ? "編輯配筋" : "收合配筋"; }
   if (target.matches("[data-duplicate-member]")) { const source = state.members[Number(target.dataset.duplicateMember)]; if (source) { const copy = createMember(JSON.parse(JSON.stringify(source))); copy.id = copy.id ? `${copy.id}-複製` : ""; copy.reviewResult = "待確認"; state.members.splice(Number(target.dataset.duplicateMember) + 1, 0, copy); state.activeMember = Number(target.dataset.duplicateMember) + 1; renderAll(); } }
-  if (target.matches("[data-export]")) { const option = target.dataset.export; if (option === "current-pdf") exportPdf("current"); if (option === "all-pdf") exportPdf("all"); if (option === "json") { fileDownload(`rebar-review-${today}.json`, JSON.stringify(exportObject(), null, 2), "application/json;charset=utf-8"); $("#export-dialog").close(); } if (option === "markdown") { fileDownload(`rebar-review-${today}.md`, markdownExport(), "text/markdown;charset=utf-8"); $("#export-dialog").close(); } }
+  if (target.matches("[data-export-format]")) { const option = target.dataset.exportFormat; if (option === "pdf-current") exportPdf("current"); if (option === "pdf-all") exportPdf("all"); if (option === "json") fileDownload(`rebar-review-${today}.json`, JSON.stringify(exportObject(), null, 2), "application/json;charset=utf-8"); }
   if (target.matches("[data-close-dialog]")) target.closest("dialog")?.close();
   if (target.id === "add-member") { state.members.push(createMember()); state.activeMember = state.members.length - 1; renderAll(); setTab("members"); }
   if (target.id === "add-member-batch") { const count = Math.max(1, Math.min(50, Number($("#member-batch-count")?.value) || 1)); for (let i = 0; i < count; i += 1) state.members.push(createMember()); state.activeMember = state.members.length - 1; renderAll(); setTab("members"); }
   if (target.id === "apply-member-result") { const result = $("#member-batch-result")?.value || "待確認"; state.members.forEach(member => { member.reviewResult = result; }); renderMembers(); }
   if (target.id === "help-button") $("#help-dialog").showModal();
-  if (target.id === "export-button") { renderPrint(); $("#export-dialog").showModal(); }
   if (target.id === "clear-button") $("#clear-dialog").showModal();
   if (target.id === "confirm-clear") clearAll();
 });

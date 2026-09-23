@@ -185,7 +185,9 @@
         <button class="dock-tool" id="help-button" type="button"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></svg><small>說明</small></button>
         <button class="dock-tool" id="clear-button" type="button"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 10v6M14 10v6"/></svg><small>清空</small></button>
       </div>
-      <button class="dock-primary" id="export-button" type="button" aria-label="檔案輸出"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg></button>
+      <div class="export-fab" id="export-fab" data-export-items="pdf-current pdf-all json">
+        <button class="dock-primary" id="export-button" type="button" aria-label="檔案輸出"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg></button>
+      </div>
     </aside>
 
     <dialog class="sheet-dialog help-dialog" id="help-dialog">
@@ -194,7 +196,7 @@
         <ol class="help-steps">
           <li><strong>依分頁順序填</strong><span>工程概要 → 構件進場 → 柱腳 → 吊裝 → 螺栓 → 銲接 → 精度</span></li>
           <li><strong>每項只填關鍵值</strong><span>現場數值或文件編號，再選複核結果；廠商的原始量測資料由廠商保存</span></li>
-          <li><strong>輸出</strong><span>按右下角 ⬆，選目前分頁、完整紀錄或 JSON</span></li>
+          <li><strong>輸出</strong><span>按右下角 ⬆ 展開：單頁 PDF、整份 PDF 或 JSON</span></li>
         </ol>
         <ul class="help-notes">
           <li>右上角「計畫」可查看本工程施工計畫，可切換精簡／完整版並列印成 PDF</li>
@@ -243,14 +245,6 @@
       </form>
     </dialog>
 
-    <dialog class="sheet-dialog export-dialog" id="export-dialog">
-      <div class="dialog-header"><div><span class="dialog-eyebrow">FILE</span><h2>輸出</h2></div><button type="button" data-close-dialog aria-label="關閉">×</button></div>
-      <div class="dialog-body export-options">
-        <section class="export-option-group"><h3>PDF</h3><button type="button" data-export-format="pdf-current"><span>輸出目前表單</span><strong id="export-current-label">工程概要</strong></button><button type="button" data-export-format="pdf-all"><span>輸出完整複核紀錄</span><strong>鋼構施工複核表</strong><small>含工程概要及所有核心分頁</small></button></section>
-        <section class="export-option-group"><h3>資料檔</h3><button type="button" data-export-format="json"><span>匯出結構化資料</span><strong>JSON</strong><small>適合後續資料庫匯入</small></button></section>
-      </div>
-    </dialog>
-
     <section class="print-report" id="print-report" aria-label="鋼構施工複核列印版">
       <article class="print-page" data-print-tab="overview" id="print-overview"></article>
       <article class="print-page" data-print-tab="delivery" id="print-delivery"></article>
@@ -263,6 +257,7 @@
     </section>
 
     <script src="./draft.js" defer></script>
+    <script src="./export-menu.js" defer></script>
     <script src="./form-controls.js" defer></script>
     <script src="./print-pages.js" defer></script>
     <script src="./dialog-forms.js" defer></script>

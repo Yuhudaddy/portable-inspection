@@ -122,8 +122,8 @@ const num = value => { const n = Number.parseFloat(value); return Number.isFinit
 const fixed = value => Number.isFinite(value) ? value.toFixed(1) : "";
 const formatDate = value => { const [y, m, d] = String(value ?? "").split("-"); return y && m && d ? `${y}/${m}/${d}` : ""; };
 
-// 三段式結果膠囊：以隱藏 radio + 相鄰 span 呈現（沿用既有 .unit-type 手法）。
-// 未勾選任一段＝原本下拉選單的「待確認」狀態；點選其一會如同 <select> 觸發 change，
+// 三段式結果膠囊：以隱藏 radio + 相鄰 span 呈現。
+// 未勾選任一段＝「待確認」；點選其一會如同 <select> 觸發 change，
 // 既有的委派事件（依 data-* 屬性讀取 event.target.value）不需更動。
 const SEGMENT_ICONS = {
   pass: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>`,
@@ -337,18 +337,6 @@ function exportObject() {
 
 function fileDownload(filename, content, type) { const blob = new Blob([content], { type }); const url = URL.createObjectURL(blob); const anchor = document.createElement("a"); anchor.href = url; anchor.download = filename; anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
 
-function markdownExport() {
-  const lines = ["# 模板工程施工複核", "", `- 工程名稱：${display(state.overview.project)}`, `- 施工廠商：${display(state.overview.contractor)}`, `- 檢查日期：${display(state.overview.inspectionDate)}`, `- 檢查樓層：${display(state.overview.floor)}`, "", "## 構件與量測"];
-  state.members.forEach((member, index) => {
-    lines.push(`\n### ${index + 1}. ${member.type}｜${display(member.id)}`);
-    lines.push(`- 軸線／位置：${display(member.grid)}；設計尺寸：${display(member.width)} × ${display(member.height)} cm`);
-    const measures = Object.entries(member.measures).map(([id, record]) => `${MEASURE_LABELS[id]?.[0] || id}：設計 ${display(record.design)}／實測 ${display(record.actual)}`).join("；");
-    lines.push(`- 量測：${measures || "—"}`);
-  });
-  lines.push("", "## 澆置前放行", `- 判定：${state.release.decision}`, `- 備註：${display(state.release.decisionNote)}`, `- 拆模後確認：${display(state.release.postNote)}`);
-  return lines.join("\n");
-}
-
 function printHeader(title, sequence) {
   const display = printText;
   const member = activeMember();
@@ -403,7 +391,6 @@ function preparePrint(scope) {
 }
 
 function exportPdf(scope) {
-  $("#export-dialog").close();
   preparePrint(scope);
   window.print();
 }
@@ -444,7 +431,6 @@ function handleEvent(event) {
   if (target.matches("[data-measure-field]")) { const member = activeMember(); if (member) { member.measures[target.dataset.measureId] ||= { design: "", actual: "" }; member.measures[target.dataset.measureId][target.dataset.measureField] = target.value; if (event.type === "change") renderMeasurements(); } }
   if (target.matches("[data-tab]")) setTab(target.dataset.tab);
   if (target.matches("#active-member, #measure-member")) { state.activeMember = Number(target.value) || 0; renderInstall(); renderMeasurements(); renderMemberSelectors(); }
-  if (target.matches("[data-export]")) { const option = target.dataset.export; if (option === "current-pdf") exportPdf("current"); if (option === "all-pdf") exportPdf("all"); if (option === "json") { fileDownload(`template-review-${today}.json`, JSON.stringify(exportObject(), null, 2), "application/json;charset=utf-8"); $("#export-dialog").close(); } if (option === "markdown") { fileDownload(`template-review-${today}.md`, markdownExport(), "text/markdown;charset=utf-8"); $("#export-dialog").close(); } }
   if (target.matches("[data-close-dialog]")) target.closest("dialog")?.close();
 }
 
@@ -455,20 +441,18 @@ document.addEventListener("click", event => {
   const removeButton = event.target.closest("[data-remove-member]");
   if (removeButton) { handleDeleteClick(removeButton); return; }
   disarmDelete();
-  const target = event.target.closest("button, [data-export], [data-close-dialog]");
+  const target = event.target.closest("button, [data-export-format], [data-close-dialog]");
   if (!target) return;
   if (target.matches("[data-tab]")) setTab(target.dataset.tab);
-  if (target.matches("[data-export]")) {
-    const option = target.dataset.export;
-    if (option === "current-pdf") exportPdf("current");
-    if (option === "all-pdf") exportPdf("all");
-    if (option === "json") { fileDownload(`template-review-${today}.json`, JSON.stringify(exportObject(), null, 2), "application/json;charset=utf-8"); $("#export-dialog").close(); }
-    if (option === "markdown") { fileDownload(`template-review-${today}.md`, markdownExport(), "text/markdown;charset=utf-8"); $("#export-dialog").close(); }
+  if (target.matches("[data-export-format]")) {
+    const option = target.dataset.exportFormat;
+    if (option === "pdf-current") exportPdf("current");
+    if (option === "pdf-all") exportPdf("all");
+    if (option === "json") fileDownload(`template-review-${today}.json`, JSON.stringify(exportObject(), null, 2), "application/json;charset=utf-8");
   }
   if (target.matches("[data-close-dialog]")) target.closest("dialog")?.close();
   if (target.id === "add-member") { state.members.push(createMember()); state.activeMember = state.members.length - 1; renderAll(); setTab("members"); }
   if (target.id === "help-button") $("#help-dialog").showModal();
-  if (target.id === "export-button") { renderPrint(); $("#export-dialog").showModal(); }
   if (target.id === "clear-button") $("#clear-dialog").showModal();
   if (target.id === "confirm-clear") clearAll();
 });

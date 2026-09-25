@@ -137,7 +137,8 @@ function loadMermaid() {
           primaryColor: "#f5f3ef", primaryBorderColor: "#8c857a", primaryTextColor: "#2b2724",
           lineColor: "#8c857a", clusterBkg: "#fbfaf8", clusterBorder: "#d6d0c6", edgeLabelBackground: "#ffffff"
         },
-        flowchart: { htmlLabels: false, nodeSpacing: 22, rankSpacing: 28, padding: 8, useMaxWidth: true }
+        // subGraphTitleMargin：分段標題（一、單元成槽…）與框頂、框內節點之間留白（預設 0 會貼在一起）
+        flowchart: { htmlLabels: false, nodeSpacing: 22, rankSpacing: 28, padding: 8, useMaxWidth: true, subGraphTitleMargin: { top: 10, bottom: 12 } }
       });
       resolve(window.mermaid);
     };

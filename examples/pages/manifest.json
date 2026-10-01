@@ -2,7 +2,7 @@
   "diaphragm-wall-example": {
     "title": "連續壁施工紀錄",
     "back": "diaphragm-wall",
-    "pages": 6,
+    "pages": 7,
     "width": 952,
     "height": 1348
   },
@@ -16,14 +16,14 @@
   "rebar-cage-example": {
     "title": "鋼筋籠吊放前複核",
     "back": "diaphragm-wall",
-    "pages": 1,
+    "pages": 2,
     "width": 952,
     "height": 1348
   },
   "diaphragm-wall-gc-example": {
     "title": "連續壁營造廠查驗",
     "back": "diaphragm-wall-gc",
-    "pages": 4,
+    "pages": 5,
     "width": 952,
     "height": 1348
   },
@@ -37,7 +37,7 @@
   "gc-rebar-cage-example": {
     "title": "鋼筋籠吊放前複核",
     "back": "diaphragm-wall-gc",
-    "pages": 1,
+    "pages": 2,
     "width": 952,
     "height": 1348
   },

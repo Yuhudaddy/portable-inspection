@@ -66,14 +66,13 @@ function cagePhotosHtml(photos) {
     </figure>`).join("")}</div>`;
 }
 
-// 列印：固定三列，沒照片的列留空格；備註當小標題印在照片上方
+// 列印：固定三列，沒照片的列留空格；左欄編號＋備註、右欄照片獨立一欄，備註字數不再擠壓照片
 function cagePhotosPrintHtml(photos) {
   const rows = Array.from({ length: CAGE_PHOTO_LIMIT }, (_, index) => {
     const photo = photos[index];
-    const body = photo
-      ? `${photo.caption ? `<strong class="print-photo-caption">${escapeHtml(photo.caption)}</strong>` : ""}<div class="print-photo-image"><img src="${photo.data}" alt="鋼筋籠照片 ${index + 1}" /></div>`
-      : "";
-    return `<div class="print-photo-no">${index + 1}</div><div class="print-photo-cell">${body}</div>`;
+    const caption = photo?.caption ? `<strong class="print-photo-caption">${escapeHtml(photo.caption)}</strong>` : "";
+    const image = photo ? `<img src="${photo.data}" alt="鋼筋籠照片 ${index + 1}" />` : "";
+    return `<div class="print-photo-info"><div class="print-photo-no">${index + 1}</div>${caption}</div><div class="print-photo-cell">${image}</div>`;
   }).join("");
   return `<section class="print-section print-photo-section"><h2>鋼筋籠照片</h2><div class="print-photo-grid">${rows}</div></section>`;
 }

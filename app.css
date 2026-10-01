@@ -1096,15 +1096,17 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   /* ---- 鋼筋籠照片頁：分頁後頁盒是固定高度，照片區 flex:1 吃掉表頭與簽名欄之間的高度，三列各 1/3；
      量測時（data-measuring）頁高放開，照片區改固定高度，才不會被三張原尺寸圖撐爆而被分頁器搬走。 ---- */
   .print-photo-section { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; }
-  .print-photo-grid { flex: 1 1 auto; display: grid; grid-template-columns: 14mm minmax(0, 1fr); grid-template-rows: repeat(3, minmax(0, 1fr)); min-height: 0; border: 0.5pt solid #888; border-top: 0; }
+  .print-photo-grid { flex: 1 1 auto; display: grid; grid-template-columns: 42mm minmax(0, 1fr); grid-template-rows: repeat(3, minmax(0, 1fr)); min-height: 0; border: 0.5pt solid #888; border-top: 0; }
   body[data-print-scope] .print-page[data-measuring] .print-photo-grid { flex: 0 0 auto; height: 160mm; }
   .print-photo-grid > div { min-height: 0; border-bottom: 0.5pt solid #888; }
   .print-photo-grid > div:nth-last-child(-n + 2) { border-bottom: 0; }
-  .print-photo-no { display: flex; align-items: center; justify-content: center; border-right: 0.5pt solid #888; font-family: var(--glass-font-num); font-size: 12pt; font-weight: 600; color: #333; }
-  .print-photo-cell { display: flex; flex-direction: column; padding: 2mm; overflow: hidden; }
-  .print-photo-caption { flex: 0 0 auto; margin-bottom: 1.5mm; font-size: 8.5pt; }
-  .print-photo-image { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; min-height: 0; }
-  .print-photo-image img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  /* 左欄：上面固定 14mm 放編號（寬 42mm／高 14mm，3:1），下面剩餘高度放敘述文字 */
+  .print-photo-info { display: flex; flex-direction: column; min-height: 0; border-right: 0.5pt solid #888; }
+  .print-photo-no { flex: 0 0 14mm; display: flex; align-items: center; justify-content: center; border-bottom: 0.5pt solid #888; font-family: var(--glass-font-num); font-size: 12pt; font-weight: 600; color: #333; }
+  .print-photo-caption { flex: 1 1 auto; min-height: 0; overflow: hidden; display: grid; align-content: center; padding: 0 1.5em; text-align: justify; text-justify: inter-character; text-align-last: left; font-size: 8.5pt; }
+  /* 右欄：照片獨占整列高度，不再跟文字搶空間；預設高度吃滿，寬度置中留白 */
+  .print-photo-cell { display: flex; align-items: center; justify-content: center; padding: 2mm; overflow: hidden; min-height: 0; }
+  .print-photo-cell img { max-width: 100%; max-height: 100%; object-fit: contain; }
   .pouring-wall-full { width: 100%; }
   .pouring-wall-full .print-meta-grid.three { grid-template-columns: repeat(9, minmax(0, 1fr)); }
   .pouring-wall-full .print-meta-grid > div { min-height: 8mm; padding: .8mm .8mm; }

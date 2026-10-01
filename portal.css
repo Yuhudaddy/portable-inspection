@@ -189,9 +189,19 @@ h1 {
 }
 
 /* 連續壁版本選擇頁：標題 ＋ 兩張版本卡（手機兩欄並排、桌機不拉成三欄） */
-.select-heading { margin-top: clamp(28px, 4vh, 40px); padding: 0 4px; }
-.select-heading p { margin: 0 0 6px; }
-.version-index { margin-top: 20px; }
+/* 版本選擇頁：頂部膠囊與標題尺寸比照各工具頁（app.css 的 .app-header／.tool-title） */
+.app-header { position: sticky; top: 0; z-index: 200; padding-top: max(8px, env(safe-area-inset-top)); pointer-events: none; }
+.header-nav { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: min(100% - 32px, 880px); margin: 0 auto; }
+.header-nav > * { pointer-events: auto; }
+@media (min-width: 900px) { .header-nav { width: calc(100% - 32px); max-width: none; } }
+.header-back { color: var(--glass-ink); }
+.header-back svg { display: block; color: var(--glass-icon); }
+.portal-shell.is-sub { width: min(100% - 32px, 880px); padding-top: 6px; }
+.select-heading { padding: 20px 4px 16px; }
+.select-heading p { margin: 0 0 6px; font-size: 0.65625rem; letter-spacing: 0.14em; }
+.select-heading h1 { color: #000; font-size: 1.625rem; line-height: 1.15; letter-spacing: 0; }
+@media (min-width: 640px) { .select-heading h1 { font-size: 1.875rem; } }
+.version-index { margin-top: 4px; }
 @media (min-width: 720px) {
   .version-index { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 640px; }
 }

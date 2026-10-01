@@ -5,7 +5,7 @@
 window.PLAN_CONTENT = window.PLAN_CONTENT || {};
 PLAN_CONTENT["diaphragm-wall"] = {
   title: "連續壁工程施工計畫（廠商）",
-  subtitle: "DIAPHRAGM WALL CONSTRUCTION PLAN · FIELD RECORD",
+  subtitle: "DIAPHRAGM WALL CONSTRUCTION PLAN · SITE RECORD",
   sources: [
     "建築工程地下連續壁施工準則（TGS-EXCAVD114）",
     "建築物基礎開挖工程監測準則（114 年版）",

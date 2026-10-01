@@ -1,7 +1,7 @@
 {
   "name": "Portable Inspection",
   "short_name": "Portable Inspection",
-  "description": "A local field record entry prototype.",
+  "description": "A local site record entry prototype.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

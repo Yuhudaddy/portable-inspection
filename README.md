@@ -1,6 +1,6 @@
 # Portable Inspection
 
-A lightweight mobile-first PDF tool for field record entry.
+A lightweight mobile-first PDF tool for site record entry.
 
 ## Deployment
 
@@ -12,7 +12,7 @@ The site opens at `index.html`, which is the tool index:
 | --- | --- | --- | --- |
 | 01 | 連續壁 | `diaphragm-wall-select.html` | Version picker linking the two diaphragm-wall tools below: 品管版 (quality control) and 完整版 (full record). |
 | 01a | 連續壁・品管版 | `diaphragm-wall-gc.html` + `wall-gc.js` | General-contractor hold-point inspection: design baseline, monitoring conclusion, trenching / cage-lowering / pour release, plus Guide Wall and Rebar Cage reviews. Imports the vendor tool's JSON. |
-| 01b | 連續壁・完整版 | `diaphragm-wall.html` + `app.js` | Vendor field record: wall unit, quality self-check, excavation, pre-work and concrete pour logs, plus Guide Wall and Rebar Cage reviews. |
+| 01b | 連續壁・完整版 | `diaphragm-wall.html` + `app.js` | Vendor site record: wall unit, quality self-check, excavation, pre-work and concrete pour logs, plus Guide Wall and Rebar Cage reviews. |
 | 02 | 模板 | `template.html` + `template.js` | RC formwork review, measurement, pour release and stripping. |
 | 03 | 鋼筋 | `rebar.html` + `rebar.js` | RC rebar review: member matrix with bar details, material, placement, splice/cover and pour release. |
 | 04 | 鋼構 | `steel-structure.html` + `steel.js` | Steel erection review: delivery, anchor bolts, erection, HSB, welding, accuracy and optional records. |
@@ -20,7 +20,7 @@ The site opens at `index.html`, which is the tool index:
 
 Within both diaphragm-wall tools the unit number and sequence number live on the wall record; the Rebar Cage review edits the same two fields (both tabs stay in sync), and the Guide Wall review is identified by an axis / direction number (`axis_no`) instead of a unit. The Guide Wall numeric items (clear width, depth, wall thickness, rebar, concrete strength, top elevation) are shared by both tools in `guide-wall.js`: each takes a design and a measured value; a passing value auto-selects ✓ and a failing one auto-selects ✗ with ✓ disabled. A result the user clicks is kept through re-renders and standard changes, and is re-judged (with an undoable notice) only when that item's value is edited; N/A is never changed. Items judged this way carry a 「自動判定」 badge. The same rules (in `auto-judge.js`) drive the numeric hold-point items of 品管版 and the numeric quality self-check items of 完整版: values are normalized first (full-width digits, trailing units, `GL` prefix, `1/n`), non-numeric input is flagged 「非數值，請手動判定」 and left to a manual result, and changing a standard value in the dropdown re-judges immediately. Each tool's JSON also carries its construction-plan cover fields — preparer, date and brief/full version (`construction_plan`; the revision history is not user data), and 還原預設 clears that plan draft. Every tool's header has a 計畫 button that opens `plan.html?work=…&from=…`: a construction plan for that work type (連續壁 has separate 品管版 and 完整版 plans, plus 模板, 鋼筋, 鋼構) with a brief / full version switch, cover, revision history and table of contents, printable to PDF; the content lives in `plans/*.js`, the revision history and cover version are maintained by the plan author in `plans/revisions.js` (read-only on the page), numbers tied to a diaphragm-wall check standard are written as `{{key}}` tokens (keys from `inspection-standards.js`, shared with the tools' dropdowns) and print the value currently chosen in that tool, highlighted with the cover note 「本案調整 N 項」 when it differs from the default, flowcharts are Mermaid sources in `plans/flowcharts-diaphragm-wall.js` rendered by `vendor/mermaid-11.4.1.min.js` (versioned filename; the service worker keeps it in a separate cache listed in `VENDOR_FILES`), and the other cover fields are kept as a local draft. Every tool exports PDF (current form or the whole record) and JSON from the gooey menu on the dock's export button (`export-menu.js`); only the two diaphragm-wall tools can import JSON, from a fourth menu item. Legacy `record.html` and `checklists.html` URLs redirect to the vendor Diaphragm Wall tool. Shared modules loaded by every page: `glass.css` (design tokens), `draft.js` (local drafts), `export-menu.js` (export menu on tool pages), `print-pages.js` (print pagination and PDF helpers), `dialog-forms.js`, `sw-client.js`.
 
-## Field workflow
+## Site workflow
 
 1. Open the Pages URL on a phone and select an engineering record category from the tool index.
 2. For the diaphragm-wall tools, pick the Diaphragm Wall, Guide Wall, or Rebar Cage record from the record switcher.

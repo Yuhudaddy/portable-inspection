@@ -17,6 +17,7 @@
 //   ・檢查標準值、設計基準改變或重繪 → 只重判自動帶入的結果與待確認，使用者手動點的保留
 //   ・N/A 一律不動
 // record.auto 記錄目前結果是否由自動判定帶入（"pass"／"fail"），使用者手動點選時清掉（markManualResult）。
+// record.cleared：使用者手動把結果取消成待確認（點已選的鈕），重繪時不自動填回，直到數值被改。
 const FULL_WIDTH_DIGITS = "０１２３４５６７８９";
 
 function normalizeMeasureText(value) {
@@ -50,6 +51,11 @@ const AUTO_RESULTS = { pass: "符合", fail: "不符合" };
 // valueChanged：這次是使用者改了這一項的數值。回傳被自動判定取代的手動結果（沒有就回傳 null）。
 function rejudge(record, status, { valueChanged = false } = {}) {
   if (record.result === "不適用") return null;
+  // 使用者點已選的結果鈕取消（回到待確認）：數值沒變就不要又自動填回去；改了數值才重新判定
+  if (record.cleared && record.result === "待確認") {
+    if (!valueChanged) return null;
+    record.cleared = false;
+  }
   const manual = !record.auto && record.result !== "待確認";
   if (manual && !valueChanged) return null;
   const next = AUTO_RESULTS[status];
@@ -81,6 +87,7 @@ const AUTO_JUDGE_BADGE = '<small class="auto-badge" title="填入數值後自動
 // 使用者手動點結果時呼叫：之後標準值改變或重繪都不會動它，直到使用者再改這一項的數值
 function markManualResult(record) {
   record.auto = "";
+  record.cleared = record.result === "待確認";
 }
 
 // 打字時就地更新結果鈕（勾選、停用）與卡片的不合格底色，不重繪整張卡片（避免輸入框失焦）。

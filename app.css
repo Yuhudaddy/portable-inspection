@@ -1129,7 +1129,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .pouring-layout .print-meta-grid > div { min-height: 9mm; padding: 1.2mm 1.6mm; }
   .pouring-layout .print-meta-grid span { font-size: 6pt; }
   .pouring-layout .print-meta-grid strong { margin-top: .7mm; font-size: 8pt; }
-  .pouring-layout .print-summary { grid-template-columns: .7fr 1.2fr 1.5fr 2.6fr; margin-top: 2mm; }
+  .pouring-layout .print-summary { grid-template-columns: .7fr 1.2fr 2.05fr 2.05fr; margin-top: 2mm; }
   .pouring-layout .print-summary > div { min-width: 0; padding: 1.2mm 1.2mm; }
   .pouring-layout .print-summary span { font-size: 6pt; white-space: nowrap; }
   .pouring-layout .print-summary strong { margin-top: .7mm; font-size: 7.4pt; white-space: nowrap; }

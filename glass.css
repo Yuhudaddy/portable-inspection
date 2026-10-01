@@ -276,15 +276,16 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; marg
 .help-notes li::before { content: "※ "; }
 
 /* ---- 橫向捲動分頁：可捲動的提示 --------------------------------------------
-   兩側用透明遮罩把膠囊淡出（不是畫白色，任何背景都吃），右側再加一顆白色圓徽章「›」。
+   兩側用透明遮罩把膠囊淡出（不是畫白色，任何背景都吃），兩側各加一顆白色圓徽章「‹」「›」。
    淡出與徽章只在該方向還有內容時出現（scroll-driven animation；未捲動時只有右側，
-   捲到底就消失；不支援的瀏覽器則不顯示）。scroll-snap 讓拖動時逐顆停靠。 */
+   捲到底只剩左側；不支援的瀏覽器則不顯示）。scroll-snap 讓拖動時逐顆停靠。 */
 @property --glass-tab-fade-l { syntax: "<length>"; inherits: false; initial-value: 0px; }
 @property --glass-tab-fade-r { syntax: "<length>"; inherits: false; initial-value: 0px; }
 .tab-navigation { scroll-snap-type: x proximity; }
 /* 停靠留白用 scroll-margin 而不是容器的 scroll-padding：scroll-padding 會一併縮小 sticky 的
    吸附範圍，徽章就會和遮罩圓洞錯開 16px。 */
 .tab-row button { scroll-snap-align: start; scroll-margin-inline-start: 16px; }
+.tab-navigation::before,
 .tab-navigation::after {
   content: "";
   position: sticky;
@@ -303,21 +304,33 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; marg
   opacity: 0;
   pointer-events: none;
 }
+/* 左側徽章「‹」：排在第一個 flex 項目，貼內容左緣 */
+.tab-navigation::before {
+  right: auto;
+  left: 0;
+  margin: 7px calc(-1 * var(--glass-tab-badge) - var(--glass-tab-gap)) 0 0;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233a332c' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 6l-6 6 6 6'/%3E%3C/svg%3E") center / 14px 14px no-repeat,
+    var(--glass-card-bg);
+}
 @supports (animation-timeline: scroll()) {
   .tab-navigation {
     /* 第一層：兩側淡出（最外 30% 完全透明，避免邊緣殘影）；
        第二層：在徽章位置開圓洞讓徽章不被淡出——以 content-box 定位，才會和 sticky 徽章落在同一點 */
     mask:
       linear-gradient(90deg, transparent calc(var(--glass-tab-fade-l) * 0.3), #000 var(--glass-tab-fade-l), #000 calc(100% - var(--glass-tab-fade-r)), transparent calc(100% - var(--glass-tab-fade-r) * 0.3)),
-      radial-gradient(circle closest-side, #000 98%, transparent) right 0 top 7px / var(--glass-tab-badge) var(--glass-tab-badge) no-repeat content-box border-box;
+      radial-gradient(circle closest-side, #000 98%, transparent) right 0 top 7px / var(--glass-tab-badge) var(--glass-tab-badge) no-repeat content-box border-box,
+      radial-gradient(circle closest-side, #000 98%, transparent) left 0 top 7px / var(--glass-tab-badge) var(--glass-tab-badge) no-repeat content-box border-box;
     animation: glass-tabs-fade-left linear both, glass-tabs-fade-right linear both;
     animation-timeline: scroll(self inline);
   }
   .tab-navigation::after { animation: glass-tabs-badge linear both; animation-timeline: scroll(nearest inline); }
+  .tab-navigation::before { animation: glass-tabs-badge-left linear both; animation-timeline: scroll(nearest inline); }
 }
 @keyframes glass-tabs-fade-left { 0%, 4% { --glass-tab-fade-l: 0px; } 12%, 100% { --glass-tab-fade-l: 48px; } }
 @keyframes glass-tabs-fade-right { 0%, 88% { --glass-tab-fade-r: 48px; } 96%, 100% { --glass-tab-fade-r: 0px; } }
 @keyframes glass-tabs-badge { 0%, 88% { opacity: 1; } 96%, 100% { opacity: 0; } }
+@keyframes glass-tabs-badge-left { 0%, 4% { opacity: 0; } 12%, 100% { opacity: 1; } }
 
 /* ---- 對話框必填欄位：只有按下「確認」後（dialog-forms.js 掛上 .form-validation-error）才標紅 ---- */
 .form-validation-error .field :is(input, select, textarea):invalid { box-shadow: inset 0 0 0 1.5px var(--glass-danger); }

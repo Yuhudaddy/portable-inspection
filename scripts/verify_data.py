@@ -810,6 +810,40 @@ def verify_rebar_cage_helpers(browser):
     page.context.close()
 
 
+# ---------------------------------------------------------------- 結果膠囊：已選的再點一次＝取消
+def verify_result_toggle(browser, html, query="?example=1"):
+    page = open_clean(browser, html, query)
+    result = page.evaluate("""() => {
+      const seen = [];
+      for (const type of ["input", "change"]) document.addEventListener(type, event => { if (event.target.matches(".glass-segmented input")) seen.push(event.target.value); }, true);
+      const click = target => { target.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })); target.click(); };
+      const visible = [...document.querySelectorAll(".glass-segmented")].find(group => group.offsetParent);
+      const group = visible || document.querySelector(".glass-segmented");
+      const label = group.closest("[data-check-card], .check-card, article") || group;
+      const first = group.querySelector('input[type="radio"]');
+      const span = first.nextElementSibling;
+      if (!first.checked) click(span);
+      const selected = group.querySelector("input:checked")?.value;
+      click(span);
+      return { selected, afterToggle: document.querySelector(".glass-segmented") && [...document.querySelectorAll(".glass-segmented input:checked")].filter(i => i === first).length, last: seen.at(-1) };
+    }""")
+    check(f"{html}：已選的結果膠囊再點一次 → 取消（回到待確認）", result["selected"] in ("符合", "合格") and result["last"] == "待確認" and result["afterToggle"] == 0, result)
+    if html.startswith("diaphragm-wall"):
+        auto = page.evaluate("""() => {
+          const index = state.guideWall.checks.findIndex(check => check.item === "深度");
+          const render = () => { renderCheckCards("guideWall"); };
+          render();
+          const before = state.guideWall.checks[index].result;
+          const radio = document.querySelector(`[data-check-card="guideWall-${index}"] .glass-segmented input[value="符合"]`);
+          radio.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })); radio.click();
+          const cleared = state.guideWall.checks[index].result;
+          render();
+          return { before, cleared, afterRender: state.guideWall.checks[index].result };
+        }""")
+        check(f"{html}：自動判定的項目取消後重繪不會被自動填回（改數值才重判）", auto["before"] == "符合" and auto["cleared"] == "待確認" and auto["afterRender"] == "待確認", auto)
+    page.context.close()
+
+
 # ---------------------------------------------------------------- 鋼筋籠畫面
 def verify_rebar_cage_ui(browser, html):
     page = open_clean(browser, html)
@@ -1020,6 +1054,8 @@ try:
         verify_rebar_cage_helpers(browser)
         verify_rebar_cage_ui(browser, "diaphragm-wall-gc")
         verify_rebar_cage_ui(browser, "diaphragm-wall")
+        for tool in ("diaphragm-wall", "diaphragm-wall-gc", "template", "rebar", "steel-structure"):
+            verify_result_toggle(browser, tool)
         verify_pdf_content(browser)
         verify_plan_page(browser)
         verify_plan_standard_sync(browser)

@@ -226,7 +226,7 @@ function printHeader(title, sequence, identity = "尚未指定構件") {
   const display = printText;
   const project = state.overview;
   const id = identity || "尚未指定構件";
-  return `<header class="print-document-header"><div class="print-header-title"><p>STEEL STRUCTURE FIELD REVIEW / ${sequence}</p><h1>${esc(title)}</h1></div><div class="print-header-meta-body"><div class="print-header-project-lines"><div><span>工程名稱：</span><strong>${esc(display(project.project))}</strong></div><div><span>施工日期：</span><strong>${esc(display(project.date))}</strong></div><div><span>施工廠商：</span><strong>${esc(display(project.contractor))}</strong></div><div><span>填表人：</span><strong>${esc(display(project.reviewer))}</strong></div></div></div><div class="print-header-logo-wrap"><img class="print-logo" src="./taisei.png" alt="大成建設標誌" /><strong class="print-header-identity">${esc(id)}</strong></div></header>`;
+  return `<header class="print-document-header"><div class="print-header-title"><p>STEEL STRUCTURE SITE REVIEW / ${sequence}</p><h1>${esc(title)}</h1></div><div class="print-header-meta-body"><div class="print-header-project-lines"><div><span>工程名稱：</span><strong>${esc(display(project.project))}</strong></div><div><span>施工日期：</span><strong>${esc(display(project.date))}</strong></div><div><span>施工廠商：</span><strong>${esc(display(project.contractor))}</strong></div><div><span>填表人：</span><strong>${esc(display(project.reviewer))}</strong></div></div></div><div class="print-header-logo-wrap"><img class="print-logo" src="./taisei.png" alt="大成建設標誌" /><strong class="print-header-identity">${esc(id)}</strong></div></header>`;
 }
 
 

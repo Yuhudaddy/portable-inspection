@@ -341,7 +341,7 @@ function printHeader(title, sequence) {
   const display = printText;
   const member = activeMember();
   const identity = [state.overview.floor, member?.type, member?.id].filter(Boolean).join("｜") || "未指定構件";
-  return `<header class="print-document-header"><div class="print-header-title"><p>RC FORMWORK / FIELD REVIEW / ${sequence}</p><h1>${esc(title)}</h1></div><div class="print-header-meta-body"><div class="print-header-project-lines">
+  return `<header class="print-document-header"><div class="print-header-title"><p>RC FORMWORK / SITE REVIEW / ${sequence}</p><h1>${esc(title)}</h1></div><div class="print-header-meta-body"><div class="print-header-project-lines">
     <div><span>工程名稱：</span><strong>${esc(display(state.overview.project))}</strong></div>
     <div><span>施工日期：</span><strong>${esc(display(state.overview.date))}</strong></div>
     <div><span>施工廠商：</span><strong>${esc(display(state.overview.contractor))}</strong></div>

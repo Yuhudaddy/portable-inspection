@@ -1033,7 +1033,7 @@ function constructionPeriodText() {
 // 工程名稱／施工廠商一律取共用的工程資訊；identity 與 reviewer 沒給就用連續壁本身的。
 function printHeader({ title, sequence, identity, date, dateLabel = "施工期間", reviewer = state.overview.reviewer, reviewerLabel = "填表人" }) {
   const shownIdentity = identity || [state.wall.unitType, state.wall.unitNo].filter(Boolean).join("｜") || "未指定單元";
-  return `<header class="print-document-header"><div class="print-header-title"><p>DIAPHRAGM WALL FIELD RECORD / ${sequence}</p><h1>${esc(title)}</h1></div><div class="print-header-meta-body"><div class="print-header-project-lines">
+  return `<header class="print-document-header"><div class="print-header-title"><p>DIAPHRAGM WALL SITE RECORD / ${sequence}</p><h1>${esc(title)}</h1></div><div class="print-header-meta-body"><div class="print-header-project-lines">
     <div><span>工程名稱：</span><strong>${esc(display(state.overview.project))}</strong></div>
     <div><span>${esc(dateLabel)}：</span><strong>${esc(display(date))}</strong></div>
     <div><span>施工廠商：</span><strong>${esc(display(state.overview.contractor))}</strong></div>

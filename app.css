@@ -654,6 +654,15 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .rebar-part-summary.is-mirrored span { font-family: inherit; color: var(--glass-muted); }
 .rebar-part-card.is-failed .rebar-fill-button { background: #fff; }
 .rebar-part-fields { justify-content: flex-end; }
+/* 簡易模式：左邊編號＋部位／說明，右邊三態結果鈕（寬度不夠時結果鈕換到下一列靠右） */
+.rebar-part-card.is-simple { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "head fields" "note fields"; column-gap: 12px; align-items: center; }
+.rebar-part-card.is-simple .rebar-part-head { grid-area: head; align-self: end; }
+.rebar-part-card.is-simple > p.rebar-part-summary { grid-area: note; align-self: start; margin-bottom: 0; }
+.rebar-part-card.is-simple .rebar-part-fields { grid-area: fields; }
+@media (max-width: 359px) {
+  .rebar-part-card.is-simple { grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "note" "fields"; }
+  .rebar-part-card.is-simple > p.rebar-part-summary { margin-bottom: 12px; }
+}
 
 /* 填寫視窗：深度區間 */
 .rebar-interval { margin: 0 0 12px; padding: 10px 12px 12px; border: 1px solid var(--glass-line); border-radius: var(--glass-radius-sm); }

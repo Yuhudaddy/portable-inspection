@@ -10,3 +10,6 @@ docs/reference/
 
 # 對外展示版（scripts/build_share.py 產生，不進 git）
 share/
+
+# 私人專案的預設 JSON（只留本機）
+presets/Fujie/

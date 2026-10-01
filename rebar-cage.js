@@ -7,9 +7,9 @@ const REBAR_CAGE_PARTS = [
   { key: "innerVertical", part: "內側 垂直 主筋", template: "interval", mirrorOf: "outerVertical" },
   { key: "outerHorizontal", part: "外側 水平 溫度筋", template: "interval", pair: "innerHorizontal" },
   { key: "innerHorizontal", part: "內側 水平 溫度筋", template: "interval", mirrorOf: "outerHorizontal" },
-  { key: "horizontalTie", part: "水平 正交繫筋", template: "interval" },
-  { key: "verticalDiagonalSmall", part: "垂直 小斜拉筋", template: "interval" },
-  { key: "horizontalDiagonalSmall", part: "水平 小斜拉筋", template: "interval" },
+  { key: "horizontalTie", part: "水平 正交繫筋", template: "interval", dual: true },
+  { key: "verticalDiagonalSmall", part: "垂直 小斜拉筋", template: "interval", dual: true },
+  { key: "horizontalDiagonalSmall", part: "水平 小斜拉筋", template: "interval", dual: true },
   { key: "jointVertical", part: "單元接頭垂直補強筋", template: "single" },
   { key: "endPlateStopper", part: "端板擋筋(母單元)", template: "single", note: "依設計圖說配置，銲喉4mm且銲長至少50mm" },
   { key: "vBrace", part: "V型固定加強筋", template: "single" },
@@ -26,7 +26,7 @@ const rebarCageNumber = value => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 
-const createRebarCageInterval = () => ({ top: "", bottom: "", size: "", spacing: "", extra: { enabled: false, size: "", spacing: "" } });
+const createRebarCageInterval = () => ({ top: "", bottom: "", size: "", spacing: "", spacingH: "", extra: { enabled: false, size: "", spacing: "" } });
 const createRebarCagePart = def => def.template === "interval"
   ? { key: def.key, result: "待確認", symmetric: false, intervals: [createRebarCageInterval()] }
   : { key: def.key, result: "待確認", symmetric: false, count: "", size: "", spacing: "" };
@@ -49,7 +49,7 @@ function normalizeRebarCageParts(source) {
     const intervals = Array.isArray(record.intervals) && record.intervals.length ? record.intervals : [{}];
     part.intervals = intervals.map(item => ({
       top: rebarCageText(item?.top), bottom: rebarCageText(item?.bottom),
-      size: rebarCageText(item?.size), spacing: rebarCageText(item?.spacing),
+      size: rebarCageText(item?.size), spacing: rebarCageText(item?.spacing), spacingH: rebarCageText(item?.spacingH),
       extra: { enabled: Boolean(item?.extra?.enabled), size: rebarCageText(item?.extra?.size), spacing: rebarCageText(item?.extra?.spacing) }
     }));
     return part;
@@ -65,13 +65,14 @@ const rebarCageMirrored = (part, parts) => Boolean(rebarCageDef(part.key).mirror
 
 // 文字組合：GL-10、#10@60、#10@60+#10@15、#6、@200
 const rebarCageGl = value => rebarCageText(value) ? `GL-${rebarCageText(value)}` : "";
-function rebarCageBarText(size, spacing) {
+function rebarCageBarText(size, spacing, spacingH = "") {
   const mark = rebarCageText(size) ? barSizeMark(size) : "";
   const pitch = rebarCageText(spacing) ? `@${rebarCageText(spacing)}` : "";
-  return `${mark}${pitch}`;
+  const pitchH = rebarCageText(spacingH) ? `@${rebarCageText(spacingH)}` : "";
+  return pitchH ? `${mark}${pitch}&${pitchH}` : `${mark}${pitch}`;
 }
-function rebarCageIntervalText(interval) {
-  const main = rebarCageBarText(interval.size, interval.spacing);
+function rebarCageIntervalText(interval, dual = false) {
+  const main = rebarCageBarText(interval.size, interval.spacing, dual ? interval.spacingH : "");
   const extra = interval.extra?.enabled ? rebarCageBarText(interval.extra.size, interval.extra.spacing) : "";
   return [main, extra].filter(Boolean).join("+");
 }
@@ -81,7 +82,7 @@ function rebarCagePrintRows(part, parts) {
   const def = rebarCageDef(part.key);
   if (rebarCageMirrored(part, parts)) return [{ top: "", bottom: "", count: "", bars: "" }];
   if (def.template === "single") return [{ top: "", bottom: "", count: rebarCageText(part.count), bars: rebarCageBarText(part.size, part.spacing) }];
-  return part.intervals.map(interval => ({ top: rebarCageGl(interval.top), bottom: rebarCageGl(interval.bottom), count: "", bars: rebarCageIntervalText(interval) }));
+  return part.intervals.map(interval => ({ top: rebarCageGl(interval.top), bottom: rebarCageGl(interval.bottom), count: "", bars: rebarCageIntervalText(interval, Boolean(def.dual)) }));
 }
 
 // 卡片摘要：每列一行，例如「GL-0～-10 #10@60」「3 支 #6」「@200」
@@ -120,6 +121,7 @@ function exportRebarCageParts(cage) {
       ...base,
       intervals: part.intervals.map(interval => ({
         top_m: toNumber(interval.top), bottom_m: toNumber(interval.bottom), bar_size: interval.size || null, spacing_cm: toNumber(interval.spacing),
+        ...(def.dual ? { spacing_h_cm: toNumber(interval.spacingH) } : {}),
         extra: interval.extra.enabled ? { bar_size: interval.extra.size || null, spacing_cm: toNumber(interval.extra.spacing) } : null
       }))
     };
@@ -137,7 +139,7 @@ function importRebarCageParts(records) {
     return {
       key: def.key, result: record.result, symmetric: record.symmetric,
       intervals: (Array.isArray(record.intervals) ? record.intervals : []).map(interval => ({
-        top: text(interval?.top_m), bottom: text(interval?.bottom_m), size: text(interval?.bar_size), spacing: text(interval?.spacing_cm),
+        top: text(interval?.top_m), bottom: text(interval?.bottom_m), size: text(interval?.bar_size), spacing: text(interval?.spacing_cm), spacingH: text(interval?.spacing_h_cm),
         extra: { enabled: Boolean(interval?.extra), size: text(interval?.extra?.bar_size), spacing: text(interval?.extra?.spacing_cm) }
       }))
     };
@@ -160,7 +162,9 @@ function rebarCagePrintTableHtml(cage) {
         return `<tr class="${first ? "" : "part-continued"} ${last ? "" : "part-has-more"}"><td>${first ? index + 1 : ""}</td><td class="text-left">${first ? escapeHtml(def.part) : ""}</td><td>${cell(row.top)}</td><td>${cell(row.bottom)}</td><td>${cell(row.count)}</td><td>${cell(row.bars)}</td><td>${first ? symmetric : ""}</td><td>${first ? escapeHtml(part.result) : ""}</td></tr>`;
       }).join("");
     }).join("");
-    return `<table class="print-table rebar-cage-print-table is-detailed"><thead><tr><th>項次</th><th>部位</th><th>頂部(m)</th><th>底部(m)</th><th>支數</th><th>號數@間距(cm)</th><th>對稱</th><th>結果</th></tr></thead><tbody>${rows}</tbody></table>`;
+    const dualNote = cage.parts.some(part => rebarCageDef(part.key).dual && !rebarCageMirrored(part, cage.parts) && part.intervals.some(interval => rebarCageText(interval.spacingH)))
+      ? `<p class="print-table-note">水平正交繫筋、小斜拉筋標示兩個間距者（例：#5@45&amp;@60）：前為垂直間距、後為水平間距。</p>` : "";
+    return `<table class="print-table rebar-cage-print-table is-detailed"><thead><tr><th>項次</th><th>部位</th><th>頂部(m)</th><th>底部(m)</th><th>支數</th><th>號數@間距(cm)</th><th>對稱</th><th>結果</th></tr></thead><tbody>${rows}</tbody></table>${dualNote}`;
   }
   const rows = cage.parts.map((part, index) => {
     const def = rebarCageDef(part.key);
@@ -181,7 +185,7 @@ function rebarCageCardsHtml(cage, resultSegmented) {
       ? `<label class="rebar-symmetric"><input type="checkbox" data-part-symmetric="${index}" ${part.symmetric ? "checked" : ""} /><span>對稱</span></label>` : "";
     const fill = detailed && !mirrored ? `<button type="button" class="rebar-fill-button" data-edit-part="${index}">填寫</button>` : "";
     return `
-    <article class="check-card rebar-part-card ${part.result === "不符合" ? "is-failed" : ""}">
+    <article class="check-card rebar-part-card ${detailed ? "" : "is-simple"} ${part.result === "不符合" ? "is-failed" : ""}">
       <div class="check-card-head rebar-part-head"><span>${String(index + 1).padStart(2, "0")}</span><strong>${escapeHtml(def.part)}</strong>${symmetric}${fill}</div>
       <p class="rebar-part-summary ${mirrored ? "is-mirrored" : ""}">${summary.map(line => `<span>${escapeHtml(line)}</span>`).join("")}</p>
       <div class="check-card-fields rebar-part-fields">
@@ -242,8 +246,12 @@ function renderRebarCageDialogFields() {
       <div class="compact-form two-fields">
         <label class="field gl-field ${issues[i].has("top") ? "is-invalid" : ""}"><span>頂部（GL 以下 m）</span><span class="gl-input"><em>GL −</em>${rebarCageNumberInput("top", interval.top, "例如：10", "0.01")}<em>m</em></span></label>
         <label class="field gl-field ${issues[i].has("bottom") ? "is-invalid" : ""}"><span>底部（GL 以下 m）</span><span class="gl-input"><em>GL −</em>${rebarCageNumberInput("bottom", interval.bottom, "例如：20", "0.01")}<em>m</em></span></label>
+        ${def.dual ? `
+        <label class="field span-two"><span>鋼筋號數</span><select data-interval-field="size">${barSizeOptions(interval.size)}</select></label>
+        <label class="field"><span>垂直間距（cm）</span>${rebarCageNumberInput("spacing", interval.spacing, "例如：45")}</label>
+        <label class="field"><span>水平間距（cm）</span>${rebarCageNumberInput("spacingH", interval.spacingH, "例如：60")}</label>` : `
         <label class="field"><span>鋼筋號數</span><select data-interval-field="size">${barSizeOptions(interval.size)}</select></label>
-        <label class="field"><span>間距（cm）</span>${rebarCageNumberInput("spacing", interval.spacing, "例如：60")}</label>
+        <label class="field"><span>間距（cm）</span>${rebarCageNumberInput("spacing", interval.spacing, "例如：60")}</label>`}
         <label class="field span-two rebar-extra-toggle"><input type="checkbox" data-interval-field="extraEnabled" ${interval.extra.enabled ? "checked" : ""} /><span>補強插筋</span></label>
         ${interval.extra.enabled ? `
         <label class="field"><span>補強 鋼筋號數</span><select data-interval-field="extraSize">${barSizeOptions(interval.extra.size)}</select></label>

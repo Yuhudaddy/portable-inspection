@@ -40,8 +40,13 @@ body { margin: 0; background: var(--glass-page-bg); background-image: var(--glas
 .plan-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
 .plan-table th, .plan-table td { padding: 8px 10px; border-bottom: 1px solid var(--glass-line); text-align: left; vertical-align: top; line-height: 1.55; }
 .plan-table th { background: var(--glass-sunken); font-weight: 600; color: var(--glass-soft); white-space: nowrap; }
-.revisions-table th:first-child { width: 4em; }
-.revisions-table td:nth-child(2) { white-space: nowrap; }
+/* 修訂紀錄：固定表格（不橫向捲動）。版次、日期窄，修訂內容吃剩下的寬度；修訂內容只寫重點，一兩句為限 */
+.revisions-table { table-layout: fixed; width: 100%; font-size: 0.8125rem; }
+.revisions-table th, .revisions-table td { padding: 6px 8px; line-height: 1.45; }
+.revisions-table th:nth-child(1) { width: 3.2em; }
+.revisions-table th:nth-child(2) { width: 6.4em; }
+.revisions-table td:nth-child(2) { white-space: nowrap; font-family: var(--glass-font-num); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+.revisions-table td:nth-child(3) { overflow-wrap: anywhere; }
 .plan-figure { margin: 12px 0 16px; }
 /* 依本案檢查標準值調整過的數值（和本公司預設不同）：淡黃底，列印也保留 */
 .plan-value.is-adjusted { padding: 0 2px; border-radius: 3px; background: #fdf0c4; box-shadow: inset 0 -1px 0 #e7c65a; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -100,7 +105,7 @@ body { margin: 0; background: var(--glass-page-bg); background-image: var(--glas
   .plan-cover, .plan-block, .plan-article { padding-left: 20px; padding-right: 20px; }
   .plan-cover-grid { grid-template-columns: 1fr; }
   .plan-table { min-width: 480px; }
-  .revisions-table { min-width: 420px; }
+  .revisions-table { min-width: 0; }
   .header-print { padding-right: 10px; }
   .header-print svg + * { display: none; }
 }

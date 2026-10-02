@@ -155,6 +155,98 @@ function setAdjustedPill(id, count) {
   window.addEventListener("resize", hide);
 })();
 
+// 帶正負號的數值欄（GL 深度、高程）：<input data-signed [data-sign-default="+"]>。
+// 原本那顆 input 變成 hidden，繼續當資料綁定的來源（既有的 input／change 事件與 .value 讀寫都照舊）；
+// 畫面上換成「－／＋ 切換鈕＋只能填數字的輸入格」。程式寫入 .value（還原草稿、匯入、範例）也會同步回畫面。
+(function () {
+  const nativeValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value");
+  const MINUS = /^[-−－]/;
+
+  function upgrade(original) {
+    if (original.dataset.signedReady) return;
+    original.dataset.signedReady = "1";
+    const defaultNegative = original.dataset.signDefault !== "+";
+    let negative = defaultNegative;
+
+    // 用自訂標籤而不是 <span>：各表單有 `.field > span`（標題）的規則，包裝層若也是 span 會被誤當成標題縮成 1px
+    const wrap = document.createElement("signed-field");
+    wrap.className = "signed-field";
+    const magnitude = document.createElement("input");
+    magnitude.type = "text";
+    magnitude.inputMode = "decimal";
+    magnitude.autocomplete = "off";
+    magnitude.required = original.required;
+    magnitude.placeholder = original.placeholder.replace(/([：:\s])[+\-−－]/, "$1");
+    const label = original.getAttribute("aria-label");
+    if (label) magnitude.setAttribute("aria-label", label);
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "sign-toggle";
+    // 輸入格排在按鈕前面（DOM 順序），點標題文字時 <label> 才會聚焦輸入格而不是按到按鈕；畫面上用 CSS order 把按鈕排到左邊
+    wrap.append(magnitude, toggle);
+    original.after(wrap);
+    original.type = "hidden";
+
+    const paintSign = () => {
+      toggle.textContent = negative ? "−" : "+";
+      toggle.setAttribute("aria-label", negative ? "負值（GL 以下），點一下改成正值" : "正值（GL 以上），點一下改成負值");
+      toggle.classList.toggle("is-positive", !negative);
+    };
+    const publish = () => {
+      nativeValue.set.call(original, magnitude.value === "" ? "" : `${negative ? "-" : ""}${magnitude.value}`);
+      original.dispatchEvent(new Event("input", { bubbles: true }));
+    };
+    const pull = raw => {
+      const text = String(raw ?? "").trim();
+      const number = text.replace(/^[-+−－]\s*/, "").match(/^\d*[.,]?\d*/)?.[0].replace(",", ".") ?? "";
+      magnitude.value = number;
+      negative = text === "" ? defaultNegative : MINUS.test(text);
+      paintSign();
+    };
+
+    Object.defineProperty(original, "value", {
+      configurable: true,
+      get() { return nativeValue.get.call(this); },
+      set(value) { nativeValue.set.call(this, value); pull(value); }
+    });
+
+    magnitude.addEventListener("input", () => {
+      let raw = magnitude.value;
+      if (MINUS.test(raw.trim())) negative = true;
+      else if (/^\s*\+/.test(raw)) negative = false;
+      let cleaned = raw.replace(/,/g, ".").replace(/[^0-9.]/g, "");
+      const dot = cleaned.indexOf(".");
+      if (dot !== -1) cleaned = cleaned.slice(0, dot + 1) + cleaned.slice(dot + 1).replace(/\./g, "");
+      if (cleaned !== raw) magnitude.value = cleaned;
+      paintSign();
+      publish();
+    });
+    magnitude.addEventListener("change", () => original.dispatchEvent(new Event("change", { bubbles: true })));
+    toggle.addEventListener("click", () => {
+      negative = !negative;
+      paintSign();
+      if (magnitude.value !== "") { publish(); original.dispatchEvent(new Event("change", { bubbles: true })); }
+    });
+    const mirrorInvalid = () => {
+      const invalid = original.classList.contains("is-invalid");
+      wrap.classList.toggle("is-invalid", invalid);
+      magnitude.classList.toggle("is-invalid", invalid);
+    };
+    new MutationObserver(mirrorInvalid).observe(original, { attributes: true, attributeFilter: ["class"] });
+    mirrorInvalid();
+
+    pull(nativeValue.get.call(original));
+  }
+
+  const scan = root => {
+    if (!(root instanceof Element)) return;
+    if (root.matches("input[data-signed]")) upgrade(root);
+    root.querySelectorAll("input[data-signed]").forEach(upgrade);
+  };
+  scan(document.documentElement);
+  new MutationObserver(records => records.forEach(record => record.addedNodes.forEach(scan))).observe(document.documentElement, { childList: true, subtree: true });
+})();
+
 // 讀取中的提示（雙環，樣式見 glass.css 的 .orbit）。text 只傳程式裡的固定字串；small 是放在按鈕裡的小尺寸。
 function loadingHtml(text, { small = false } = {}) {
   const orbit = `<span class="orbit${small ? " is-small" : ""}" aria-hidden="true"><i></i><i></i></span>`;

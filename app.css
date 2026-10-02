@@ -1202,3 +1202,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .rebar-cage-check-print-table th:nth-child(3) { width: 30%; }
   .checklist-print-table th:last-child, .rebar-cage-check-print-table th:last-child { width: 12%; }
 }
+
+/* 清單式欄位裡的正負號欄：輸入格不要再往兩側延伸 10px（切換鈕已經佔掉左邊） */
+.form-grid > .field .signed-field > input { width: auto; margin: 0; padding: 0 4px; }

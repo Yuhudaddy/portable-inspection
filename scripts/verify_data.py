@@ -884,6 +884,33 @@ def verify_soil_date(browser):
     page.context.close()
 
 
+# ---------------------------------------------------------------- 帶正負號的數值欄（－／＋ 切換鈕＋只能填數字）
+def verify_signed_fields(browser, html, selector, state_expr, in_dialog=False):
+    page = open_clean(browser, html)
+    if in_dialog:
+        page.evaluate("() => { showTab('excavation'); openDepthDialog(); }")
+    result = page.evaluate("""([selector, stateExpr]) => {
+      const original = document.querySelector(selector);
+      const wrap = original.nextElementSibling;
+      const mag = wrap.querySelector('input'), toggle = wrap.querySelector('.sign-toggle');
+      const read = () => eval(stateExpr);
+      const out = { hidden: original.type === 'hidden', defaultSign: toggle.textContent };
+      const type = text => { mag.value = text; mag.dispatchEvent(new Event('input', { bubbles: true })); };
+      type('39.5x,5-'); out.stripped = mag.value; out.negative = original.value;
+      toggle.click(); out.positive = original.value;
+      toggle.click(); type(''); out.cleared = original.value;
+      original.value = '-0.50'; out.pulled = [mag.value, toggle.textContent];
+      original.value = '0.30'; out.pulledPositive = [mag.value, toggle.textContent];
+      type('-12'); out.pastedMinus = [original.value, toggle.textContent];
+      return out;
+    }""", [selector, state_expr])
+    check(f"{html} {selector}：只收數字（雜字元被濾掉、逗號轉小數點）、預設負號、切換鈕改正負、程式寫入會同步回畫面、貼上帶 - 的字會改成負值",
+          result["hidden"] and result["defaultSign"] in ("−", "+") and result["stripped"] == "39.55" and result["negative"].endswith("39.55")
+          and result["positive"] == "39.55" and result["cleared"] == "" and result["pulled"] == ["0.50", "−"] and result["pulledPositive"] == ["0.30", "+"]
+          and result["pastedMinus"] == ["-12", "−"], result)
+    page.context.close()
+
+
 # ---------------------------------------------------------------- 結果膠囊：已選的再點一次＝取消
 def verify_result_toggle(browser, html, query="?example=1"):
     page = open_clean(browser, html, query)
@@ -1133,6 +1160,10 @@ try:
         for tool in ("diaphragm-wall", "diaphragm-wall-gc", "template", "rebar", "steel-structure"):
             verify_date_highlight(browser, tool)
         verify_soil_date(browser)
+        verify_signed_fields(browser, "diaphragm-wall", '[data-bind="wall.designDepth"]', "state.wall.designDepth")
+        verify_signed_fields(browser, "diaphragm-wall", '[data-bind="wall.topElevation"]', "state.wall.topElevation")
+        verify_signed_fields(browser, "diaphragm-wall", "#depth-value", "document.querySelector('#depth-value').value", in_dialog=True)
+        verify_signed_fields(browser, "diaphragm-wall-gc", '[data-bind="unit.designDepth"]', "state.unit.designDepth")
         verify_heading_cleanup(browser, "diaphragm-wall")
         verify_heading_cleanup(browser, "diaphragm-wall-gc")
         verify_pdf_content(browser)

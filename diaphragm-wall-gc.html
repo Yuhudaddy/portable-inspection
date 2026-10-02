@@ -78,12 +78,12 @@
               </fieldset>
               <label class="field"><span>單元編號</span><input type="text" data-bind="unit.unitNo" placeholder="例如：21" /></label>
               <label class="field"><span>順序編號</span><input type="text" data-bind="unit.sequenceNo" inputmode="numeric" placeholder="例如：03" /></label>
-              <label class="field"><span>導溝頂基準高程（GL, m）</span><input type="number" step="0.01" data-bind="unit.guideTopElevation" placeholder="例如：+0.15" /></label>
+              <label class="field"><span>導溝頂基準高程（GL, m）</span><input type="number" step="0.01" data-signed data-sign-default="+" data-bind="unit.guideTopElevation" placeholder="例如：+0.15" /></label>
               <label class="field field-with-unit"><span>設計混凝土強度</span><input type="text" inputmode="decimal" data-bind="unit.strength" placeholder="例如：350" /><select data-bind="unit.strengthUnit" aria-label="混凝土強度單位"><option value="kgf/cm²">kgf/cm²</option><option value="psi">psi</option></select></label>
               <label class="field"><span>設計壁厚（m）</span><input type="number" min="0" step="0.01" inputmode="decimal" data-bind="unit.thickness" /></label>
               <label class="field"><span>單元長度（m）</span><input type="number" min="0" step="0.01" inputmode="decimal" data-bind="unit.length" /></label>
-              <label class="field"><span>設計深度（GL, m）</span><input type="number" step="0.01" data-bind="unit.designDepth" placeholder="例如：-39.5" /></label>
-              <label class="field"><span>壁頂設計高程（GL, m）</span><input type="number" step="0.01" data-bind="unit.topElevation" placeholder="例如：-0.50" /></label>
+              <label class="field"><span>設計深度（GL, m）</span><input type="number" step="0.01" data-signed data-bind="unit.designDepth" placeholder="例如：-39.5" /></label>
+              <label class="field"><span>壁頂設計高程（GL, m）</span><input type="number" step="0.01" data-signed data-bind="unit.topElevation" placeholder="例如：-0.50" /></label>
               <label class="field calculated-field"><span>設計澆置高度（m）<em>自動</em></span><input id="design-height-value" type="number" min="0" step="0.01" inputmode="decimal" readonly /></label>
               <label class="field calculated-field"><span>設計數量（m³）<em>自動</em></span><input type="number" min="0" step="0.01" inputmode="decimal" data-bind="unit.designVolume" readonly /></label>
             </div>

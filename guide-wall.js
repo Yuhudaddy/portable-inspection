@@ -113,7 +113,7 @@ function guideMeasureFieldsHtml(check, attrs) {
   if (config.kind === "elevation") {
     return `<div class="field guide-measure is-single"><label class="guide-measure-group${bad(evaluation.actualBad)}" data-guide-group="actual">
       <b class="guide-affix">GL-</b>
-      <input type="text" value="${escapeHtml(check.actual)}" placeholder="${escapeHtml(config.placeholder)}" aria-label="頂部基準高程（GL-，${config.unit}）" ${attrs("actual")} />
+      <input type="text" inputmode="decimal" value="${escapeHtml(check.actual)}" placeholder="${escapeHtml(config.placeholder)}" aria-label="頂部基準高程（GL-，${config.unit}）" ${attrs("actual")} />
       <b class="guide-affix">${config.unit}</b>
     </label>${note}</div>`;
   }

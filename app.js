@@ -335,6 +335,7 @@ const draft = createDraftStore(INSPECTION_STANDARDS["diaphragm-wall"].draftKey, 
 // 以及舊版單一「施工日期」搬到各分頁日期。之後新增欄位只要改這裡的預設值。
 function normalizeLoadedState(loaded) {
   state.trucks = state.trucks.map(truck => ({ dispatch: "", slump: "", ...truck }));
+  state.soil = state.soil.map(record => ({ date: "", ...record }));
   PHASES.forEach(phase => { state.prework[phase.id] = { date: "", start: "", end: "", ...state.prework[phase.id] }; });
   const legacyDate = state.overview.date;
   if (legacyDate) {
@@ -450,12 +451,14 @@ function sequence30(times) {
 }
 
 // 出土與深度確認：把 30 時制時間與設計深度差異算好，畫面、列印、匯出都吃同一份
+// 出土紀錄：日期＋時間，顯示成「MM/DD HH:MM」；出土不會過夜，所以不用 30 時制（舊紀錄沒有日期就只顯示時間）
+const soilTimeText = record => `${record.date ? `${record.date.slice(5).replace("-", "/")} ` : ""}${record.time || ""}`.trim();
+
 function calculatedExcavation() {
   const designDepthValue = number(state.wall.designDepth);
-  const soilTimes = sequence30(state.soil.map(record => record.time));
   const depthTimes = sequence30(state.depth.map(record => record.time));
   return {
-    soil: state.soil.map((record, index) => ({ ...record, index, time30: soilTimes[index] })),
+    soil: state.soil.map((record, index) => ({ ...record, index, timeText: soilTimeText(record) })),
     depth: state.depth.map((record, index) => {
       const value = number(record.value);
       return { ...record, index, time30: depthTimes[index], value, difference: value !== null && designDepthValue !== null ? value - designDepthValue : null };
@@ -610,10 +613,11 @@ function renderExcavation() {
 
   const excavation = calculatedExcavation();
   $("#soil-list").innerHTML = excavation.soil.length ? excavation.soil.map((record, index) => `
-    <article class="record-item">
+    <article class="record-item is-centered">
       <div class="record-item-main">
-        <div class="record-item-title"><strong>第 ${index + 1} 次出土</strong><span>${esc(record.time30)}</span></div>
+        <div class="record-item-title"><strong>第 ${index + 1} 次出土</strong></div>
       </div>
+      <span class="record-item-time">${esc(record.timeText)}</span>
       <div class="record-item-actions">
         <button type="button" data-edit-soil="${index}">修改</button>
         <button type="button" data-delete-soil="${index}">刪除</button>
@@ -623,11 +627,12 @@ function renderExcavation() {
   $("#depth-list").innerHTML = excavation.depth.length ? excavation.depth.map((record, index) => {
     const { value, difference: diff } = record;
     return `
-      <article class="record-item">
+      <article class="record-item is-centered">
         <div class="record-item-main">
-          <div class="record-item-title"><strong>深度 ${fixed(value)} m</strong><span>${esc(record.time30)}</span></div>
+          <div class="record-item-title"><strong>深度 ${fixed(value)} m</strong></div>
           <div class="record-item-meta"><span>第 ${index + 1} 次確認</span><span class="${diff !== null && diff < 0 ? "warning-text" : ""}">與設計差異 ${fixed(diff)} m</span></div>
         </div>
+        <span class="record-item-time">${esc(record.time30)}</span>
         <div class="record-item-actions">
           <button type="button" data-edit-depth="${index}">修改</button>
           <button type="button" data-delete-depth="${index}">刪除</button>
@@ -869,7 +874,7 @@ function loadExample() {
   state.overview = { project: "Example Construction Project — North Lot", contractor: "○○營造股份有限公司", reviewer: "Site Engineer" };
   state.dates = { excavationStart: "2026-08-10", excavationEnd: "2026-08-11", pouring: "2026-08-11" };
   Object.assign(state.wall, { unitType: "公單元", unitNo: "21", sequenceNo: "03", designDepth: "-35.80", strength: "350", strengthUnit: "kgf/cm²", thickness: "1.00", length: "2.80", topElevation: "-0.50", designVolume: "98.84", actualVolume: "" });
-  state.soil = ["07:40", "08:20", "09:05"].map(time => ({ time }));
+  state.soil = ["07:40", "08:20", "09:05"].map(time => ({ date: "2026-08-10", time }));
   state.depth = [{ time: "12:10", value: "-35.80" }, { time: "12:35", value: "-35.82" }];
   state.prework = Object.fromEntries(PHASES.map((phase, index) => { const hour = String(8 + index).padStart(2, "0"); return [phase.id, { date: "2026-08-11", start: `${hour}:00`, end: `${hour}:30` }]; }));
   state.trucks = Array.from({ length: 8 }, (_, index) => ({ truckNo: `C${String(index + 1).padStart(2, "0")}`, dispatch: `${12 + Math.floor(index / 2)}:${index % 2 ? "50" : "28"}`, unload: `${13 + Math.floor(index / 2)}:${index % 2 ? "42" : "20"}`, finish: `${13 + Math.floor(index / 2)}:${index % 2 ? "55" : "33"}`, volume: index === 7 ? "11.26" : "13", measured: index === 7 ? "36.30" : (4.62 + index * 4.64).toFixed(2), slump: index === 0 ? "18" : "" }));
@@ -922,8 +927,11 @@ function clearAllData() {
 
 function openSoilDialog(index = null) {
   editIndex.soil = index;
-  const record = index === null ? { time: "" } : state.soil[index];
+  // 新增時日期預設帶上一筆出土的日期（第一筆帶開挖開始日期），可再改
+  const record = index === null ? { date: state.soil.at(-1)?.date || state.dates.excavationStart || today, time: "" } : state.soil[index];
+  $("#soil-date").value = record.date || state.dates.excavationStart || "";
   $("#soil-time").value = record.time;
+  syncDateTimeDisplay($("#soil-date"));
   syncDateTimeDisplay($("#soil-time"));
   $("#soil-dialog-title").textContent = index === null ? "新增出土紀錄" : `修改第 ${index + 1} 次出土`;
   $("#soil-form [type='submit']").textContent = index === null ? "確認加入" : "確認更新";
@@ -1106,7 +1114,7 @@ function renderPrint() {
     <section class="print-section quality-note-section"><h2>缺失及改善結果</h2><div class="print-note">${esc(display(state.quality.note))}</div></section>${printFooter()}`;
 
   const excavation = calculatedExcavation();
-  const soilRows = excavation.soil.length ? excavation.soil.map(record => `<tr><td>${record.index + 1}</td><td class="time-cell">${esc(record.time30)}</td></tr>`).join("") : `<tr><td colspan="2" class="print-empty">尚無出土紀錄</td></tr>`;
+  const soilRows = excavation.soil.length ? excavation.soil.map(record => `<tr><td>${record.index + 1}</td><td class="time-cell">${esc(record.timeText)}</td></tr>`).join("") : `<tr><td colspan="2" class="print-empty">尚無出土紀錄</td></tr>`;
   const depthRows = excavation.depth.length ? excavation.depth.map(record => `<tr><td>${record.index + 1}</td><td class="time-cell">${esc(record.time30)}</td><td>${fixed(record.value)}</td><td>${fixed(record.difference)}</td></tr>`).join("") : `<tr><td colspan="4" class="print-empty">尚無深度確認</td></tr>`;
   const phaseRows = PHASES.map((phase, index) => {
     const record = state.prework[phase.id];
@@ -1269,7 +1277,7 @@ function exportData() {
     excavation: {
       start_date: state.dates.excavationStart || null,
       end_date: state.dates.excavationEnd || null,
-      soil_records: state.soil.map((record, index) => ({ sequence: index + 1, time: record.time || null })),
+      soil_records: state.soil.map((record, index) => ({ sequence: index + 1, date: record.date || null, time: record.time || null })),
       depth_confirmations: depthChecks
     },
     prework: PHASES.map(phase => ({
@@ -1464,7 +1472,7 @@ function importJsonPayload(payload) {
     actualVolume: importText(wall.actual_volume_m3)
   };
   state.soil = (Array.isArray(excavation.soil_records) ? excavation.soil_records : [])
-    .map(record => ({ time: importText(record.time) }))
+    .map(record => ({ date: importText(record.date), time: importText(record.time) }))
     .filter(record => record.time);
   state.depth = (Array.isArray(excavation.depth_confirmations) ? excavation.depth_confirmations : [])
     .map(record => ({ time: importText(record.confirmation_time), value: importText(record.depth_m) }))
@@ -1679,7 +1687,7 @@ function initialize() {
   $("#soil-form").addEventListener("submit", event => {
     event.preventDefault();
     if (!validateDialogForm(event.currentTarget)) return;
-    const record = { time: $("#soil-time").value };
+    const record = { date: $("#soil-date").value, time: $("#soil-time").value };
     if (editIndex.soil === null) state.soil.push(record);
     else state.soil[editIndex.soil] = record;
     $("#soil-dialog").close();

@@ -750,7 +750,7 @@ function renderHold(holdId) {
     const unitSuffix = definition.unit ? `（${esc(definition.unit)}）` : "";
     const affix = holdUnitAffix(definition.unit);
     const inputType = "text";
-    const numericAttrs = definition.mode === "number" ? ` inputmode="decimal"${status === "fail" || status === "invalid" ? ' class="is-invalid"' : ""}` : "";
+    const numericAttrs = definition.mode === "number" ? `${definition.unit === "GL, m" ? "" : ' inputmode="decimal"'}${status === "fail" || status === "invalid" ? ' class="is-invalid"' : ""}` : "";
     return `
     <article class="check-card ${failed ? "is-failed" : ""}" data-hold-card="${holdId}-${index}">
       <div class="check-card-head"><span>${String(index + 1).padStart(2, "0")}</span><strong>${esc(definition.item)}</strong>${definition.mode === "number" ? AUTO_JUDGE_BADGE : ""}</div>

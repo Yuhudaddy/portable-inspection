@@ -91,16 +91,16 @@ def verify_vendor_calculations(browser):
     result = page.evaluate("""() => {
       Object.assign(state.wall, { designDepth: "-35.80", topElevation: "-0.50", thickness: "1.00", length: "2.80" });
       state.depth = [{ time: "12:10", value: "-35.80" }, { time: "12:35", value: "-35.82" }];
-      state.soil = [{ time: "23:40" }, { time: "00:15" }];
+      state.soil = [{ date: "2026-08-10", time: "23:40" }, { date: "2026-08-11", time: "00:15" }, { time: "08:00" }];
       updateWallCalculation();
       const ex = calculatedExcavation();
       return { height: designHeight(), volume: calculatedDesignVolume(), stateVolume: state.wall.designVolume,
-               diff: ex.depth.map(row => row.difference), depthTimes: ex.depth.map(row => row.time30), soilTimes: ex.soil.map(row => row.time30) };
+               diff: ex.depth.map(row => row.difference), depthTimes: ex.depth.map(row => row.time30), soilTimes: ex.soil.map(row => row.timeText) };
     }""")
     check("設計澆置高度 = 頂高程 − 設計深度 = 35.30", close(result["height"], 35.30), result)
     check("設計數量 = 35.30 × 1.00 × 2.80 = 98.84", close(result["volume"], 98.84) and result["stateVolume"] == "98.84", result)
     check("深度確認差異 0.00／−0.02", close(result["diff"][0], 0) and close(result["diff"][1], -0.02), result)
-    check("出土時間跨午夜 23:40 → 24:15", result["soilTimes"] == ["23:40", "24:15"], result)
+    check("出土紀錄顯示 MM/DD HH:MM（出土不用 30 時制；舊紀錄沒有日期只顯示時間）", result["soilTimes"] == ["08/10 23:40", "08/11 00:15", "08:00"], result)
 
     # 澆置車次：累積、預估高度、30 時制、澆置分鐘、試體編號
     result = page.evaluate("""() => {
@@ -856,6 +856,34 @@ def verify_date_highlight(browser, html):
     page.context.close()
 
 
+# ---------------------------------------------------------------- 出土紀錄日期：對話框預設、JSON、PDF
+def verify_soil_date(browser):
+    page = open_clean(browser, "diaphragm-wall")
+    result = page.evaluate("""() => {
+      loadExample(); renderAll();
+      openSoilDialog();
+      const defaultDate = document.querySelector('#soil-date').value;
+      const dialogTitle = document.querySelector('#soil-dialog-title').textContent;
+      document.querySelector('#soil-dialog').close();
+      const rows = [...document.querySelectorAll('#soil-list .record-item')].map(row => [row.querySelector('strong').textContent, row.querySelector('.record-item-time').textContent]);
+      const exported = exportData().excavation.soil_records;
+      const data = exportData(); clearAllData(); importJsonPayload(data);
+      const restored = state.soil.map(record => [record.date, record.time]);
+      state.soil = [{ time: '08:00' }]; renderAll(); openSoilDialog(0);
+      const legacyDefault = document.querySelector('#soil-date').value;
+      document.querySelector('#soil-dialog').close();
+      return { defaultDate, dialogTitle, rows, exported, restored, legacyDefault, excavationStart: state.dates.excavationStart };
+    }""")
+    check("出土紀錄：新增對話框日期預設帶上一筆、列表顯示 MM/DD HH:MM",
+          result["defaultDate"] == "2026-08-10" and result["rows"][0] == ["第 1 次出土", "08/10 07:40"], result)
+    check("出土紀錄：JSON 帶 date，匯入後還原；沒日期的舊紀錄開啟修改時日期預設開挖開始日期",
+          result["exported"][0]["date"] == "2026-08-10" and result["restored"][0] == ["2026-08-10", "07:40"] and result["legacyDefault"] == result["excavationStart"], result)
+    page.evaluate("() => { clearAllData(); loadExample(); renderAll(); showTab('excavation'); }")
+    text = pdf_text(page, "current")
+    check("出土紀錄 PDF 印出「08/10 07:40」格式", "08/10 07:40" in text, text[:300])
+    page.context.close()
+
+
 # ---------------------------------------------------------------- 結果膠囊：已選的再點一次＝取消
 def verify_result_toggle(browser, html, query="?example=1"):
     page = open_clean(browser, html, query)
@@ -1104,6 +1132,7 @@ try:
             verify_result_toggle(browser, tool)
         for tool in ("diaphragm-wall", "diaphragm-wall-gc", "template", "rebar", "steel-structure"):
             verify_date_highlight(browser, tool)
+        verify_soil_date(browser)
         verify_heading_cleanup(browser, "diaphragm-wall")
         verify_heading_cleanup(browser, "diaphragm-wall-gc")
         verify_pdf_content(browser)

@@ -473,6 +473,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 .record-item-meta .warning-text { color: var(--glass-danger-ink); font-weight: 600; }
 .record-item-actions { display: flex; align-items: start; gap: 2px; }
+/* 出土／深度確認：文字、時間、修改／刪除三欄都垂直置中（時間不再塞在標題那一行） */
+.record-item.is-centered { grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; }
+.record-item.is-centered .record-item-actions { align-items: center; }
+.record-item-time { color: var(--glass-soft); font-family: var(--glass-font-num); font-size: 0.75rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .record-item-actions button {
   min-width: 40px;
   min-height: 36px;

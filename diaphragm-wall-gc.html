@@ -34,7 +34,7 @@
       </div>
 
       <section class="form-grid shared-info-grid" aria-labelledby="shared-info-heading">
-        <div class="shared-info-head span-two"><span id="shared-info-heading">工程資訊</span><small>導溝、鋼筋籠、連續壁三表共用</small></div>
+        <div class="shared-info-head span-two"><span id="shared-info-heading">工程資訊</span></div>
         <label class="field span-two"><span>工程名稱</span><input type="text" data-bind="overview.project" autocomplete="organization" /></label>
         <label class="field"><span>施工廠商（專業分包商）</span><input type="text" data-bind="overview.contractor" autocomplete="organization" /></label>
         <label class="field"><span>填表人</span><input type="text" data-bind="overview.reviewer" autocomplete="name" /></label>
@@ -62,8 +62,7 @@
         <section class="panel-frame">
           <section class="tab-panel quality-panel" id="panel-design" role="tabpanel" aria-labelledby="tab-design">
             <div class="panel-heading">
-              <div><span>02</span><h2>設計基準</h2></div>
-              <p>停檢點判定所需的設計與標準值</p>
+              <div><h2>設計基準</h2></div>
             </div>
             <div class="form-grid wall-grid">
               <fieldset class="unit-type span-two">
@@ -88,78 +87,62 @@
               <label class="field calculated-field"><span>設計澆置高度（m）<em>自動</em></span><input id="design-height-value" type="number" min="0" step="0.01" inputmode="decimal" readonly /></label>
               <label class="field calculated-field"><span>設計數量（m³）<em>自動</em></span><input type="number" min="0" step="0.01" inputmode="decimal" data-bind="unit.designVolume" readonly /></label>
             </div>
-            <section class="quality-standard-panel" aria-labelledby="standard-heading">
-              <div class="quality-standard-heading"><div><span>STANDARD</span><h3 id="standard-heading">檢查標準值</h3></div><p>預設值可直接使用；如核定施工計畫不同，請由下拉選單調整。停檢點判定與警示均依此標準換算，調整的數值也會同步到施工計畫並以底色標示。</p></div>
+            <details class="quality-standard-panel" id="standard-details">
+              <summary><span class="quality-standard-title">檢查標準值</span><button type="button" class="info-tip" data-tip="預設值可直接使用；如核定施工計畫不同，請由下拉選單調整。停檢點判定與警示均依此標準換算，調整的數值也會同步到施工計畫並以底色標示。" aria-label="檢查標準值說明">?</button><span class="count-pill is-adjusted" id="standard-adjusted" hidden></span></summary>
               <div class="quality-standard-list" id="standard-list"></div>
               <p class="quality-standard-note" id="standard-note"></p>
-            </section>
+            </details>
             <p class="quality-context-note">本表為營造廠（總包）二級品管查驗紀錄。逐車出土時間、泥漿池操作、逐車澆置日誌等一級自主品管項目由專業分包商填報，並以附件方式檢附。</p>
           </section>
 
           <section class="tab-panel" id="panel-hold1" role="tabpanel" aria-labelledby="tab-hold1" hidden>
             <div class="panel-heading">
-              <div><span>停檢點1</span><h2>成槽放行</h2></div>
-              <p>導溝放樣與成槽洗孔檢驗</p>
+              <div><h2>成槽放行</h2></div>
+            <span class="count-pill" id="hold1-progress">檢查數：0 / 0</span>
             </div>
             <div class="form-grid checklist-meta-grid record-date-grid">
               <label class="field span-two"><span>查驗日期</span><span class="native-field-wrap"><input type="date" data-bind="holdDates.hold1" /><span class="native-field-display" aria-hidden="true"></span></span></label>
             </div>
-            <dl class="check-progress" aria-live="polite">
-              <div><dt>已完成查驗</dt><dd id="hold1-progress">0 / 0</dd></div>
-              <div><dt>尚待確認</dt><dd id="hold1-pending">0</dd></div>
-            </dl>
             <div class="check-card-list" id="hold1-check-list"></div>
             <div class="warning-list" id="hold1-warnings" aria-live="polite"></div>
           </section>
 
           <section class="tab-panel" id="panel-hold2" role="tabpanel" aria-labelledby="tab-hold2" hidden>
             <div class="panel-heading">
-              <div><span>停檢點2</span><h2>吊放放行</h2></div>
-              <p>鋼筋籠組裝、預埋件與監測儀器</p>
+              <div><h2>吊放放行</h2></div>
+            <span class="count-pill" id="hold2-progress">檢查數：0 / 0</span>
             </div>
             <div class="form-grid checklist-meta-grid record-date-grid">
               <label class="field span-two"><span>查驗日期</span><span class="native-field-wrap"><input type="date" data-bind="holdDates.hold2" /><span class="native-field-display" aria-hidden="true"></span></span></label>
             </div>
-            <dl class="check-progress" aria-live="polite">
-              <div><dt>已完成查驗</dt><dd id="hold2-progress">0 / 0</dd></div>
-              <div><dt>尚待確認</dt><dd id="hold2-pending">0</dd></div>
-            </dl>
             <div class="check-card-list" id="hold2-check-list"></div>
             <div class="warning-list" id="hold2-warnings" aria-live="polite"></div>
           </section>
 
           <section class="tab-panel" id="panel-hold3" role="tabpanel" aria-labelledby="tab-hold3" hidden>
             <div class="panel-heading">
-              <div><span>停檢點3</span><h2>澆置成品</h2></div>
-              <p>特密混凝土澆置與成品檢驗</p>
+              <div><h2>澆置成品</h2></div>
+            <span class="count-pill" id="hold3-progress">檢查數：0 / 0</span>
             </div>
             <div class="form-grid checklist-meta-grid record-date-grid">
               <label class="field span-two"><span>查驗日期</span><span class="native-field-wrap"><input type="date" data-bind="holdDates.hold3" /><span class="native-field-display" aria-hidden="true"></span></span></label>
             </div>
-            <dl class="check-progress" aria-live="polite">
-              <div><dt>已完成查驗</dt><dd id="hold3-progress">0 / 0</dd></div>
-              <div><dt>尚待確認</dt><dd id="hold3-pending">0</dd></div>
-            </dl>
             <div class="check-card-list" id="hold3-check-list"></div>
             <div class="warning-list" id="hold3-warnings" aria-live="polite"></div>
           </section>
 
           <section class="tab-panel" id="panel-result" role="tabpanel" aria-labelledby="tab-result" hidden>
             <div class="panel-heading">
-              <div><span>停檢點4</span><h2>監測與結論</h2></div>
-              <p>周邊環境監測查核與放行簽認</p>
+              <div><h2>監測與結論</h2></div>
+            <span class="count-pill" id="hold4-progress">檢查數：0 / 0</span>
             </div>
             <div class="form-grid checklist-meta-grid record-date-grid">
               <label class="field span-two"><span>查驗日期</span><span class="native-field-wrap"><input type="date" data-bind="holdDates.hold4" /><span class="native-field-display" aria-hidden="true"></span></span></label>
             </div>
-            <dl class="check-progress" aria-live="polite">
-              <div><dt>已完成查驗</dt><dd id="hold4-progress">0 / 0</dd></div>
-              <div><dt>尚待確認</dt><dd id="hold4-pending">0</dd></div>
-            </dl>
             <div class="check-card-list" id="hold4-check-list"></div>
             <div class="warning-list" id="hold4-warnings" aria-live="polite"></div>
             <section class="record-section" aria-labelledby="verdict-heading">
-              <div class="record-heading"><div><span>結論</span><h3 id="verdict-heading">查驗結果與簽認</h3></div></div>
+              <div class="record-heading"><div><h3 id="verdict-heading">查驗結果與簽認</h3></div></div>
               <div class="form-grid checklist-meta-grid">
                 <label class="field span-two"><span>查驗結果</span><select data-bind="conclusion.verdict"><option>待判定</option><option>合格放行</option><option>限期改善後複驗</option><option>異常追蹤處理</option></select></label>
               </div>
@@ -173,19 +156,15 @@
       <section class="tool-view" id="tool-guide-wall" data-tool-view="guideWall" hidden>
         <section class="panel-frame integrated-checklist">
           <div class="panel-heading">
-            <div><span>導溝</span><h2>施工複核</h2></div>
-            <p>成槽前停留點</p>
+            <div><h2>施工複核</h2></div>
+            <span class="count-pill" id="guide-wall-progress">檢查數：0 / 15</span>
           </div>
           <div class="form-grid checklist-meta-grid">
             <label class="field span-two"><span>軸線／方向編號</span><input type="text" data-check-bind="guideWall.axisNo" placeholder="例如：X3～X7／南側" /></label>
             <label class="field span-two"><span>複核日期</span><span class="native-field-wrap"><input type="date" data-check-bind="guideWall.date" /><span class="native-field-display" aria-hidden="true"></span></span></label>
           </div>
-          <dl class="check-progress" aria-live="polite">
-            <div><dt>已完成複核</dt><dd id="guide-wall-progress">0 / 15</dd></div>
-            <div><dt>尚待確認</dt><dd id="guide-wall-pending">15</dd></div>
-          </dl>
           <section class="record-section" aria-labelledby="guide-wall-check-heading">
-            <div class="record-heading"><div><span>01</span><h3 id="guide-wall-check-heading">導溝複核項目</h3></div></div>
+            <div class="record-heading"><div><h3 id="guide-wall-check-heading">導溝複核項目</h3></div></div>
             <div class="check-card-list" id="guide-wall-check-list"></div>
           </section>
           <label class="field note-field"><span>複核意見／備註</span><textarea data-check-bind="guideWall.note" rows="3"></textarea></label>
@@ -205,8 +184,7 @@
         <section class="panel-frame integrated-checklist">
           <section class="tab-panel" id="panel-cage-meta" role="tabpanel" aria-labelledby="tab-cage-meta">
             <div class="panel-heading">
-              <div><span>鋼筋籠</span><h2>吊放前複核</h2></div>
-              <p>本次複核的基本識別資料</p>
+              <div><h2>吊放前複核</h2></div>
             </div>
             <div class="form-grid checklist-meta-grid">
             <label class="field span-two"><span>複核日期</span><span class="native-field-wrap"><input type="date" data-check-bind="rebarCage.date" /><span class="native-field-display" aria-hidden="true"></span></span></label>
@@ -215,28 +193,24 @@
             <label class="field"><span>鋼筋籠編號</span><input type="text" data-check-bind="rebarCage.cageNo" /></label>
             <label class="field span-two"><span>核定配筋圖號</span><input type="text" data-check-bind="rebarCage.drawingNo" placeholder="例如：S-21 Rev.C" /></label>
             </div>
-          <dl class="check-progress rebar-cage-progress" aria-live="polite">
-            <div><dt>抽查明細完成</dt><dd id="rebar-cage-rebar-progress">0 / 13</dd></div>
-            <div><dt>吊放條件完成</dt><dd id="rebar-cage-check-progress">0 / 9</dd></div>
-          </dl>
           </section>
 
           <section class="tab-panel" id="panel-cage-rebar" role="tabpanel" aria-labelledby="tab-cage-rebar" hidden>
             <div class="panel-heading">
-              <div><span>01</span><h2>配筋抽查明細</h2></div>
-              <div class="t-tabs" id="rebar-cage-mode-tabs" role="tablist" aria-label="填寫模式">
+              <div><h2>配筋抽查明細</h2></div>
+              <div class="heading-tools"><span class="count-pill" id="rebar-cage-rebar-progress">檢查數：0 / 13</span><div class="t-tabs" id="rebar-cage-mode-tabs" role="tablist" aria-label="填寫模式">
                 <span class="t-tabs-pill" aria-hidden="true"></span>
                 <button class="t-tab" role="tab" type="button" aria-selected="true" data-cage-mode="simple">簡易</button>
                 <button class="t-tab" role="tab" type="button" aria-selected="false" data-cage-mode="detailed">詳細</button>
-              </div>
+              </div></div>
             </div>
             <div class="check-card-list" id="rebar-cage-rebar-list"></div>
           </section>
 
           <section class="tab-panel" id="panel-cage-check" role="tabpanel" aria-labelledby="tab-cage-check" hidden>
             <div class="panel-heading">
-              <div><span>02</span><h2>組裝與吊放條件</h2></div>
-              <p>吊放前逐項確認</p>
+              <div><h2>組裝與吊放條件</h2></div>
+            <span class="count-pill" id="rebar-cage-check-progress">檢查數：0 / 9</span>
             </div>
             <div class="check-card-list" id="rebar-cage-check-list"></div>
             <label class="field note-field"><span>複核意見／備註</span><textarea data-check-bind="rebarCage.note" rows="3"></textarea></label>
@@ -244,7 +218,7 @@
 
           <section class="tab-panel" id="panel-cage-photos" role="tabpanel" aria-labelledby="tab-cage-photos" hidden>
             <div class="panel-heading">
-              <div><span>03</span><h2>匯入照片</h2></div>
+              <div><h2>匯入照片</h2></div>
               <button class="add-button" id="cage-photo-add" type="button" aria-label="匯入照片"><span aria-hidden="true">＋</span> 匯入</button>
             </div>
             <div class="photo-panel" id="cage-photo-list"></div>

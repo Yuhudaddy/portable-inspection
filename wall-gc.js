@@ -719,6 +719,7 @@ function renderStandards() {
       <select data-standard="${esc(config.key)}" ${disabled ? "disabled" : ""}>${standardOptions(state.standards[config.key], config.options)}</select>
     </label>`;
   }).join("");
+  setAdjustedPill("standard-adjusted", STANDARD_CONFIG.filter(config => String(state.standards[config.key]) !== String(config.default)).length);
   $("#standard-note").textContent = mapped
     ? `目前穩定液種類：${state.unit.slurryType}；僅套用此種類的含砂量與管底埋深標準。`
     : "請先在上方選擇穩定液種類；未選擇前皂土系與高分子系兩組標準均可調整，且不進行自動判定。";
@@ -762,10 +763,7 @@ function renderHold(holdId) {
   }).join("");
 
   const completed = state.holds[holdId].filter(record => record.result !== "待確認").length;
-  const progress = $(`#${holdId}-progress`);
-  const pending = $(`#${holdId}-pending`);
-  if (progress) progress.textContent = `${completed} / ${hold.items.length}`;
-  if (pending) pending.textContent = String(hold.items.length - completed);
+  setCountPill(`${holdId}-progress`, completed, hold.items.length);
 
   const warningBox = $(`#${holdId}-warnings`);
   if (warningBox) {
@@ -797,18 +795,13 @@ function renderCheckCards(type) {
 
 function renderCheckProgress(type) {
   const completed = state[type].checks.filter(check => check.result !== "待確認").length;
-  if (type === "guideWall") {
-    $("#guide-wall-progress").textContent = `${completed} / ${state.guideWall.checks.length}`;
-    $("#guide-wall-pending").textContent = String(state.guideWall.checks.length - completed);
-  } else {
-    $("#rebar-cage-check-progress").textContent = `${completed} / ${state.rebarCage.checks.length}`;
-  }
+  setCountPill(type === "guideWall" ? "guide-wall-progress" : "rebar-cage-check-progress", completed, state[type].checks.length);
 }
 
 function renderRebars() {
   const cage = state.rebarCage;
   $("#rebar-cage-rebar-list").innerHTML = rebarCageCardsHtml(cage, resultSegmented);
-  $("#rebar-cage-rebar-progress").textContent = `${cage.parts.filter(part => part.result !== "待確認").length} / ${cage.parts.length}`;
+  setCountPill("rebar-cage-rebar-progress", cage.parts.filter(part => part.result !== "待確認").length, cage.parts.length);
   syncRebarCageModeTabs(cage.mode);
   renderCagePhotos(cage.photos || []);
 }

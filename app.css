@@ -833,18 +833,30 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   font-size: 0.75rem;
   line-height: 1.6;
 }
+/* 檢查標準值：預設收合，一列標題＋?說明＋「已調整 N 項」；展開才看到下拉選單 */
 .quality-standard-panel {
   margin: 10px 0 0;
-  padding: 16px;
+  padding: 0 16px;
   border-radius: var(--glass-radius-lg);
   background: var(--glass-card-bg);
   box-shadow: var(--glass-card-shadow);
 }
-.quality-standard-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
-.quality-standard-heading > div { display: flex; align-items: baseline; gap: 8px; }
-.quality-standard-heading span { font-family: var(--glass-font-num); color: var(--glass-accent); font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.08em; }
-.quality-standard-heading h3 { margin: 0; font-size: 1rem; font-weight: 600; }
-.quality-standard-heading p, .quality-standard-note { margin: 0; color: var(--glass-soft); font-size: 0.72rem; line-height: 1.5; }
+.quality-standard-panel[open] { padding-bottom: 16px; }
+.quality-standard-panel > summary { display: flex; align-items: center; gap: 8px; min-height: 52px; list-style: none; cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent; }
+.quality-standard-panel > summary::-webkit-details-marker { display: none; }
+.quality-standard-panel > summary::after { content: ""; flex: none; width: 16px; height: 16px; margin-left: auto; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236f655b' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") center / 16px 16px no-repeat; transition: transform 200ms ease; }
+.quality-standard-panel[open] > summary::after { transform: rotate(180deg); }
+.quality-standard-panel > summary:focus-visible { outline: 3px solid var(--glass-accent); outline-offset: 2px; border-radius: var(--glass-radius-sm); }
+.quality-standard-title { font-size: 1rem; font-weight: 600; }
+.quality-standard-note { margin: 0; color: var(--glass-soft); font-size: 0.72rem; line-height: 1.5; }
+@media (prefers-reduced-motion: reduce) { .quality-standard-panel > summary::after { transition: none; } }
+/* 檢查數／已調整膠囊（panel-heading 裡的 span 有自己的樣式，所以選擇器要更具體） */
+.count-pill, .panel-heading .count-pill { display: inline-flex; align-items: center; flex: none; padding: 3px 10px; border-radius: 999px; background: var(--glass-sunken); color: var(--glass-soft); font-family: var(--glass-font-num); font-size: 0.6875rem; font-weight: 600; line-height: 1.4; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.count-pill.is-done, .panel-heading .count-pill.is-done { background: var(--glass-success-bg); color: var(--glass-success-ink); }
+.count-pill.is-adjusted, .panel-heading .count-pill.is-adjusted { background: var(--glass-accent-soft); color: var(--glass-accent-strong); font-family: inherit; }
+.count-pill[hidden] { display: none; }
+.panel-heading > .count-pill { align-self: center; }
+.panel-heading > .heading-tools { display: flex; align-items: center; gap: 8px; flex: none; }
 .quality-standard-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
 .quality-standard-field { display: grid; gap: 5px; min-width: 0; }
 .quality-standard-field > span { color: var(--glass-label); font-size: 0.69rem; line-height: 1.3; }
@@ -966,8 +978,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .help-dialog-compact .example-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .help-dialog-compact .help-content { gap: 10px; }
   .help-dialog-compact .help-content section { padding-bottom: 8px; }
-  .quality-standard-heading { display: block; }
-  .quality-standard-heading > div { margin-bottom: 4px; }
   .quality-standard-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 

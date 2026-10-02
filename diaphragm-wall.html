@@ -34,7 +34,7 @@
       </div>
 
       <section class="form-grid shared-info-grid" aria-labelledby="shared-info-heading">
-        <div class="shared-info-head span-two"><span id="shared-info-heading">工程資訊</span><small>導溝、鋼筋籠、連續壁三表共用</small></div>
+        <div class="shared-info-head span-two"><span id="shared-info-heading">工程資訊</span></div>
         <label class="field span-two"><span>工程名稱</span><input type="text" data-bind="overview.project" autocomplete="organization" /></label>
         <label class="field"><span>施工廠商</span><input type="text" data-bind="overview.contractor" autocomplete="organization" /></label>
         <label class="field"><span>填表人</span><input type="text" data-bind="overview.reviewer" autocomplete="name" /></label>
@@ -62,8 +62,7 @@
       <section class="panel-frame">
         <section class="tab-panel" id="panel-wall" role="tabpanel" aria-labelledby="tab-wall">
           <div class="panel-heading">
-            <div><span>02</span><h2>壁體資訊</h2></div>
-            <p>設計基準與完工數量</p>
+            <div><h2>壁體資訊</h2></div>
           </div>
           <div class="form-grid wall-grid">
             <fieldset class="unit-type span-two">
@@ -79,7 +78,7 @@
             <label class="field"><span>壁厚（m）</span><input type="number" min="0" step="0.01" inputmode="decimal" data-bind="wall.thickness" /></label>
             <label class="field"><span>單元長度（m）</span><input type="number" min="0" step="0.01" inputmode="decimal" data-bind="wall.length" /></label>
             <label class="field"><span>澆置頂端高程（GL, m）</span><input type="number" step="0.01" inputmode="decimal" data-bind="wall.topElevation" placeholder="例如：-0.50" /></label>
-            <label class="field"><span>實際數量（m³）<em hidden>自動（澆置紀錄）</em></span><input type="number" min="0" step="0.01" inputmode="decimal" data-bind="wall.actualVolume" /></label>
+            <label class="field calculated-field"><span>實際數量（m³）<em>自動</em></span><input type="number" min="0" step="0.01" inputmode="decimal" data-bind="wall.actualVolume" placeholder="澆置紀錄自動帶入" readonly /></label>
             <label class="field calculated-field"><span>設計澆置高度（m）<em>自動</em></span><input id="design-height-value" type="number" min="0" step="0.01" inputmode="decimal" readonly /></label>
             <label class="field calculated-field"><span>設計數量（m³）<em>自動</em></span><input type="number" min="0" step="0.01" inputmode="decimal" data-bind="wall.designVolume" readonly /></label>
           </div>
@@ -87,27 +86,21 @@
 
         <section class="tab-panel quality-panel" id="panel-quality" role="tabpanel" aria-labelledby="tab-quality" hidden>
           <div class="panel-heading">
-            <div><span>03</span><h2>品質自檢</h2></div>
-            <p>只填寫其他分頁未涵蓋的品質確認項目</p>
+            <div><h2>品質自檢</h2></div>
+            <span class="count-pill" id="quality-progress">檢查數：0 / 18</span>
           </div>
-          <p class="quality-context-note">工程名稱、單元編號、設計資料、開挖／前置／澆置紀錄均沿用其他分頁內容，輸出時會自動帶入。</p>
-          <section class="quality-standard-panel" aria-labelledby="quality-standard-heading">
-            <div class="quality-standard-heading"><div><span>STANDARD</span><h3 id="quality-standard-heading">檢查標準值</h3></div><p>預設值可直接使用；如核定施工計畫不同，請由下拉選單調整。調整的數值會同步到施工計畫，並以底色標示。</p></div>
+          <details class="quality-standard-panel" id="quality-standard-details">
+              <summary><span class="quality-standard-title">檢查標準值</span><button type="button" class="info-tip" data-tip="預設值可直接使用；如核定施工計畫不同，請由下拉選單調整。調整的數值會同步到施工計畫，並以底色標示。" aria-label="檢查標準值說明">?</button><span class="count-pill is-adjusted" id="quality-standard-adjusted" hidden></span></summary>
             <div class="quality-standard-list" id="quality-standard-list"></div>
             <p class="quality-standard-note" id="quality-standard-note"></p>
-          </section>
-          <dl class="check-progress" aria-live="polite">
-            <div><dt>已完成自檢</dt><dd id="quality-progress">0 / 18</dd></div>
-            <div><dt>尚待確認</dt><dd id="quality-pending">18</dd></div>
-          </dl>
+          </details>
           <div class="quality-check-list" id="quality-check-list"></div>
           <label class="field note-field quality-note-field"><span>缺失及改善結果</span><textarea data-quality-bind="note" rows="4" placeholder="填寫缺失內容、改善方式與追蹤結果"></textarea></label>
         </section>
 
         <section class="tab-panel" id="panel-excavation" role="tabpanel" aria-labelledby="tab-excavation" hidden>
           <div class="panel-heading">
-            <div><span>04</span><h2>開挖紀錄</h2></div>
-            <p>出土次數與深度確認</p>
+            <div><h2>開挖紀錄</h2></div>
           </div>
           <div class="form-grid checklist-meta-grid record-date-grid">
             <label class="field"><span>開挖日期（起）</span><span class="native-field-wrap"><input type="date" data-bind="dates.excavationStart" /><span class="native-field-display" aria-hidden="true"></span></span></label>
@@ -121,20 +114,19 @@
           </dl>
 
           <section class="record-section" aria-labelledby="soil-heading">
-            <div class="record-heading"><div><span>A</span><h3 id="soil-heading">出土紀錄</h3></div><button class="add-button" id="add-soil" type="button" aria-label="新增出土紀錄"><span aria-hidden="true">＋</span> 新增</button></div>
+            <div class="record-heading"><div><h3 id="soil-heading">出土紀錄</h3></div><button class="add-button" id="add-soil" type="button" aria-label="新增出土紀錄"><span aria-hidden="true">＋</span> 新增</button></div>
             <div class="record-list" id="soil-list"></div>
           </section>
 
           <section class="record-section" aria-labelledby="depth-heading">
-            <div class="record-heading"><div><span>B</span><h3 id="depth-heading">深度確認</h3></div><button class="add-button" id="add-depth" type="button" aria-label="新增深度確認"><span aria-hidden="true">＋</span> 新增</button></div>
+            <div class="record-heading"><div><h3 id="depth-heading">深度確認</h3></div><button class="add-button" id="add-depth" type="button" aria-label="新增深度確認"><span aria-hidden="true">＋</span> 新增</button></div>
             <div class="record-list" id="depth-list"></div>
           </section>
         </section>
 
         <section class="tab-panel" id="panel-prework" role="tabpanel" aria-labelledby="tab-prework" hidden>
           <div class="panel-heading">
-            <div><span>05</span><h2>前置紀錄</h2></div>
-            <p>選擇工序後填寫日期與起迄時間</p>
+            <div><h2>前置紀錄</h2></div>
           </div>
           <div class="phase-editor">
             <label class="field"><span>前置作業項目</span><select id="phase-select" aria-label="選擇前置作業"></select></label>
@@ -146,8 +138,7 @@
 
         <section class="tab-panel" id="panel-pouring" role="tabpanel" aria-labelledby="tab-pouring" hidden>
           <div class="panel-heading">
-            <div><span>06</span><h2>澆置紀錄</h2></div>
-            <p>逐車方量與實測高度比對</p>
+            <div><h2>澆置紀錄</h2></div>
           </div>
           <div class="form-grid checklist-meta-grid record-date-grid">
             <label class="field span-two"><span>澆置日期（跨午夜的時間會以 24 時以後接續顯示）</span><span class="native-field-wrap"><input type="date" data-bind="dates.pouring" /><span class="native-field-display" aria-hidden="true"></span></span></label>
@@ -160,7 +151,7 @@
             <div id="pour-difference-cell"><dt>高度差異</dt><dd id="pour-difference">— <small>m</small></dd></div>
             <div id="pour-volume-difference-cell"><dt>數量差異</dt><dd id="pour-volume-difference">— <small>%</small></dd></div>
           </dl>
-          <div class="record-heading pouring-record-heading"><div><span>逐車</span><h3>混凝土車次</h3></div><button class="add-button" id="add-truck" type="button" aria-label="新增混凝土車次"><span aria-hidden="true">＋</span> 新增車次</button></div>
+          <div class="record-heading pouring-record-heading"><div><h3>混凝土車次</h3></div><button class="add-button" id="add-truck" type="button" aria-label="新增混凝土車次"><span aria-hidden="true">＋</span> 新增車次</button></div>
           <div class="record-list truck-list" id="truck-list"></div>
           <div class="warning-list" id="pour-warnings" aria-live="polite"></div>
         </section>
@@ -170,20 +161,16 @@
       <section class="tool-view" id="tool-guide-wall" data-tool-view="guideWall" hidden>
         <section class="panel-frame integrated-checklist">
           <div class="panel-heading">
-            <div><span>導溝</span><h2>施工複核</h2></div>
-            <p>成槽前停留點</p>
+            <div><h2>施工複核</h2></div>
+            <span class="count-pill" id="guide-wall-progress">檢查數：0 / 11</span>
           </div>
           <div class="form-grid checklist-meta-grid">
             <label class="field span-two"><span>軸線／方向編號</span><input type="text" data-check-bind="guideWall.axisNo" placeholder="例如：X3～X7／南側" /></label>
             <label class="field span-two"><span>複核日期</span><span class="native-field-wrap"><input type="date" data-check-bind="guideWall.date" /><span class="native-field-display" aria-hidden="true"></span></span></label>
             <label class="field span-two"><span>營造廠複核人</span><input type="text" data-check-bind="guideWall.reviewer" /></label>
           </div>
-          <dl class="check-progress" aria-live="polite">
-            <div><dt>已完成複核</dt><dd id="guide-wall-progress">0 / 12</dd></div>
-            <div><dt>尚待確認</dt><dd id="guide-wall-pending">12</dd></div>
-          </dl>
           <section class="record-section" aria-labelledby="guide-wall-check-heading">
-            <div class="record-heading"><div><span>01</span><h3 id="guide-wall-check-heading">導溝複核項目</h3></div></div>
+            <div class="record-heading"><div><h3 id="guide-wall-check-heading">導溝複核項目</h3></div></div>
             <div class="check-card-list" id="guide-wall-check-list"></div>
           </section>
           <label class="field note-field"><span>複核意見／備註</span><textarea data-check-bind="guideWall.note" rows="3"></textarea></label>
@@ -203,8 +190,7 @@
         <section class="panel-frame integrated-checklist">
           <section class="tab-panel" id="panel-cage-meta" role="tabpanel" aria-labelledby="tab-cage-meta">
             <div class="panel-heading">
-              <div><span>鋼筋籠</span><h2>吊放前複核</h2></div>
-              <p>本次複核的基本識別資料</p>
+              <div><h2>吊放前複核</h2></div>
             </div>
             <div class="form-grid checklist-meta-grid">
             <label class="field span-two"><span>複核日期</span><span class="native-field-wrap"><input type="date" data-check-bind="rebarCage.date" /><span class="native-field-display" aria-hidden="true"></span></span></label>
@@ -213,28 +199,24 @@
             <label class="field"><span>鋼筋籠編號</span><input type="text" data-check-bind="rebarCage.cageNo" /></label>
             <label class="field span-two"><span>營造廠複核人</span><input type="text" data-check-bind="rebarCage.reviewer" /></label>
             </div>
-          <dl class="check-progress rebar-cage-progress" aria-live="polite">
-            <div><dt>配筋明細完成</dt><dd id="rebar-cage-rebar-progress">0 / 13</dd></div>
-            <div><dt>吊放條件完成</dt><dd id="rebar-cage-check-progress">0 / 7</dd></div>
-          </dl>
           </section>
 
           <section class="tab-panel" id="panel-cage-rebar" role="tabpanel" aria-labelledby="tab-cage-rebar" hidden>
             <div class="panel-heading">
-              <div><span>01</span><h2>配筋抽查明細</h2></div>
-              <div class="t-tabs" id="rebar-cage-mode-tabs" role="tablist" aria-label="填寫模式">
+              <div><h2>配筋抽查明細</h2></div>
+              <div class="heading-tools"><span class="count-pill" id="rebar-cage-rebar-progress">檢查數：0 / 13</span><div class="t-tabs" id="rebar-cage-mode-tabs" role="tablist" aria-label="填寫模式">
                 <span class="t-tabs-pill" aria-hidden="true"></span>
                 <button class="t-tab" role="tab" type="button" aria-selected="true" data-cage-mode="simple">簡易</button>
                 <button class="t-tab" role="tab" type="button" aria-selected="false" data-cage-mode="detailed">詳細</button>
-              </div>
+              </div></div>
             </div>
             <div class="check-card-list" id="rebar-cage-rebar-list"></div>
           </section>
 
           <section class="tab-panel" id="panel-cage-check" role="tabpanel" aria-labelledby="tab-cage-check" hidden>
             <div class="panel-heading">
-              <div><span>02</span><h2>組裝與吊放條件</h2></div>
-              <p>吊放前逐項確認</p>
+              <div><h2>組裝與吊放條件</h2></div>
+            <span class="count-pill" id="rebar-cage-check-progress">檢查數：0 / 7</span>
             </div>
             <div class="check-card-list" id="rebar-cage-check-list"></div>
             <label class="field note-field"><span>複核意見／備註</span><textarea data-check-bind="rebarCage.note" rows="3"></textarea></label>
@@ -242,7 +224,7 @@
 
           <section class="tab-panel" id="panel-cage-photos" role="tabpanel" aria-labelledby="tab-cage-photos" hidden>
             <div class="panel-heading">
-              <div><span>03</span><h2>匯入照片</h2></div>
+              <div><h2>匯入照片</h2></div>
               <button class="add-button" id="cage-photo-add" type="button" aria-label="匯入照片"><span aria-hidden="true">＋</span> 匯入</button>
             </div>
             <div class="photo-panel" id="cage-photo-list"></div>

@@ -250,8 +250,8 @@ def verify_vendor_links(browser):
     check("廠商版：標準值改名為「混凝土實際與設計數量差異上限」", linked["label"] == "混凝土實際與設計數量差異上限（%）", linked["label"])
     exceeded = page.evaluate("""() => { state.trucks[0].volume = "20"; renderAll(); return { rate: volumeDifferenceRate().toFixed(2), warning: document.querySelector('#pour-warnings').textContent, cell: document.querySelector('#pour-volume-difference-cell').classList.contains('is-warning'), hint: document.querySelector('.quality-standard-current').className }; }""")
     check("廠商版：累積方量超過設計 5% 時澆置看板轉警示、警示清單與標準值提示標示超過標準", exceeded["rate"] == "10.54" and "超過檢查標準值 5%" in exceeded["warning"] and exceeded["cell"] and "is-exceeded" in exceeded["hint"], exceeded)
-    manual = page.evaluate("""() => { state.trucks = []; state.wall.actualVolume = "95.00"; renderAll(); return { rate: volumeDifferenceRate().toFixed(2), readonly: document.querySelector('[data-bind="wall.actualVolume"]').readOnly, hint: document.querySelector('.quality-standard-current').textContent }; }""")
-    check("廠商版：沒有車次時用壁體資訊手填的實際數量算差異，欄位恢復可編輯", manual["rate"] == "3.89" and not manual["readonly"] and "壁體資訊實際數量" in manual["hint"], manual)
+    manual = page.evaluate("""() => { state.trucks = []; state.wall.actualVolume = "95.00"; renderAll(); return { actual: state.wall.actualVolume, rate: volumeDifferenceRate(), readonly: document.querySelector('[data-bind="wall.actualVolume"]').readOnly, tag: document.querySelector('[data-bind="wall.actualVolume"]').closest('.field').querySelector('em')?.hidden, field: document.querySelector('[data-bind="wall.actualVolume"]').value }; }""")
+    check("廠商版：實際數量一律自動（唯讀）；沒有車次時是空白、不判定差異，手填的值會被清掉", manual["actual"] == "" and manual["field"] == "" and manual["rate"] is None and manual["readonly"] and manual["tag"] is False, manual)
     page.evaluate("() => { clearAllData(); loadExample(); renderAll(); showTab('pouring'); }")
     text = pdf_text(page, "current")
     check("廠商版：澆置紀錄 PDF 印出設計／實際數量與差異 3.46%", "102.26" in text and "3.46%" in text, text[:300])
@@ -810,6 +810,52 @@ def verify_rebar_cage_helpers(browser):
     page.context.close()
 
 
+# ---------------------------------------------------------------- 標題小字移除、檢查數膠囊、標準值收合、? 浮窗
+def verify_heading_cleanup(browser, html):
+    page = open_clean(browser, html)
+    result = page.evaluate("""() => {
+      const text = s => document.querySelector(s)?.textContent.trim();
+      const headings = [...document.querySelectorAll('.panel-heading, .record-heading')];
+      const details = document.querySelector('.quality-standard-panel');
+      const tip = details?.querySelector('.info-tip');
+      return {
+        eyebrows: headings.filter(h => h.querySelector(':scope > div:not(.heading-tools) > span')).length,
+        subtitles: document.querySelectorAll('.panel-heading > p').length,
+        progressBlocks: document.querySelectorAll('.check-progress').length,
+        pills: [...document.querySelectorAll('.count-pill:not(.is-adjusted)')].map(el => el.textContent),
+        detailsOpen: details?.open, hasTip: Boolean(tip?.dataset.tip),
+        sharedSmall: document.querySelectorAll('.shared-info-head small').length
+      };
+    }""")
+    check(f"{html}：標題前的小字／編號、標題右側說明、舊的進度大格子都已移除，只剩檢查數膠囊",
+          result["eyebrows"] == 0 and result["subtitles"] == 0 and result["progressBlocks"] == 0 and result["sharedSmall"] == 0
+          and result["pills"] and all(text.startswith("檢查數：") for text in result["pills"]), result)
+    check(f"{html}：檢查標準值預設收合，標題旁有 ? 說明", result["detailsOpen"] is False and result["hasTip"], result)
+    interaction = page.evaluate("""() => {
+      const details = document.querySelector('.quality-standard-panel');
+      const tip = details.querySelector('.info-tip');
+      tip.click();
+      const shown = Boolean(document.querySelector('.tip-bubble'));
+      const stayedClosed = !details.open;
+      tip.click();
+      const hidden = !document.querySelector('.tip-bubble');
+      details.querySelector('summary').click();
+      return { shown, stayedClosed, hidden, opened: details.open };
+    }""")
+    check(f"{html}：點 ? 只顯示／關閉浮窗、不展開標準值；點標題列才展開",
+          interaction["shown"] and interaction["stayedClosed"] and interaction["hidden"] and interaction["opened"], interaction)
+    page.context.close()
+
+
+# ---------------------------------------------------------------- 日期／時間欄：關掉原生藍色反白（隱藏原生編輯區）
+def verify_date_highlight(browser, html):
+    page = open_clean(browser, html, "?example=1")
+    # 偽元素 ::-webkit-datetime-edit 量不到 computed style，改檢查樣式表裡有這條隱藏規則（日期與時間各一條）
+    result = page.evaluate("""() => { const hit = []; for (const sheet of document.styleSheets) { try { for (const rule of sheet.cssRules) if (rule.selectorText?.includes('::-webkit-datetime-edit') && !rule.selectorText.includes('-field') && rule.style.opacity === '0') hit.push(rule.selectorText); } catch (e) {} } return hit; }""")
+    check(f"{html}：原生日期／時間欄的編輯區（含聚焦時的藍色反白）已隱藏，文字改由蓋在上面的顯示層呈現", bool(result) and 'date' in result[0] and 'time' in result[0], result)
+    page.context.close()
+
+
 # ---------------------------------------------------------------- 結果膠囊：已選的再點一次＝取消
 def verify_result_toggle(browser, html, query="?example=1"):
     page = open_clean(browser, html, query)
@@ -876,7 +922,7 @@ def verify_rebar_cage_ui(browser, html):
     check(f"{html}：簡易 13 張卡片、沒有填寫鈕；切詳細後每張都有填寫鈕", result["simpleCount"] == 13 and result["simpleFill"] == 0 and result["detailedFill"] == 13 and result["mode"] == "detailed", result)
     check(f"{html}：外側 3 勾對稱 → 內側 4 顯示同外側且無填寫鈕", "同外側" in result["mirroredText"] and not result["mirroredFill"], result)
     check(f"{html}：填寫視窗可加區間、-0 轉正、下一區間頂部淺於上一區間底部只標該欄紅框且不重畫", result["dialogOpen"] and result["intervals"] == 2 and result["invalid"] == ["top"] and result["focusKept"] and result["top0"] == "0" and result["top1"] == "5", result)
-    check(f"{html}：確認後摘要＝GL-0～-10 #10@60，結果寫回並更新進度", "GL-0～-10 #10@60" in result["summary"] and result["result0"] == "符合" and result["progress"] == "1 / 13", result)
+    check(f"{html}：確認後摘要＝GL-0～-10 #10@60，結果寫回並更新進度", "GL-0～-10 #10@60" in result["summary"] and result["result0"] == "符合" and result["progress"] == "檢查數：1 / 13", result)
     check(f"{html}：藥丸有量到寬度", result["pill"].endswith("px") and result["pill"] != "0px", result["pill"])
     page.context.close()
 
@@ -1056,6 +1102,10 @@ try:
         verify_rebar_cage_ui(browser, "diaphragm-wall")
         for tool in ("diaphragm-wall", "diaphragm-wall-gc", "template", "rebar", "steel-structure"):
             verify_result_toggle(browser, tool)
+        for tool in ("diaphragm-wall", "diaphragm-wall-gc", "template", "rebar", "steel-structure"):
+            verify_date_highlight(browser, tool)
+        verify_heading_cleanup(browser, "diaphragm-wall")
+        verify_heading_cleanup(browser, "diaphragm-wall-gc")
         verify_pdf_content(browser)
         verify_plan_page(browser)
         verify_plan_standard_sync(browser)

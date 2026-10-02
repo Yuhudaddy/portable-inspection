@@ -72,6 +72,89 @@
   }, true);
 })();
 
+// 檢查數膠囊「檢查數：m / n」（m＝已完成、n＝總數）；全部完成時換成淡綠色。
+function setCountPill(id, done, total) {
+  const pill = document.getElementById(id);
+  if (!pill) return;
+  pill.textContent = `檢查數：${done} / ${total}`;
+  pill.classList.toggle("is-done", total > 0 && done === total);
+}
+
+// 「已調整 N 項」膠囊（檢查標準值收合列上）：0 項不顯示。
+function setAdjustedPill(id, count) {
+  const pill = document.getElementById(id);
+  if (!pill) return;
+  pill.hidden = !count;
+  pill.textContent = `已調整 ${count} 項`;
+}
+
+// 說明浮窗「?」：<button class="info-tip" data-tip="說明文字">?</button>。
+// 觸控：點一下顯示，再點一下或點別處、捲動就關；滑鼠：停留約 0.6 秒才顯示，移開就關；鍵盤聚焦也會顯示，Esc 關閉。
+// 按鈕若放在 <summary> 裡，點它只開浮窗、不會展開／收合。
+(function () {
+  const HOVER_DELAY = 600;
+  let bubble = null;
+  let anchor = null;
+  let timer = 0;
+  const canHover = () => window.matchMedia("(hover: hover)").matches;
+
+  const hide = () => {
+    clearTimeout(timer);
+    timer = 0;
+    bubble?.remove();
+    bubble = null;
+    if (anchor) { anchor.setAttribute("aria-expanded", "false"); anchor.removeAttribute("aria-describedby"); }
+    anchor = null;
+  };
+
+  const show = target => {
+    hide();
+    anchor = target;
+    bubble = document.createElement("div");
+    bubble.className = "tip-bubble";
+    bubble.id = "tip-bubble";
+    bubble.setAttribute("role", "tooltip");
+    bubble.textContent = target.dataset.tip || "";
+    document.body.append(bubble);
+    target.setAttribute("aria-expanded", "true");
+    target.setAttribute("aria-describedby", bubble.id);
+    const margin = 12;
+    const rect = target.getBoundingClientRect();
+    const box = bubble.getBoundingClientRect();
+    const left = Math.max(margin, Math.min(rect.left + rect.width / 2 - box.width / 2, window.innerWidth - box.width - margin));
+    const below = rect.bottom + 8;
+    const top = below + box.height > window.innerHeight - margin && rect.top - box.height - 8 > margin ? rect.top - box.height - 8 : below;
+    bubble.style.left = `${left}px`;
+    bubble.style.top = `${top}px`;
+  };
+
+  const tipOf = event => event.target instanceof Element ? event.target.closest(".info-tip") : null;
+
+  document.addEventListener("click", event => {
+    const tip = tipOf(event);
+    if (!tip) { if (bubble) hide(); return; }
+    event.preventDefault();
+    event.stopPropagation();
+    if (anchor === tip) hide(); else show(tip);
+  }, true);
+  document.addEventListener("mouseover", event => {
+    const tip = tipOf(event);
+    if (!tip || !canHover() || anchor === tip || event.relatedTarget instanceof Element && tip.contains(event.relatedTarget)) return;
+    clearTimeout(timer);
+    timer = setTimeout(() => show(tip), HOVER_DELAY);
+  });
+  document.addEventListener("mouseout", event => {
+    const tip = tipOf(event);
+    if (!tip || !canHover() || event.relatedTarget instanceof Element && tip.contains(event.relatedTarget)) return;
+    hide();
+  });
+  document.addEventListener("focusin", event => { const tip = tipOf(event); if (tip && tip.matches(":focus-visible")) show(tip); });
+  document.addEventListener("focusout", event => { if (tipOf(event)) hide(); });
+  document.addEventListener("keydown", event => { if (event.key === "Escape" && bubble) hide(); });
+  window.addEventListener("scroll", () => { if (bubble) hide(); }, true);
+  window.addEventListener("resize", hide);
+})();
+
 // 讀取中的提示（雙環，樣式見 glass.css 的 .orbit）。text 只傳程式裡的固定字串；small 是放在按鈕裡的小尺寸。
 function loadingHtml(text, { small = false } = {}) {
   const orbit = `<span class="orbit${small ? " is-small" : ""}" aria-hidden="true"><i></i><i></i></span>`;

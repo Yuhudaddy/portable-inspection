@@ -461,3 +461,17 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; marg
 @media print {
   .loading-note { display: none !important; }
 }
+
+/* ---- 說明浮窗「?」：按鈕＋點擊／停留顯示的泡泡（form-controls.js）---------------------- */
+.info-tip { position: relative; display: inline-flex; align-items: center; justify-content: center; flex: none; width: 18px; height: 18px; padding: 0; border: 0; border-radius: 50%; background: var(--glass-sunken); box-shadow: var(--glass-hairline); color: var(--glass-soft); font: inherit; font-size: 0.6875rem; font-weight: 700; line-height: 1; cursor: help; -webkit-tap-highlight-color: transparent; }
+.info-tip::before { content: ""; position: absolute; inset: -9px; }   /* 點擊範圍放大到約 36px，外觀不變 */
+.info-tip[aria-expanded="true"] { background: var(--glass-ink); color: #fff; }
+.info-tip:focus-visible { outline: 3px solid var(--glass-accent); outline-offset: 2px; }
+.tip-bubble { position: fixed; z-index: 400; max-width: min(260px, calc(100vw - 24px)); padding: 9px 12px; border-radius: 12px; background: var(--glass-ink); color: #fff; font-size: 0.75rem; font-weight: 500; line-height: 1.55; box-shadow: 0 8px 24px rgba(40, 32, 20, 0.22); pointer-events: none; }
+
+/* ---- 日期／時間欄：藍色反白 -----------------------------------------------------------------
+   Chrome 的原生日期／時間欄聚焦某個子欄位（年／月／日、時／分）時會自己畫藍色反白，且這條 UA 規則改不掉
+   （author 的 :focus 覆寫無效）。這些欄位的文字本來就是原生欄位透明、由 .native-field-display 蓋在上面顯示，
+   所以直接把原生的編輯區（連同反白）整塊隱藏；日曆圖示是另一個元素，不受影響，鍵盤輸入照常運作。 */
+input[type="date"]::-webkit-datetime-edit,
+input[type="time"]::-webkit-datetime-edit { opacity: 0; }

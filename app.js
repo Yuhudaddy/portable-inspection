@@ -237,11 +237,11 @@ function qualityActualText(check) {
   return measure.prefix ? `${measure.prefix} ${body}` : body;
 }
 
-// 混凝土實際與設計數量差異：|實際 − 設計| ／ 設計。實際數量以澆置紀錄的累積方量為準（有車次時自動帶入壁體資訊），
-// 沒有車次時才用壁體資訊手填的實際數量。
+// 混凝土實際與設計數量差異：|實際 − 設計| ／ 設計。實際數量一律是澆置紀錄的累積方量（自動帶入壁體資訊，不能手填），
+// 還沒有車次（累積方量為 0）就沒有實際數量，也不判定差異。
 function pouredVolume() {
   const cumulative = state.trucks.reduce((sum, truck) => sum + (number(truck.volume) ?? 0), 0);
-  return cumulative > 0 ? cumulative : number(state.wall.actualVolume);
+  return cumulative > 0 ? cumulative : null;
 }
 
 function volumeDifferenceRate() {
@@ -250,12 +250,9 @@ function volumeDifferenceRate() {
   return design && actual !== null ? Math.abs(actual - design) / design * 100 : null;
 }
 
-const pourLogHasVolume = () => state.trucks.some(truck => (number(truck.volume) ?? 0) > 0);
-
 // 澆置中累積方量一定少於設計，少方只在澆置看起來已完成時才判定：最後一車實測高度到達設計澆置高度
-// （容許 0.3 m，與高度差異提醒同一門檻），或實際數量是手填的完工值；超方則隨時判定。
+// （容許 0.3 m，與高度差異提醒同一門檻）；超方則隨時判定。
 function pourLooksComplete() {
-  if (!pourLogHasVolume()) return true;
   const height = designHeight();
   const measured = calculatedTrucks().at(-1)?.measured ?? null;
   return height !== null && measured !== null && measured >= height - 0.3;
@@ -273,9 +270,8 @@ function volumeDifferenceSummary() {
   const rate = volumeDifferenceRate();
   if (rate === null) return "";
   const design = number(state.wall.designVolume) ?? calculatedDesignVolume();
-  const source = pourLogHasVolume() ? "澆置紀錄累積" : "壁體資訊實際數量";
-  const pouring = pourLogHasVolume() && pouredVolume() < design && !pourLooksComplete() ? "，澆置中" : "";
-  return `目前 ${rate.toFixed(2)}%（${source} ${fixed(pouredVolume())} ／ 設計 ${fixed(design)} m³${pouring}）`;
+  const pouring = pouredVolume() < design && !pourLooksComplete() ? "，澆置中" : "";
+  return `目前 ${rate.toFixed(2)}%（澆置紀錄累積 ${fixed(pouredVolume())} ／ 設計 ${fixed(design)} m³${pouring}）`;
 }
 
 const PHASES = [
@@ -550,18 +546,12 @@ function updateWallCalculation() {
   renderPouring();
 }
 
-// 有澆置車次時，壁體資訊的實際數量＝澆置紀錄累積方量（欄位轉為唯讀「自動」）；沒有車次時維持手填。
+// 壁體資訊的實際數量一律＝澆置紀錄累積方量（唯讀「自動」）；還沒有車次就是空白。
 function syncActualVolume() {
   const cumulative = state.trucks.reduce((sum, truck) => sum + (number(truck.volume) ?? 0), 0);
-  const auto = cumulative > 0;
-  if (auto) state.wall.actualVolume = cumulative.toFixed(2);
+  state.wall.actualVolume = cumulative > 0 ? cumulative.toFixed(2) : "";
   const input = $('[data-bind="wall.actualVolume"]');
-  if (!input) return;
-  input.value = state.wall.actualVolume ?? "";
-  input.readOnly = auto;
-  input.closest(".field")?.classList.toggle("calculated-field", auto);
-  const tag = input.closest(".field")?.querySelector("em");
-  if (tag) tag.hidden = !auto;
+  if (input) input.value = state.wall.actualVolume;
 }
 
 function syncStrengthUnit() {
@@ -766,18 +756,13 @@ function renderCheckCards(type) {
 
 function renderCheckProgress(type) {
   const completed = state[type].checks.filter(check => check.result !== "待確認").length;
-  if (type === "guideWall") {
-    $("#guide-wall-progress").textContent = `${completed} / ${state.guideWall.checks.length}`;
-    $("#guide-wall-pending").textContent = String(state.guideWall.checks.length - completed);
-  } else {
-    $("#rebar-cage-check-progress").textContent = `${completed} / ${state.rebarCage.checks.length}`;
-  }
+  setCountPill(type === "guideWall" ? "guide-wall-progress" : "rebar-cage-check-progress", completed, state[type].checks.length);
 }
 
 function renderRebars() {
   const cage = state.rebarCage;
   $("#rebar-cage-rebar-list").innerHTML = rebarCageCardsHtml(cage, resultSegmented);
-  $("#rebar-cage-rebar-progress").textContent = `${cage.parts.filter(part => part.result !== "待確認").length} / ${cage.parts.length}`;
+  setCountPill("rebar-cage-rebar-progress", cage.parts.filter(part => part.result !== "待確認").length, cage.parts.length);
   syncRebarCageModeTabs(cage.mode);
   renderCagePhotos(cage.photos || []);
 }
@@ -809,6 +794,7 @@ function renderQualityStandards() {
     </label>`;
   });
   $("#quality-standard-list").innerHTML = rows.join("");
+  setAdjustedPill("quality-standard-adjusted", QUALITY_STANDARD_CONFIG.filter(config => String(state.quality.standards[config.key]) !== String(config.default)).length);
   $("#quality-standard-note").textContent = selectedEmbedmentKey
     ? `目前單元類型：${unitType}；僅輸出此單元類型的特密管埋入深度。`
     : "請先在「壁體資訊」選擇單元類型；未選擇前三種埋入深度均可調整。";
@@ -840,8 +826,7 @@ function renderQuality() {
 
 function renderQualityProgress() {
   const completed = state.quality.checks.filter(check => check.result !== "待確認").length;
-  $("#quality-progress").textContent = `${completed} / ${state.quality.checks.length}`;
-  $("#quality-pending").textContent = String(state.quality.checks.length - completed);
+  setCountPill("quality-progress", completed, state.quality.checks.length);
 }
 
 function renderChecklists() {

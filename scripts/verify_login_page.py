@@ -50,6 +50,7 @@ try:
         context, page, problems = open_login(browser, "?next=/rebar")
         check("登入頁標題與表單", page.title().startswith("登入") and page.get_attribute("#login-form", "action") == "/api/login" and page.get_attribute("#login-form", "method") == "post")
         check("next 帶進隱藏欄位", page.input_value("input[name=next]") == "/rebar", page.input_value("input[name=next]"))
+        check("說明文字不寫死「手機」（桌機也會看到）", "這台裝置" in page.inner_text(".login-note") and "手機" not in page.inner_text(".login-note"), page.inner_text(".login-note"))
         check("手機密碼管理員屬性", page.get_attribute("#login-username", "autocomplete") == "username" and page.get_attribute("#login-password", "autocomplete") == "current-password")
         sizes = page.evaluate("() => ['#login-username', '#login-password', '.password-toggle', '#login-submit'].map(s => Math.round(document.querySelector(s).getBoundingClientRect().height))")
         check("觸控目標都至少 44px", min(sizes) >= 44, str(sizes))
@@ -82,6 +83,10 @@ try:
         page.route("**/api/login", lambda route: (calls.append(1), route.abort()))
         page.click("#login-submit")
         check("沒填帳密：顯示提示、不送出請求", "請輸入帳號和密碼" in page.inner_text("#login-error") and not calls)
+        check("沒填帳密：不算被擋下（閘門不彈跳），焦點回到帳號欄", state(page) == "idle" and page.evaluate("() => document.activeElement.id") == "login-username", f"{state(page)} {page.evaluate('() => document.activeElement.id')}")
+        page.fill("#login-username", "staff")
+        page.click("#login-submit")
+        check("只填帳號沒填密碼：焦點跳到密碼欄", page.evaluate("() => document.activeElement.id") == "login-password", page.evaluate("() => document.activeElement.id"))
         context.close()
 
         # ---- 帳密錯誤：確認中 → 被擋下 → 回到鎖著 ----
@@ -91,6 +96,7 @@ try:
         fill(page, "staff", "wrong")
         page.click("#login-submit")
         page.wait_for_function("() => document.getElementById('gate-stage').dataset.state === 'checking'")
+        check("確認中：警示燈本身快速閃爍（不只是光暈）", page.evaluate("() => getComputedStyle(document.querySelector('.gate-lamp')).animationName") == "gate-blink", page.evaluate("() => getComputedStyle(document.querySelector('.gate-lamp')).animationName"))
         check("送出後進入「確認中」：按鈕停用並改字", page.inner_text("#login-submit") == "確認中…" and page.is_disabled("#login-submit"))
         post_body = held[0].request.post_data or ""
         check("送出的是帳號、密碼與 next", "username=staff" in post_body and "password=wrong" in post_body and "next=" in post_body, post_body)
@@ -143,6 +149,9 @@ try:
 
         # ---- 減少動態效果 ----
         context, page, _ = open_login(browser, reduced_motion="reduce")
+        page.evaluate("() => { document.getElementById('gate-stage').dataset.state = 'checking'; }")
+        check("減少動態：確認中時警示燈與光暈也不動", page.evaluate("() => ['.gate-lamp', '.gate-halo'].map(s => getComputedStyle(document.querySelector(s)).animationName).join()") == "none,none", page.evaluate("() => ['.gate-lamp', '.gate-halo'].map(s => getComputedStyle(document.querySelector(s)).animationName).join()"))
+        page.evaluate("() => { document.getElementById('gate-stage').dataset.state = 'idle'; }")
         check("減少動態：燈不呼吸、桿子沒有轉場", page.evaluate("() => getComputedStyle(document.querySelector('.gate-halo')).animationName") == "none" and page.evaluate("() => getComputedStyle(document.querySelector('.gate-arm')).transitionProperty") == "none")
         context.close()
 

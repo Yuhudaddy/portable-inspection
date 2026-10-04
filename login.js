@@ -69,7 +69,9 @@
     if (submit.disabled) return;
     clearError();
     if (!username.value.trim() || !password.value) {
-      deny("請輸入帳號和密碼。", false);
+      // 還沒送出，不算被閘門擋下：只提示，並把游標放到第一個空欄位
+      showError("請輸入帳號和密碼。");
+      (username.value.trim() ? password : username).focus();
       return;
     }
     if (!navigator.onLine) {

@@ -3,7 +3,10 @@
 不連結 GitHub：
 
     python3 scripts/build_share.py
-    npx wrangler pages deploy share/diaphragm-wall --project-name <專案名稱>
+    cd share/diaphragm-wall && npx wrangler pages deploy . --project-name <專案名稱>
+
+※ 一定要先 cd 進輸出資料夾再部署。wrangler 會把「目前資料夾」底下的 functions/（正式站的登入門房）一起打包，
+  在專案根目錄部署的話，對外展示版會被登入門檻擋住。
 
 處理內容
 ・完整版頁面放在網站根目錄（index.html），開網址就是工具頁

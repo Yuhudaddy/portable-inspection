@@ -139,6 +139,129 @@ await check("白名單只放登入相關檔案，工具頁、程式、範例都�
   }
 });
 
+// ---- section: 門房 ----
+const middleware = await import("../functions/_middleware.js");
+
+const page = () => new Response("<html>工具頁</html>", {
+  status: 200,
+  headers: { "Content-Type": "text/html", "Cache-Control": "public, max-age=0, must-revalidate" }
+});
+
+async function run(env, request) {
+  let nextCalls = 0;
+  const response = await middleware.onRequest({ request, env, next: async () => { nextCalls += 1; return page(); } });
+  return { response, nextCalls };
+}
+
+const withCookie = (headers, token) => (token ? { ...headers, Cookie: `${auth.COOKIE_NAME}=${token}` } : headers);
+const navigation = (pathname, token) => req(pathname, { headers: withCookie({ "Sec-Fetch-Dest": "document" }, token) });
+const subresource = (pathname, token, dest = "style") => req(pathname, { headers: withCookie({ "Sec-Fetch-Dest": dest }, token) });
+
+await check("未登入的換頁：302 導到登入頁並帶回原網址，不放行", async () => {
+  const plain = await run(ENV, navigation("/rebar"));
+  equal(plain.response.status, 302, "status");
+  equal(plain.response.headers.get("Location"), "/login?next=%2Frebar", "Location");
+  equal(plain.response.headers.get("Cache-Control"), "no-store", "Cache-Control");
+  equal(plain.nextCalls, 0, "不能呼叫 next");
+  const withQuery = await run(ENV, navigation("/plan?work=rebar&from=rebar"));
+  equal(withQuery.response.headers.get("Location"), "/login?next=%2Fplan%3Fwork%3Drebar%26from%3Drebar", "帶查詢字串");
+});
+
+await check("未登入、由 Service Worker 代為重抓的換頁（Dest 是 empty、Mode 是 navigate）：一樣導向登入頁，不是 401", async () => {
+  const request = req("/rebar", { headers: { "Sec-Fetch-Mode": "navigate", "Sec-Fetch-Dest": "empty", Accept: "text/html,application/xhtml+xml" } });
+  const { response, nextCalls } = await run(ENV, request);
+  equal(response.status, 302, "status");
+  equal(response.headers.get("Location"), "/login?next=%2Frebar", "Location");
+  equal(nextCalls, 0, "不能放行");
+});
+
+await check("未登入的 CSS／JS／sw.js 回 401，不是導向（導向會被 Service Worker 存成 app.css）", async () => {
+  for (const [pathname, dest] of [["/app.css", "style"], ["/app.js", "script"], ["/sw.js", "serviceworker"], ["/taisei.png", "image"]]) {
+    const { response, nextCalls } = await run(ENV, subresource(pathname, "", dest));
+    equal(response.status, 401, pathname);
+    assert(!response.headers.get("Location"), `${pathname} 不該有 Location`);
+    assert((response.headers.get("Content-Type") || "").startsWith("text/plain"), `${pathname} 要回純文字`);
+    equal(response.headers.get("Cache-Control"), "no-store", `${pathname} Cache-Control`);
+    equal(nextCalls, 0, `${pathname} 不能呼叫 next`);
+  }
+});
+
+await check("白名單路徑不需要登入就放行", async () => {
+  for (const pathname of ["/login", "/login.css", "/login.js", "/api/login", "/glass.css", "/portal.css", "/manifest.webmanifest", "/apple-touch-icon.png", "/robots.txt"]) {
+    const { response, nextCalls } = await run(ENV, subresource(pathname));
+    equal(response.status, 200, pathname);
+    equal(nextCalls, 1, `${pathname} 要呼叫 next`);
+  }
+});
+
+await check("sw.js 與 manifest 一律補 Cache-Control: no-cache，不依賴 _headers", async () => {
+  const token = await auth.issueToken(ENV);
+  const sw = await run(ENV, subresource("/sw.js", token, "serviceworker"));
+  equal(sw.response.headers.get("Cache-Control"), "no-cache", "sw.js");
+  const manifest = await run(ENV, subresource("/manifest.webmanifest"));
+  equal(manifest.response.headers.get("Cache-Control"), "no-cache", "manifest");
+});
+
+await check("Secrets 沒設好時一律 503，連換頁都不導向、不放行", async () => {
+  for (const env of [{}, { ...ENV, SESSION_SECRET: "short" }, { ...ENV, AUTH_PASSWORD: "" }]) {
+    const nav = await run(env, navigation("/rebar"));
+    equal(nav.response.status, 503, "換頁");
+    equal(nav.nextCalls, 0, "換頁不能放行");
+    const sub = await run(env, subresource("/app.js", "", "script"));
+    equal(sub.response.status, 503, "子資源");
+    equal(sub.nextCalls, 0, "子資源不能放行");
+  }
+  const publicPage = await run({}, navigation("/login"));
+  equal(publicPage.response.status, 200, "登入頁本身仍可開啟");
+});
+
+await check("有效通行證：放行並保留內容，剛簽發的不重發", async () => {
+  const token = await auth.issueToken(ENV);
+  const { response, nextCalls } = await run(ENV, navigation("/rebar", token));
+  equal(response.status, 200, "status");
+  equal(nextCalls, 1, "next");
+  equal(await response.text(), "<html>工具頁</html>", "內容");
+  equal(response.headers.get("Set-Cookie"), null, "不該重發");
+});
+
+await check("通行證超過 1 天沒續期：換頁時重發一張新的 90 天通行證", async () => {
+  const old = await auth.issueToken(ENV, Math.floor(Date.now() / 1000) - 2 * DAY);
+  const { response } = await run(ENV, navigation("/rebar", old));
+  const setCookie = response.headers.get("Set-Cookie") || "";
+  assert(setCookie.startsWith(`${auth.COOKIE_NAME}=v1.`), `沒有重發：${setCookie}`);
+  assert(setCookie.includes("Max-Age=7776000"), "要重發 90 天");
+  const fresh = setCookie.split(";")[0].split("=").slice(1).join("=");
+  const result = await auth.checkToken(ENV, fresh);
+  equal(result.valid, true, "新通行證有效");
+  equal(result.renew, false, "新通行證不需續期");
+  equal(response.headers.get("Cache-Control"), "private, no-cache", "重發時不能被共用快取存起來");
+});
+
+await check("需要續期但請求的是子資源：不重發", async () => {
+  const old = await auth.issueToken(ENV, Math.floor(Date.now() / 1000) - 2 * DAY);
+  const { response } = await run(ENV, subresource("/app.css", old));
+  equal(response.status, 200, "status");
+  equal(response.headers.get("Set-Cookie"), null, "子資源不該發 Cookie");
+});
+
+await check("竄改過、過期、換密碼後的舊通行證，都當成沒登入", async () => {
+  const good = await auth.issueToken(ENV);
+  const tampered = `${good.slice(0, -2)}${good.endsWith("AA") ? "BB" : "AA"}`;
+  const expired = await auth.issueToken(ENV, Math.floor(Date.now() / 1000) - auth.SESSION_SECONDS - DAY);
+  const changed = { ...ENV, AUTH_PASSWORD: "a different password 456" };
+  for (const [label, env, token] of [["竄改", ENV, tampered], ["過期", ENV, expired], ["換密碼", changed, good]]) {
+    const { response, nextCalls } = await run(env, navigation("/rebar", token));
+    equal(response.status, 302, label);
+    equal(nextCalls, 0, `${label} 不能放行`);
+  }
+});
+
+await check("對外展示版的部署說明要求先 cd 進輸出資料夾（否則 wrangler 會把 functions/ 一起打包，展示版被登入門檻鎖住）", () => {
+  const doc = readFileSync(path.join(ROOT, "scripts", "build_share.py"), "utf8");
+  assert(doc.includes("cd share/diaphragm-wall"), "說明沒有要求先 cd 進輸出資料夾");
+  assert(!/wrangler pages deploy share\//.test(doc), "仍然寫著在專案根目錄部署 share/");
+});
+
 // ---- end of sections ----
 console.log(failures ? `\n${failures} 項失敗` : "\n全部通過");
 process.exit(failures ? 1 : 0);

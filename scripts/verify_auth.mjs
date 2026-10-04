@@ -116,7 +116,8 @@ await check("safeNext 只放行站內路徑，其餘回首頁", () => {
     ["/", "/"], ["/rebar", "/rebar"], ["/plan?work=rebar&from=rebar", "/plan?work=rebar&from=rebar"],
     ["//evil.example", "/"], ["/\\evil.example", "/"], ["https://evil.example", "/"], ["javascript:alert(1)", "/"],
     ["", "/"], [null, "/"], [undefined, "/"],
-    ["/login", "/"], ["/login?next=/rebar", "/"], ["/api/logout", "/"], ["/ok\r\nSet-Cookie: x=1", "/"]
+    ["/login", "/"], ["/login?next=/rebar", "/"], ["/api/logout", "/"], ["/ok\r\nSet-Cookie: x=1", "/"],
+    ["/\t/evil.example", "/"], ["/\u000b/x", "/"], ["/a b", "/"], ["/工具", "/"], ["/rebar?x=%E5%B7%A5", "/rebar?x=%E5%B7%A5"]
   ];
   for (const [input, expected] of cases) equal(auth.safeNext(input), expected, JSON.stringify(input));
 });
@@ -322,7 +323,7 @@ await check("密碼含中文與空白也能登入", async () => {
 });
 
 await check("惡意的 next 一律改回首頁", async () => {
-  for (const next of ["//evil.example", "/\\evil.example", "https://evil.example", "/login", "/api/logout", "/a\r\nSet-Cookie: x=1"]) {
+  for (const next of ["//evil.example", "/\\evil.example", "https://evil.example", "/login", "/api/logout", "/a\r\nSet-Cookie: x=1", "/\t/evil.example", "/工具"]) {
     const json = await (await attempt(good({ next }), { json: true })).json();
     equal(json.next, "/", `JSON ${JSON.stringify(next)}`);
     equal((await attempt(good({ next }))).headers.get("Location"), "/", `表單 ${JSON.stringify(next)}`);
@@ -338,6 +339,15 @@ await check("Secrets 沒設好時登入 API 回 503，不發通行證", async ()
     equal(form.status, 503, "表單");
     equal(form.headers.get("Set-Cookie"), null, "表單 Cookie");
   }
+});
+
+await check("通行證超過 1 天沒續期時按登出：回應裡只能有清除通行證那一張 Cookie（門房不能再發一張新的蓋掉它）", async () => {
+  const stale = await auth.issueToken(ENV, Math.floor(Date.now() / 1000) - 2 * DAY);
+  const request = req("/api/logout", { method: "POST", headers: { "Sec-Fetch-Mode": "navigate", "Sec-Fetch-Dest": "document", Cookie: `${auth.COOKIE_NAME}=${stale}` } });
+  const response = await middleware.onRequest({ request, env: ENV, next: async () => logout.onRequestPost() });
+  const cookies = response.headers.getSetCookie();
+  equal(cookies.length, 1, "Set-Cookie 張數");
+  assert(cookies[0].includes("Max-Age=0"), `不是清除通行證：${cookies[0]}`);
 });
 
 await check("登出：303 回登入頁並讓通行證立刻過期", async () => {

@@ -94,12 +94,16 @@ export function clearedCookie() {
   return `${COOKIE_NAME}=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Lax`;
 }
 
-// 登入後要回去的頁面只接受站內路徑：單一 / 開頭，不是 //、/\，沒有換行，也不是登入相關路徑（避免繞圈）。
+// 登入後要回去的頁面只接受站內路徑：單一 / 開頭，不是 //、/\，不是登入相關路徑（避免繞圈），
+// 而且只含可列印的 ASCII（網址解析器會悄悄刪掉 Tab 與換行，"/<Tab>/evil.example" 會變成 //evil.example）。
+// 最後再用 URL 解析驗一次：解析後還是同一個來源才放行。
 export function safeNext(value) {
-  const ok = typeof value === "string"
-    && /^\/(?![/\\])[^\r\n]*$/.test(value)
-    && !/^\/(login|api\/)/.test(value);
-  return ok ? value : "/";
+  if (typeof value !== "string" || !/^\/(?![/\\])[\x21-\x7e]*$/.test(value) || /^\/(login|api\/)/.test(value)) return "/";
+  try {
+    return new URL(value, "https://gate.invalid").origin === "https://gate.invalid" ? value : "/";
+  } catch {
+    return "/";
+  }
 }
 
 // 「換頁」請求才導向登入頁；CSS、JS、圖片這類子資源一律回 401（回登入頁會被 Service Worker 當成 app.css 存起來）。

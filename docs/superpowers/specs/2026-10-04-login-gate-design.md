@@ -64,7 +64,7 @@ scripts/verify_login_page.py headless Chrome 測登入頁（沿用 verify_print_
 - 內容 `v1.<到期 Unix 秒>.<簽章>`；簽章 = HMAC-SHA256(`SESSION_SECRET`, `"v1." + 到期 + "." + 密碼指紋`)，base64url。
 - 密碼指紋 = SHA-256(`AUTH_USER` + `:` + `AUTH_PASSWORD`) 前 16 個十六進位字元。**換密碼 → 所有舊通行證立刻失效**（員工離職的處理方式）；
   換 `SESSION_SECRET` 也會全員登出。
-- 續期：通行證有效且剩餘少於 89 天（即超過 1 天沒續）時，在放行的回應上重發 90 天。只在「換頁」請求續期。
+- 續期：通行證有效且剩餘少於 89 天（即超過 1 天沒續）時，在放行的回應上重發 90 天。只在 **GET** 換頁請求續期：登出是表單 POST，瀏覽器送出時 `Sec-Fetch-Mode` 也是 `navigate`，若在那個回應上再發一張新通行證，會蓋掉登出清除的那張，登出就失效（最後審查時發現並實測重現）。
 - 伺服器發的 HttpOnly Cookie，不受 iPhone Safari 對網頁程式碼寫入儲存的 7 天上限影響（一般認知，上線後以實機驗證）。
 
 ### 登入與登出
@@ -74,7 +74,7 @@ scripts/verify_login_page.py headless Chrome 測登入頁（沿用 verify_print_
   - 其他（沒有 JavaScript 的一般表單）：成功 303 → `next` ＋ `Set-Cookie`；帳密錯 303 → `/login?e=1&next=…#login-error`；未設定 503 純文字。
   - 帳密比對：兩邊各算 SHA-256 再逐位元組做定時比對，不用 `===`。
   - 失敗一律先等約 1 秒（唯一的暴力猜測防護；密碼要求 12 碼以上長亂數）。登入頁正好用這一秒演「確認中」。
-  - `next` 只接受以單一 `/` 開頭的站內路徑（不接受 `//`、`/\`、換行、`/login*`、`/api/*`），否則回 `/`。
+  - `next` 只接受以單一 `/` 開頭、且只含可列印 ASCII（`0x21`–`0x7e`）的站內路徑，不接受 `//`、`/\`、`/login*`、`/api/*`，並用 URL 解析再驗一次來源仍是本站，否則回 `/`。原因：網址解析器會悄悄刪掉 Tab 與換行，`/<Tab>/evil.example` 會變成 `//evil.example`（最後審查時發現並實測重現）。
   - 只處理 POST；其他方法沒有對應的 Function，會落到靜態檔而得到 404。所有登入相關回應 `Cache-Control: no-store`。
 - `POST /api/logout`：`Max-Age=0` 清除通行證，303 → `/login`。首頁右上加小的「登出」按鈕（`<form method="post" action="/api/logout">`，符合 CSP `form-action 'self'`）。
 

@@ -28,7 +28,9 @@ export async function onRequest(context) {
   const { valid, renew } = await checkToken(env, readCookie(request));
   if (valid) {
     const response = await serve(context, url);
-    if (renew && isNavigation(request)) {
+    // 只在 GET 換頁續期：登出是表單 POST，瀏覽器送出時 Sec-Fetch-Mode 也是 navigate，
+    // 若在這裡再發一張新通行證，會蓋掉登出清除的那張，登出就失效了。
+    if (renew && request.method === "GET" && isNavigation(request)) {
       response.headers.append("Set-Cookie", sessionCookie(await issueToken(env)));
       response.headers.set("Cache-Control", "private, no-cache");
     }

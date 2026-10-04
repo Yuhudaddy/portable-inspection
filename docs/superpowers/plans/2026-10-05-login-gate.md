@@ -13,7 +13,7 @@
 ## Global Constraints
 
 ・ 通行證 Cookie：名稱 `__Host-pi_auth`；`Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=7776000`；不設 `Domain`。
-・ 通行證有效 90 天；有效且超過 1 天沒續期時，只在「換頁」請求上重發。
+・ 通行證有效 90 天；有效且超過 1 天沒續期時，只在「GET 換頁」請求上重發（表單 POST，例如登出，不能重發，否則會蓋掉登出清除的通行證；此條在執行後修訂，見文末）。
 ・ 簽章 = HMAC-SHA256(`SESSION_SECRET`, `"v1." + 到期 + "." + 密碼指紋`)，base64url；密碼指紋 = SHA-256(`AUTH_USER` + `:` + `AUTH_PASSWORD`) 前 16 個十六進位字元。
 ・ 帳密錯誤固定先等 1 秒（`LOGIN_DELAY_MS = 1000`）；帳密正確不延遲。
 ・ Cloudflare 加密變數 `AUTH_USER`、`AUTH_PASSWORD`、`SESSION_SECRET`（至少 32 字元），Production 與 Preview 都要設；缺任何一個一律回 503，絕不放行。
@@ -1921,7 +1921,7 @@ Expected（順序同上）：
 - [ ] **Step 4: 執行端到端腳本**
 
 ```bash
-python3 scripts/verify_gate_e2e.py staff 'local-test-password-9X'
+python3 scripts/verify_gate_e2e.py staff 'local-test-password-9X' 'local-test-session-secret-0123456789abcdef'
 ```
 
 Expected: 9 行 `✅`，最後 `全部通過`：未登入被導到登入頁並記住原網址、登入後回到工具頁且樣式有載入、通行證是 HttpOnly、Service Worker 裝好並快取、登入頁與 API 沒被快取、登出後重新開啟被導到登入頁（畫面是登入頁不是純文字）、快取裡的工具頁與 `app.css` 沒被登入頁蓋掉、離線仍可開啟已快取的工具頁。
@@ -2197,7 +2197,7 @@ This server does not run `functions/`, so it never shows the login. To try the l
 | `scripts/verify_print_layout.py` | Empty and oversized forms for every tool: signature block stays at the bottom of the last page, rotated pages included; the four construction plans print with cover, revision history and table of contents on their own pages. |
 | `scripts/verify_auth.mjs` | Login gate logic with plain `node` (22 or newer, no Cloudflare needed): token signing / expiry / tampering / password rotation, the gatekeeper's 302 / 401 / 503 / pass-through / renewal, the login and logout APIs (JSON and form modes, one-second delay, hostile `next` values), that every file `login.html` loads is public, that `sw.js` never caches redirected or unauthorized responses, and that the share-build deploy note says to `cd` into the output folder first. |
 | `scripts/verify_login_page.py` | The login page in headless Chrome with the login API stubbed: gate states (locked / checking / denied / open), `next` handling, password toggle, touch targets, no horizontal scroll at 320px, no CSP violations, reduced motion, the no-JavaScript fallback, and the logout button on the home page. |
-| `scripts/verify_gate_e2e.py` | Needs `wrangler pages dev` running (see Local preview): real Chrome logs in, the service worker installs, logout sends the next visit to the login page without overwriting the caches, and cached pages still open offline. |
+| `scripts/verify_gate_e2e.py` | Needs `wrangler pages dev` running (see Local preview): real Chrome logs in, the service worker installs, the home page's logout button sends the next visit to the login page without overwriting the caches, and cached pages still open offline. With the session secret as a third argument it also logs out while holding a cookie that is more than a day old. |
 ```
 
 ```bash
@@ -2288,4 +2288,30 @@ git log --oneline -8
 ```
 
 Expected: 工作目錄只剩與本功能無關的未提交項目（`.gitignore`、`.claude/`、`.wrangler/`、`docs/qr/`、`Steel Bar Example.jpg`、`PRODUCT.md`、`.impeccable/`）；最近的提交是這個功能的 8～9 個提交。
+
+---
+
+## 執行後修訂（以 repository 目前的程式碼為準）
+
+上面各 Task 的程式碼區塊是規劃當時驗證過的版本。執行時又依審查結果修改了下列項目，之後若要重做，請以 git 紀錄與目前的檔案為準。
+
+**Task 7 設計審查（全新審查者，處置 `ship`）採用的修正**
+
+・ `login.css`：確認中時警示燈與光暈明滅（`gate-blink`、`gate-blink-halo`，`steps(1, end)`，0.6 秒），減少動態時關閉。
+・ `login.html`：提示文字改「登入後，這台裝置 90 天內不必再登入。」（桌機也會看到）。
+・ `login.js`：沒填帳密時只顯示提示並聚焦第一個空欄位，不觸發閘門「被擋下」的彈跳。
+・ 不採用：標題 `#000`（沿用 `portal.css` 的 `.select-heading h1`）、成功狀態按鈕的深綠（專案自己的 `--glass-success-ink`）。
+
+**最後整條分支審查（最強模型）採用的修正**
+
+・ **登出失效（Critical）**：`functions/_middleware.js` 原本在「有效但超過 1 天沒續期」時，對所有換頁請求重發新通行證。登出是表單 POST，`Sec-Fetch-Mode` 同為 `navigate`，新通行證蓋掉了登出清除的那張。改為只在 `GET` 換頁續期。測試：`verify_auth.mjs`「通行證超過 1 天沒續期時按登出…」；`verify_gate_e2e.py` 加第三個參數 `SESSION_SECRET` 時，用 CDP 寫入舊通行證再點首頁的登出鈕（還原修正時此項失敗，已驗證）。
+・ **`next` 含 Tab 造成開放式轉址（Important）**：`safeNext` 的正則放行 Tab，而網址解析器會刪掉 Tab，`/<Tab>/evil.example` 變成 `//evil.example`。改為只接受可列印 ASCII，並用 URL 解析再驗來源；`login.js` 的客端判斷同步。順便避免非 ASCII 的 `next` 讓表單模式的 `Location` 標頭丟出例外。
+
+**列為已知小項、未處理（Minor）**
+
+・ `/api/logout` 沒有同源檢查，任何網站都能讓使用者被登出（只是騷擾）。
+・ 已登入的人打開 `/login` 仍會看到表單。
+・ `verify_login_page.py` 的檢查標籤寫「375×667」，實際比對的是 812 高（版面由上而下排，量到的按鈕底部 616px，結論成立）。
+・ 回復方式（刪除 `functions/` 後推送）會讓首頁的登出鈕指到 404，回復時要一併還原 `index.html` 加的三行。
+・ 審查者建議在 Cloudflare 對 `POST /api/login` 加速率限制規則；那需要一個 Cloudflare 網域（zone），`pages.dev` 是否可用尚未驗證，故未實作。
 

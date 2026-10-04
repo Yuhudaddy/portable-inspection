@@ -13,8 +13,8 @@
   const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const OPEN_HOLD_MS = reduceMotion ? 250 : 950; // 桿子升起後停一下再換頁
 
-  // 只接受站內路徑；伺服器端還會再驗一次。
-  const safeNext = value => (typeof value === "string" && /^\/(?![/\\])/.test(value) ? value : "/");
+  // 只接受站內路徑（可列印 ASCII，擋掉會被網址解析器吃掉的 Tab 與換行）；伺服器端還會再驗一次。
+  const safeNext = value => (typeof value === "string" && /^\/(?![/\\])[\x21-\x7e]*$/.test(value) ? value : "/");
   const params = new URLSearchParams(location.search);
   form.elements.next.value = safeNext(params.get("next"));
 

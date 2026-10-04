@@ -347,6 +347,18 @@ await check("登出：303 回登入頁並讓通行證立刻過期", async () => 
   assert((response.headers.get("Set-Cookie") || "").includes("Max-Age=0"), "Max-Age=0");
 });
 
+// ---- section: 登入頁的檔案 ----
+await check("登入頁自己用到的檔案都在白名單裡，而且真的存在", () => {
+  const html = readFileSync(path.join(ROOT, "login.html"), "utf8");
+  const refs = [...new Set([...html.matchAll(/(?:href|src)="\.\/([^"#?]+)"/g)].map(match => `/${match[1]}`))];
+  assert(refs.length >= 6, `只找到 ${refs.length} 個引用`);
+  for (const ref of refs) {
+    assert(auth.isPublicPath(ref), `${ref} 不在白名單，登入頁會缺檔`);
+    assert(existsSync(path.join(ROOT, ref.slice(1))), `${ref} 檔案不存在`);
+  }
+  assert(/action="\/api\/login"/.test(html), "表單 action 不是 /api/login");
+});
+
 // ---- end of sections ----
 console.log(failures ? `\n${failures} 項失敗` : "\n全部通過");
 process.exit(failures ? 1 : 0);

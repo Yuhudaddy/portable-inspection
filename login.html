@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description" content="Portable Inspection 登入" />
+    <meta name="robots" content="noindex" />
+    <meta name="referrer" content="no-referrer" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; worker-src 'self'" />
+    <meta name="theme-color" content="#ffffff" />
+    <link rel="icon" href="./app-icon-144.png" type="image/png" sizes="144x144" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="stylesheet" href="./glass.css" />
+    <link rel="stylesheet" href="./portal.css" />
+    <link rel="stylesheet" href="./login.css" />
+    <script src="./login.js" defer></script>
+    <title>登入｜Portable Inspection</title>
+  </head>
+  <body>
+    <main class="portal-shell login-shell">
+      <header class="portal-header">
+        <span class="brand">
+          <img src="./apple-touch-icon.png" alt="" width="36" height="36" />
+          <span>Portable Inspection</span>
+        </span>
+      </header>
+
+      <div class="login-stage" id="gate-stage" data-state="idle">
+        <svg class="gate" viewBox="0 -44 360 194" aria-hidden="true" focusable="false">
+          <defs>
+            <pattern id="gate-stripes" width="26" height="26" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+              <rect width="13" height="26" class="gate-stripe-a" />
+              <rect x="13" width="13" height="26" class="gate-stripe-b" />
+            </pattern>
+          </defs>
+          <path class="gate-ground" d="M8 132H352" />
+          <path class="gate-road" d="M28 143H332" />
+          <g transform="translate(178 132)">
+            <path class="gate-line" d="M-14 -3C-14 -15 -7 -21 0 -21S14 -15 14 -3Z" />
+            <rect class="gate-line" x="-3.5" y="-24" width="7" height="21" rx="3.5" />
+            <rect class="gate-line" x="-22" y="-5" width="44" height="6" rx="3" />
+          </g>
+          <rect class="gate-line" x="298" y="94" width="16" height="38" rx="5" />
+          <rect class="gate-line" x="290" y="86" width="32" height="9" rx="4.5" />
+          <rect class="gate-line" x="36" y="62" width="36" height="70" rx="9" />
+          <rect class="gate-slot" x="44" y="74" width="20" height="9" rx="3" />
+          <circle class="gate-dot" cx="48" cy="98" r="2.2" />
+          <circle class="gate-dot" cx="58" cy="98" r="2.2" />
+          <circle class="gate-dot" cx="48" cy="108" r="2.2" />
+          <circle class="gate-dot" cx="58" cy="108" r="2.2" />
+          <rect class="gate-line" x="48" y="50" width="12" height="13" rx="3" />
+          <circle class="gate-halo" cx="54" cy="40" r="17" />
+          <circle class="gate-lamp" cx="54" cy="40" r="9" />
+          <g class="gate-arm">
+            <rect class="gate-arm-body" x="72" y="72" width="222" height="12" rx="6" fill="url(#gate-stripes)" />
+          </g>
+          <circle class="gate-line" cx="72" cy="78" r="6.5" />
+        </svg>
+
+        <section class="login-card" aria-labelledby="login-title">
+          <h1 id="login-title">進場登記</h1>
+          <p class="login-lede">本工具僅限公司同仁使用。</p>
+
+          <form id="login-form" method="post" action="/api/login" novalidate>
+            <input type="hidden" name="next" value="/" />
+            <div class="field">
+              <label for="login-username">帳號</label>
+              <input id="login-username" name="username" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="next" required />
+            </div>
+            <div class="field">
+              <label for="login-password">密碼</label>
+              <div class="password-wrap">
+                <input id="login-password" name="password" type="password" autocomplete="current-password" enterkeyhint="go" required />
+                <button class="password-toggle" type="button" aria-pressed="false" aria-controls="login-password">顯示</button>
+              </div>
+            </div>
+            <p class="login-error" id="login-error" role="alert">帳號或密碼不對，閘門沒開。再試一次。</p>
+            <button class="login-submit" id="login-submit" type="submit">開門</button>
+          </form>
+          <p class="login-note">登入後，這支手機 90 天內不必再登入。</p>
+        </section>
+        <p class="visually-hidden" id="login-status" role="status" aria-live="polite"></p>
+      </div>
+    </main>
+  </body>
+</html>

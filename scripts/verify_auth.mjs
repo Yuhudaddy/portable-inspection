@@ -262,6 +262,91 @@ await check("對外展示版的部署說明要求先 cd 進輸出資料夾（否
   assert(!/wrangler pages deploy share\//.test(doc), "仍然寫著在專案根目錄部署 share/");
 });
 
+// ---- section: 登入與登出 API ----
+const login = await import("../functions/api/login.js");
+const logout = await import("../functions/api/logout.js");
+
+const post = (fields, { json = false } = {}) => new Request("https://example.test/api/login", {
+  method: "POST",
+  headers: json ? { Accept: "application/json" } : {},
+  body: new URLSearchParams(fields)
+});
+const attempt = (fields, options, env = ENV) => login.onRequestPost({ request: post(fields, options), env });
+const good = (extra = {}) => ({ username: ENV.AUTH_USER, password: ENV.AUTH_PASSWORD, next: "/rebar", ...extra });
+
+await check("JSON 模式帳密正確：200＋通行證＋next，而且不延遲", async () => {
+  const started = Date.now();
+  const response = await attempt(good(), { json: true });
+  assert(Date.now() - started < 500, "成功不該等待");
+  equal(response.status, 200, "status");
+  assert((response.headers.get("Content-Type") || "").includes("application/json"), "Content-Type");
+  equal(response.headers.get("Cache-Control"), "no-store", "Cache-Control");
+  const body = await response.json();
+  equal(body.ok, true, "ok");
+  equal(body.next, "/rebar", "next");
+  const token = response.headers.get("Set-Cookie").split(";")[0].split("=").slice(1).join("=");
+  equal((await auth.checkToken(ENV, token)).valid, true, "通行證有效");
+});
+
+await check("表單模式帳密正確：303 回到 next 並發通行證", async () => {
+  const response = await attempt(good());
+  equal(response.status, 303, "status");
+  equal(response.headers.get("Location"), "/rebar", "Location");
+  assert((response.headers.get("Set-Cookie") || "").startsWith(`${auth.COOKIE_NAME}=v1.`), "Set-Cookie");
+});
+
+await check("帳號或密碼錯誤：JSON 回 401、表單回 303 帶 e=1，都不發通行證，而且固定等約 1 秒", async () => {
+  const started = Date.now();
+  const [badPassword, badUser, form, junk] = await Promise.all([
+    attempt(good({ password: "wrong" }), { json: true }),
+    attempt(good({ username: "nobody" }), { json: true }),
+    attempt(good({ password: "wrong" })),
+    login.onRequestPost({ request: new Request("https://example.test/api/login", { method: "POST", headers: { "Content-Type": "text/plain", Accept: "application/json" }, body: "not a form" }), env: ENV })
+  ]);
+  const elapsed = Date.now() - started;
+  assert(elapsed >= auth.LOGIN_DELAY_MS - 50, `只等了 ${elapsed}ms`);
+  for (const [label, response] of [["密碼錯", badPassword], ["帳號錯", badUser], ["不是表單", junk]]) {
+    equal(response.status, 401, label);
+    equal((await response.json()).ok, false, `${label} ok`);
+    equal(response.headers.get("Set-Cookie"), null, `${label} 不該發 Cookie`);
+  }
+  equal(form.status, 303, "表單 status");
+  equal(form.headers.get("Location"), "/login?e=1&next=%2Frebar#login-error", "表單 Location");
+  equal(form.headers.get("Set-Cookie"), null, "表單不該發 Cookie");
+});
+
+await check("密碼含中文與空白也能登入", async () => {
+  const env = { ...ENV, AUTH_USER: "現場人員", AUTH_PASSWORD: "安全第一 safety 2026!" };
+  const response = await attempt({ username: "現場人員", password: "安全第一 safety 2026!", next: "/" }, { json: true }, env);
+  equal(response.status, 200);
+});
+
+await check("惡意的 next 一律改回首頁", async () => {
+  for (const next of ["//evil.example", "/\\evil.example", "https://evil.example", "/login", "/api/logout", "/a\r\nSet-Cookie: x=1"]) {
+    const json = await (await attempt(good({ next }), { json: true })).json();
+    equal(json.next, "/", `JSON ${JSON.stringify(next)}`);
+    equal((await attempt(good({ next }))).headers.get("Location"), "/", `表單 ${JSON.stringify(next)}`);
+  }
+});
+
+await check("Secrets 沒設好時登入 API 回 503，不發通行證", async () => {
+  for (const env of [{}, { ...ENV, SESSION_SECRET: "short" }]) {
+    const json = await attempt(good(), { json: true }, env);
+    equal(json.status, 503, "JSON");
+    equal(json.headers.get("Set-Cookie"), null, "JSON Cookie");
+    const form = await attempt(good(), {}, env);
+    equal(form.status, 503, "表單");
+    equal(form.headers.get("Set-Cookie"), null, "表單 Cookie");
+  }
+});
+
+await check("登出：303 回登入頁並讓通行證立刻過期", async () => {
+  const response = logout.onRequestPost();
+  equal(response.status, 303, "status");
+  equal(response.headers.get("Location"), "/login", "Location");
+  assert((response.headers.get("Set-Cookie") || "").includes("Max-Age=0"), "Max-Age=0");
+});
+
 // ---- end of sections ----
 console.log(failures ? `\n${failures} 項失敗` : "\n全部通過");
 process.exit(failures ? 1 : 0);

@@ -359,6 +359,73 @@ await check("登入頁自己用到的檔案都在白名單裡，而且真的存�
   assert(/action="\/api\/login"/.test(html), "表單 action 不是 /api/login");
 });
 
+// ---- section: Service Worker 不能把未登入的回應存進快取 ----
+function loadServiceWorker(fetchImpl) {
+  const listeners = {};
+  const puts = [];
+  const caches = {
+    open: async () => ({ put: async (request, response) => { puts.push(typeof request === "string" ? request : request.url); }, addAll: async () => {}, keys: async () => [], delete: async () => true }),
+    match: async () => undefined,
+    keys: async () => [],
+    delete: async () => true
+  };
+  const self = {
+    addEventListener: (type, listener) => { listeners[type] = listener; },
+    registration: { scope: "https://example.test/" },
+    location: { origin: "https://example.test" },
+    skipWaiting: () => {},
+    clients: { claim: async () => {} }
+  };
+  vm.runInNewContext(readFileSync(path.join(ROOT, "sw.js"), "utf8"), { self, caches, fetch: fetchImpl, URL, Request, Response });
+  return { listeners, puts };
+}
+
+// 模擬 fetch 回來的各種回應：redirected 是 fetch 跟著轉址後的標記；opaqueredirect 是換頁請求遇到 302 時的樣子。
+function fakeResponse({ status = 200, redirected = false, opaqueRedirect = false } = {}) {
+  const response = new Response(opaqueRedirect ? null : "body", { status });
+  Object.defineProperty(response, "redirected", { value: redirected });
+  if (opaqueRedirect) {
+    Object.defineProperty(response, "ok", { value: false });
+    Object.defineProperty(response, "type", { value: "opaqueredirect" });
+  }
+  return response;
+}
+
+// 回傳 { handled, puts }：handled 為 false 表示 Service Worker 沒接手（交給網路）。
+async function swFetch(url, mode, response) {
+  const sw = loadServiceWorker(async () => response);
+  let responded = null;
+  sw.listeners.fetch({ request: { method: "GET", url, mode }, respondWith: promise => { responded = Promise.resolve(promise); } });
+  if (responded) await responded;
+  return { handled: Boolean(responded), puts: sw.puts };
+}
+
+await check("換頁：正常回應照舊快取", async () => {
+  const { handled, puts } = await swFetch("https://example.test/rebar", "navigate", fakeResponse());
+  assert(handled, "應該由 Service Worker 處理");
+  equal(puts.length, 1, "快取次數");
+});
+
+await check("換頁：被轉址過的 200（登入頁冒充工具頁）、302、401 都不能存進快取", async () => {
+  for (const [label, response] of [["跟隨轉址的 200", fakeResponse({ redirected: true })], ["opaqueredirect", fakeResponse({ opaqueRedirect: true })], ["401", fakeResponse({ status: 401 })]]) {
+    const { puts } = await swFetch("https://example.test/rebar", "navigate", response);
+    equal(puts.length, 0, label);
+  }
+});
+
+await check("子資源：正常回應照舊快取，被轉址過的回應（登入頁冒充 app.css）不能快取", async () => {
+  equal((await swFetch("https://example.test/app.css", "no-cors", fakeResponse())).puts.length, 1, "正常");
+  equal((await swFetch("https://example.test/app.css", "no-cors", fakeResponse({ redirected: true }))).puts.length, 0, "被轉址");
+  equal((await swFetch("https://example.test/app.css", "no-cors", fakeResponse({ status: 401 }))).puts.length, 0, "401");
+});
+
+await check("登入頁與登入 API 不經過 Service Worker", async () => {
+  for (const pathname of ["/login", "/login.js", "/login.css", "/api/login", "/api/logout"]) {
+    const { handled } = await swFetch(`https://example.test${pathname}`, pathname === "/login" ? "navigate" : "no-cors", fakeResponse());
+    assert(!handled, `${pathname} 不該由 Service Worker 處理`);
+  }
+});
+
 // ---- end of sections ----
 console.log(failures ? `\n${failures} 項失敗` : "\n全部通過");
 process.exit(failures ? 1 : 0);

@@ -155,6 +155,13 @@ try:
         check("桌機：自動把焦點放在帳號欄", page.evaluate("() => document.activeElement.id") == "login-username", page.evaluate("() => document.activeElement.tagName"))
         context.close()
 
+        # ---- 首頁的登出按鈕 ----
+        context = browser.new_context(viewport={"width": 375, "height": 812})
+        page = context.new_page()
+        page.goto(f"{BASE}/", wait_until="networkidle")
+        check("首頁有登出鈕：POST /api/logout、觸控目標 ≥44px", page.get_attribute(".logout-form", "action") == "/api/logout" and page.get_attribute(".logout-form", "method") == "post" and page.evaluate("() => document.querySelector('.logout-button').getBoundingClientRect().height") >= 44)
+        check("首頁品牌仍在左、登出鈕在右", page.evaluate("() => document.querySelector('.brand').getBoundingClientRect().left < document.querySelector('.logout-button').getBoundingClientRect().left"))
+        context.close()
         # ---- end of checks ----
         browser.close()
 finally:

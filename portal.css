@@ -43,7 +43,7 @@ button { font: inherit; }
 .portal-header {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: space-between;
   padding: 8px 4px 0;
 }
 
@@ -60,6 +60,22 @@ button { font: inherit; }
   border-radius: 10px;
   box-shadow: none;
 }
+
+.logout-form { margin: 0; }
+
+.logout-button {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--glass-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.logout-button:hover { background: var(--glass-neutral-bg); }
 
 /* 小標（首頁品牌字、連續壁版本選擇頁的 DIAPHRAGM WALL） */
 .brand span,

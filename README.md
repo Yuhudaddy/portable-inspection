@@ -4,7 +4,7 @@ A lightweight mobile-first PDF tool for site record entry.
 
 ## Deployment
 
-Production: **https://portable-inspection.pages.dev/** — a Cloudflare Pages project connected to this repository (no build step, output directory `/`), redeployed on every push to `main`. `_headers` sets `Cache-Control: no-cache` on `sw.js` and the manifest. Internal links are extension-less (`./diaphragm-wall`, not `.html`) because Pages redirects `*.html` URLs. The same branch is also published by GitHub Pages at **https://yuhudaddy.github.io/portable-inspection/** (kept as a second, identical mirror; note GitHub Pages cannot set headers, so a new `sw.js` there can lag up to 10 minutes behind a push). `.nojekyll` keeps GitHub from running Jekyll on the files.
+Production: **https://portable-inspection.pages.dev/** — a Cloudflare Pages project connected to this repository (no build step, output directory `/`), redeployed on every push to `main`. `_headers` sets `Cache-Control: no-cache` on `sw.js` and the manifest. Internal links are extension-less (`./diaphragm-wall`, not `.html`) because Pages redirects `*.html` URLs. The whole site sits behind a shared-password login: `functions/_middleware.js` (the gatekeeper) and `functions/api/login.js` / `logout.js` run as Cloudflare Pages Functions, the login page is `login.html`, and the 90-day session cookie is signed with a secret. `AUTH_USER`, `AUTH_PASSWORD` and `SESSION_SECRET` are encrypted variables of the Pages project (Production and Preview) and never live in the repository; if any is missing the site answers 503 instead of opening up. Design: `docs/superpowers/specs/2026-10-04-login-gate-design.md`. The former GitHub Pages mirror was shut down because a static host cannot enforce the login. Wrangler bundles the `functions/` folder of the **current directory** into any Pages deployment, so deploy the public demo build from inside its folder (`cd share/diaphragm-wall && npx wrangler pages deploy .`, see `scripts/build_share.py`), never from the project root.
 
 The site opens at `index.html`, which is the tool index:
 
@@ -38,6 +38,8 @@ Run the bundled static server (it mirrors Cloudflare Pages' extension-less routi
 python3 scripts/serve.py 4173
 ```
 
+This server does not run `functions/`, so it never shows the login. To try the login locally, run `npx wrangler pages dev . --port 8788 --ip 127.0.0.1 --binding AUTH_USER=staff --binding AUTH_PASSWORD=<test password> --binding SESSION_SECRET=<32+ random characters>` (test values only) and open `http://localhost:8788/`.
+
 ## Verification scripts
 
 All scripts drive the real pages in headless Chrome. They need `pip install playwright pymupdf pillow` and a locally installed Google Chrome (`chromium.launch(channel="chrome")`); the servers they start bind to `127.0.0.1` only.
@@ -46,6 +48,9 @@ All scripts drive the real pages in headless Chrome. They need `pip install play
 | --- | --- |
 | `scripts/verify_data.py` | Engineering calculations (design height / volume, depth differences, cumulative pour, 30-hour clock, pour reminders), JSON export → import → export round-trip for both diaphragm-wall tools, migration of 1.2–1.3 JSON files and drafts, the shared bar-size list and rebar-cage part helpers, the rebar-cage simple / detailed UI (mode toggle, interval dialog, symmetric linkage), that failed / pending items, unit labels and both rebar-cage tables appear in the PDF text, the axis number and unit / sequence sync on both diaphragm-wall tools, the two-step member delete on the formwork and rebar tools, and the construction-plan page (both versions, cover prefill, tool links). |
 | `scripts/verify_print_layout.py` | Empty and oversized forms for every tool: signature block stays at the bottom of the last page, rotated pages included; the four construction plans print with cover, revision history and table of contents on their own pages. |
+| `scripts/verify_auth.mjs` | Login gate logic with plain `node` (22 or newer, no Cloudflare needed): token signing / expiry / tampering / password rotation, the gatekeeper's 302 / 401 / 503 / pass-through / renewal, the login and logout APIs (JSON and form modes, one-second delay, hostile `next` values), that every file `login.html` loads is public, that `sw.js` never caches redirected or unauthorized responses, and that the share-build deploy note says to `cd` into the output folder first. |
+| `scripts/verify_login_page.py` | The login page in headless Chrome with the login API stubbed: gate states (locked / checking / denied / open), `next` handling, password toggle, touch targets, no horizontal scroll at 320px, no CSP violations, reduced motion, the no-JavaScript fallback, and the logout button on the home page. |
+| `scripts/verify_gate_e2e.py` | Needs `wrangler pages dev` running (see Local preview): real Chrome logs in, the service worker installs, the home page's logout button sends the next visit to the login page without overwriting the caches, and cached pages still open offline. With the session secret as a third argument it also logs out while holding a cookie that is more than a day old. |
 | `scripts/render_example_pdfs.py` | Regenerates `examples/*.pdf`, the `examples/pages/*.webp` previews and their manifest from the example data. |
 
 Bump `CACHE_NAME` in `sw.js` on every change that affects served files; the service worker reloads open pages once the new version takes over.

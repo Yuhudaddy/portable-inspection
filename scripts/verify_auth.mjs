@@ -531,6 +531,35 @@ await check("登入 API：第二組帳密發第二組通行證，第一組照舊
   }
 });
 
+await check("向下相容的固定值：部署第二組帳號前簽出的第一組通行證，部署後仍然有效（已登入的人不會被登出）", async () => {
+  // 這個字串是第二組帳號功能加入「之前」的程式碼，用 ENV 與 NOW 簽出來的；日後不論怎麼改，它都必須一直有效。
+  const before = "v1.1807776000.TVIn0E7U3WEQuGTP-w9e0zNS9ozzHUhqxW37rsb8_v0";
+  equal(await auth.issueToken(ENV, NOW), before, "第一組通行證的簽法不能變");
+  const checked = await auth.checkToken(ENV2, before, NOW + 5);
+  equal(checked.valid, true, "valid");
+  equal(checked.account, 1, "account");
+});
+
+await check("把第一組的簽章貼到 v2 前綴也不會通過（兩個方向都擋）", async () => {
+  const [, expires, signature] = (await auth.issueToken(ENV2, NOW, 1)).split(".");
+  equal((await auth.checkToken(ENV2, `v2.${expires}.${signature}`, NOW)).valid, false);
+});
+
+await check("兩組帳號名稱相同、密碼不同時，依密碼分流到各自那一組", async () => {
+  const sameName = { ...ENV, AUTH_USER_2: ENV.AUTH_USER, AUTH_PASSWORD_2: "a second password for the same name 7" };
+  equal(await auth.matchAccount(sameName, ENV.AUTH_USER, ENV.AUTH_PASSWORD), 1, "第一組密碼");
+  equal(await auth.matchAccount(sameName, ENV.AUTH_USER, sameName.AUTH_PASSWORD_2), 2, "第二組密碼");
+  equal(await auth.matchAccount(sameName, ENV.AUTH_USER, "wrong"), 0, "都不對");
+});
+
+await check("只換第二組的帳號名稱（不換密碼），第二組的通行證也失效，第一組不受影響", async () => {
+  const first = await auth.issueToken(ENV2, NOW, 1);
+  const second = await auth.issueToken(ENV2, NOW, 2);
+  const renamed = { ...ENV2, AUTH_USER_2: "engineer-renamed" };
+  equal((await auth.checkToken(renamed, second, NOW)).valid, false, "第二組");
+  equal((await auth.checkToken(renamed, first, NOW)).valid, true, "第一組");
+});
+
 // ---- end of sections ----
 console.log(failures ? `\n${failures} 項失敗` : "\n全部通過");
 process.exit(failures ? 1 : 0);

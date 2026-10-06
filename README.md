@@ -38,7 +38,7 @@ Run the bundled static server (it mirrors Cloudflare Pages' extension-less routi
 python3 scripts/serve.py 4173
 ```
 
-This server does not run `functions/`, so it never shows the login. To try the login locally, run `npx wrangler pages dev . --port 8788 --ip 127.0.0.1 --binding AUTH_USER=staff --binding AUTH_PASSWORD=<test password> --binding SESSION_SECRET=<32+ random characters>` (test values only) and open `http://localhost:8788/`.
+This server does not run `functions/`, so it never shows the login. To try the login locally, run `npx wrangler pages dev . --port 8788 --ip 127.0.0.1 --binding AUTH_USER=staff --binding AUTH_PASSWORD=<test password> --binding SESSION_SECRET=<32+ random characters>` (test values only; add `--binding AUTH_USER_2=… --binding AUTH_PASSWORD_2=…` to try the optional second account) and open `http://localhost:8788/`.
 
 ## Verification scripts
 

@@ -436,6 +436,101 @@ await check("登入頁與登入 API 不經過 Service Worker", async () => {
   }
 });
 
+// ---- section: 第二組帳號（給其他工程師共用）----
+const ENV2 = { ...ENV, AUTH_USER_2: "engineer", AUTH_PASSWORD_2: "engineers share this one 2026" };
+
+await check("matchAccount：兩組帳密各自對得上自己，交叉搭配或錯誤都對不上", async () => {
+  equal(await auth.matchAccount(ENV2, ENV.AUTH_USER, ENV.AUTH_PASSWORD), 1, "第一組");
+  equal(await auth.matchAccount(ENV2, ENV2.AUTH_USER_2, ENV2.AUTH_PASSWORD_2), 2, "第二組");
+  equal(await auth.matchAccount(ENV2, ENV.AUTH_USER, ENV2.AUTH_PASSWORD_2), 0, "第一組帳號配第二組密碼");
+  equal(await auth.matchAccount(ENV2, ENV2.AUTH_USER_2, ENV.AUTH_PASSWORD), 0, "第二組帳號配第一組密碼");
+  equal(await auth.matchAccount(ENV2, ENV.AUTH_USER, "wrong"), 0, "密碼錯");
+  equal(await auth.matchAccount(ENV2, "nobody", "wrong"), 0, "帳號錯");
+});
+
+await check("沒設第二組、只設一半或留空時，第二組一律登不進去（第一組不受影響，空白帳密也進不去）", async () => {
+  const halves = [ENV, { ...ENV, AUTH_USER_2: "engineer" }, { ...ENV, AUTH_PASSWORD_2: ENV2.AUTH_PASSWORD_2 }, { ...ENV, AUTH_USER_2: "", AUTH_PASSWORD_2: "" }];
+  for (const env of halves) {
+    equal(await auth.matchAccount(env, "engineer", ENV2.AUTH_PASSWORD_2), 0, "第二組");
+    equal(await auth.matchAccount(env, ENV.AUTH_USER, ENV.AUTH_PASSWORD), 1, "第一組");
+    equal(await auth.matchAccount(env, "", ""), 0, "空白帳密");
+  }
+});
+
+await check("第二組通行證以 v2 開頭、認得是第二組；第一組通行證格式不變（部署後已登入的人不會被登出）", async () => {
+  const second = await auth.issueToken(ENV2, NOW, 2);
+  assert(second.startsWith("v2."), second);
+  const checkedSecond = await auth.checkToken(ENV2, second, NOW + 5);
+  equal(checkedSecond.valid, true, "v2 valid");
+  equal(checkedSecond.account, 2, "v2 account");
+  const first = await auth.issueToken(ENV, NOW); // 沒設第二組時簽的，等於部署前簽的
+  assert(first.startsWith("v1."), first);
+  const checkedFirst = await auth.checkToken(ENV2, first, NOW + 5); // 設了第二組之後仍有效
+  equal(checkedFirst.valid, true, "v1 valid after enabling account 2");
+  equal(checkedFirst.account, 1, "v1 account");
+});
+
+await check("兩組各自獨立：換哪一組的密碼只讓那一組的通行證失效，換金鑰或移除第二組設定也各有預期", async () => {
+  const first = await auth.issueToken(ENV2, NOW, 1);
+  const second = await auth.issueToken(ENV2, NOW, 2);
+  const valid = async (env, token) => (await auth.checkToken(env, token, NOW)).valid;
+  const changedSecond = { ...ENV2, AUTH_PASSWORD_2: "a different engineers password 99" };
+  equal(await valid(changedSecond, first), true, "換第二組密碼：第一組還在");
+  equal(await valid(changedSecond, second), false, "換第二組密碼：第二組失效");
+  const changedFirst = { ...ENV2, AUTH_PASSWORD: "a different developer password 99" };
+  equal(await valid(changedFirst, first), false, "換第一組密碼：第一組失效");
+  equal(await valid(changedFirst, second), true, "換第一組密碼：第二組還在");
+  const rotated = { ...ENV2, SESSION_SECRET: "ffffffffffffffffffffffffffffffff-rotated" };
+  equal(await valid(rotated, first), false, "換金鑰：第一組失效");
+  equal(await valid(rotated, second), false, "換金鑰：第二組失效");
+  equal(await valid(ENV, second), false, "移除第二組設定：第二組失效");
+});
+
+await check("通行證前綴不認得的一律無效；把第二組通行證改成 v1 也不會變成第一組", async () => {
+  const [, expires, signature] = (await auth.issueToken(ENV2, NOW, 2)).split(".");
+  for (const prefix of ["v0", "v3", "v10", "v", "V2", "v1"]) {
+    equal((await auth.checkToken(ENV2, `${prefix}.${expires}.${signature}`, NOW)).valid, false, prefix);
+  }
+});
+
+await check("isConfigured 只要求第一組與金鑰，第二組是選配；第一組不見時即使有第二組也不開放", () => {
+  equal(auth.isConfigured(ENV2), true, "兩組");
+  equal(auth.isConfigured(ENV), true, "只有第一組");
+  equal(auth.isConfigured({ ...ENV2, AUTH_PASSWORD: "" }), false, "第一組不見");
+});
+
+await check("門房：第二組的通行證放行，續期時仍是第二組（不會變成第一組）", async () => {
+  const stale = await auth.issueToken(ENV2, Math.floor(Date.now() / 1000) - 2 * DAY, 2);
+  const { response, nextCalls } = await run(ENV2, navigation("/rebar", stale));
+  equal(response.status, 200, "status");
+  equal(nextCalls, 1, "放行");
+  const setCookie = response.headers.get("Set-Cookie") || "";
+  assert(setCookie.startsWith(`${auth.COOKIE_NAME}=v2.`), `續期後不是第二組：${setCookie}`);
+  const renewed = setCookie.split(";")[0].split("=").slice(1).join("=");
+  equal((await auth.checkToken(ENV2, renewed)).account, 2, "新通行證的帳號");
+});
+
+await check("登入 API：第二組帳密發第二組通行證，第一組照舊，交叉搭配、密碼錯、第二組沒啟用都被拒絕", async () => {
+  const issued = response => (response.headers.get("Set-Cookie") || "").split(";")[0].split("=").slice(1).join("=");
+  const second = await attempt({ username: ENV2.AUTH_USER_2, password: ENV2.AUTH_PASSWORD_2, next: "/rebar" }, { json: true }, ENV2);
+  equal(second.status, 200, "第二組 status");
+  const secondToken = issued(second);
+  assert(secondToken.startsWith("v2."), `第二組通行證前綴：${secondToken}`);
+  equal((await auth.checkToken(ENV2, secondToken)).account, 2, "第二組通行證的帳號");
+  const first = await attempt(good(), { json: true }, ENV2);
+  equal(first.status, 200, "第一組 status");
+  assert(issued(first).startsWith("v1."), "第一組通行證前綴");
+  const [cross, bad, notEnabled] = await Promise.all([
+    attempt({ username: ENV2.AUTH_USER_2, password: ENV.AUTH_PASSWORD, next: "/" }, { json: true }, ENV2),
+    attempt({ username: ENV2.AUTH_USER_2, password: "wrong", next: "/" }, { json: true }, ENV2),
+    attempt({ username: ENV2.AUTH_USER_2, password: ENV2.AUTH_PASSWORD_2, next: "/" }, { json: true }, ENV)
+  ]);
+  for (const [label, response] of [["交叉搭配", cross], ["密碼錯", bad], ["沒啟用第二組", notEnabled]]) {
+    equal(response.status, 401, label);
+    equal(response.headers.get("Set-Cookie"), null, `${label} 不該發 Cookie`);
+  }
+});
+
 // ---- end of sections ----
 console.log(failures ? `\n${failures} 項失敗` : "\n全部通過");
 process.exit(failures ? 1 : 0);

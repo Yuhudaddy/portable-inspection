@@ -49,32 +49,57 @@ export function isConfigured(env) {
   return Boolean(env && env.AUTH_USER && env.AUTH_PASSWORD && env.SESSION_SECRET && String(env.SESSION_SECRET).length >= 32);
 }
 
-// 密碼指紋：簽進通行證裡，換帳號或密碼後所有舊通行證立刻失效（員工離職時換密碼即可）。
-async function fingerprint(env) {
-  return toHex(await sha256(`${env.AUTH_USER}:${env.AUTH_PASSWORD}`)).slice(0, 16);
+// 帳號：第一組（AUTH_USER／AUTH_PASSWORD）必備；第二組（AUTH_USER_2／AUTH_PASSWORD_2，給其他工程師共用）是選配，
+// 兩個值都有才啟用，只設一半或留空都當成沒有。通行證前綴 v1／v2 就是帳號編號：第一組維持原本的 v1 格式，
+// 所以部署後已經登入的人不會被登出。
+function accountsOf(env) {
+  const accounts = [];
+  if (env?.AUTH_USER && env?.AUTH_PASSWORD) accounts.push({ id: 1, user: env.AUTH_USER, password: env.AUTH_PASSWORD });
+  if (env?.AUTH_USER_2 && env?.AUTH_PASSWORD_2) accounts.push({ id: 2, user: env.AUTH_USER_2, password: env.AUTH_PASSWORD_2 });
+  return accounts;
 }
 
-async function sign(env, expires) {
+// 回傳登入的是第幾組帳號，對不上回 0。每一組都完整比對、不提早結束，比對時間不會洩漏是哪一組。
+export async function matchAccount(env, username, password) {
+  let matched = 0;
+  for (const account of accountsOf(env)) {
+    const [userOk, passwordOk] = await Promise.all([safeEqual(username, account.user), safeEqual(password, account.password)]);
+    if (userOk && passwordOk && !matched) matched = account.id;
+  }
+  return matched;
+}
+
+// 密碼指紋：簽進通行證裡，換了那一組的帳號或密碼，那一組所有舊通行證立刻失效（另一組不受影響）。
+async function fingerprint(account) {
+  return toHex(await sha256(`${account.user}:${account.password}`)).slice(0, 16);
+}
+
+async function sign(env, account, expires) {
   const key = await crypto.subtle.importKey("raw", encoder.encode(env.SESSION_SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  const message = `v1.${expires}.${await fingerprint(env)}`;
+  const message = `v${account.id}.${expires}.${await fingerprint(account)}`;
   return toBase64Url(new Uint8Array(await crypto.subtle.sign("HMAC", key, encoder.encode(message))));
 }
 
-export async function issueToken(env, nowSeconds = Math.floor(Date.now() / 1000)) {
+export async function issueToken(env, nowSeconds = Math.floor(Date.now() / 1000), accountId = 1) {
+  const account = accountsOf(env).find(candidate => candidate.id === accountId);
+  if (!account) throw new Error(`沒有第 ${accountId} 組帳號`);
   const expires = nowSeconds + SESSION_SECONDS;
-  return `v1.${expires}.${await sign(env, expires)}`;
+  return `v${account.id}.${expires}.${await sign(env, account, expires)}`;
 }
 
 // valid：簽章正確且未到期。renew：距離上次續期已超過 RENEW_AFTER_SECONDS，該重發一張新的。
+// account：這張通行證屬於第幾組帳號（續期時要簽回同一組）。
 export async function checkToken(env, token, nowSeconds = Math.floor(Date.now() / 1000)) {
-  const invalid = { valid: false, renew: false };
+  const invalid = { valid: false, renew: false, account: 0 };
   if (typeof token !== "string") return invalid;
   const parts = token.split(".");
-  if (parts.length !== 3 || parts[0] !== "v1" || !/^\d{1,12}$/.test(parts[1])) return invalid;
+  if (parts.length !== 3 || !/^v[12]$/.test(parts[0]) || !/^\d{1,12}$/.test(parts[1])) return invalid;
+  const account = accountsOf(env).find(candidate => candidate.id === Number(parts[0].slice(1)));
+  if (!account) return invalid;
   const expires = Number(parts[1]);
   if (expires <= nowSeconds) return invalid;
-  if (!(await safeEqual(await sign(env, expires), parts[2]))) return invalid;
-  return { valid: true, renew: expires - nowSeconds < SESSION_SECONDS - RENEW_AFTER_SECONDS };
+  if (!(await safeEqual(await sign(env, account, expires), parts[2]))) return invalid;
+  return { valid: true, renew: expires - nowSeconds < SESSION_SECONDS - RENEW_AFTER_SECONDS, account: account.id };
 }
 
 export function readCookie(request, name = COOKIE_NAME) {

@@ -1,8 +1,9 @@
 """對 `wrangler pages dev` 跑的真實執行環境做端到端檢查：登入 → Service Worker 安裝 → 登出 → 重新開啟，
 確認未登入的回應沒有蓋掉快取，而且離線仍能開啟已快取的頁面。
 用法：先在另一個終端機啟動 wrangler（見 docs/superpowers/plans/2026-10-05-login-gate.md 的 Task 6），
-再執行 python3 scripts/verify_gate_e2e.py <帳號> <密碼> [SESSION_SECRET]
-有給 SESSION_SECRET 時，會多測「通行證已超過 1 天沒續期，按首頁的登出」（簽一張舊通行證塞進瀏覽器）。"""
+再執行 python3 scripts/verify_gate_e2e.py <帳號> <密碼> [SESSION_SECRET [帳號2 密碼2]]
+有給 SESSION_SECRET 時，會多測「通行證已超過 1 天沒續期，按首頁的登出」（簽一張舊通行證塞進瀏覽器）。
+再給帳號2、密碼2（wrangler 要有 AUTH_USER_2／AUTH_PASSWORD_2）時，會多測第二組帳號能登入、拿到的是第二組通行證。"""
 import base64
 import hashlib
 import hmac
@@ -13,6 +14,7 @@ from playwright.sync_api import sync_playwright
 BASE = "http://localhost:8788"
 user, password = sys.argv[1], sys.argv[2]
 secret = sys.argv[3] if len(sys.argv) > 3 else None
+user2, password2 = (sys.argv[4], sys.argv[5]) if len(sys.argv) > 5 else (None, None)
 failures = []
 
 
@@ -92,6 +94,24 @@ with sync_playwright() as p:
         stale_context.close()
     else:
         print("（略過）沒給 SESSION_SECRET，未測「舊通行證按登出」")
+
+    if user2:
+        second_context = browser.new_context(viewport={"width": 375, "height": 812})
+        second_page = second_context.new_page()
+        second_page.goto(f"{BASE}/rebar", wait_until="networkidle")
+        second_page.fill("#login-username", user2)
+        second_page.fill("#login-password", password2)
+        second_page.click("#login-submit")
+        second_page.wait_for_url("**/rebar", timeout=8000)
+        cookies = [c for c in second_context.cookies() if "pi_auth" in c["name"]]
+        check("第二組帳號登入 → 回到工具頁，拿到的是第二組（v2）通行證", "鋼筋工程查驗" in second_page.title() and len(cookies) == 1 and cookies[0]["value"].startswith("v2."), str([c["value"][:4] for c in cookies]))
+        second_page.goto(f"{BASE}/", wait_until="networkidle")
+        second_page.click(".logout-button")
+        second_page.wait_for_url("**/login", timeout=8000)
+        check("第二組帳號按「登出」也會登出", not any("pi_auth" in c["name"] for c in second_context.cookies()))
+        second_context.close()
+    else:
+        print("（略過）沒給帳號2／密碼2，未測第二組帳號")
     browser.close()
 
 print("\n" + (f"{len(failures)} 項失敗" if failures else "全部通過"))

@@ -1,6 +1,6 @@
 // POST /api/login：比對帳密、發通行證。
 // 登入頁的 JavaScript 送 Accept: application/json 拿 JSON；沒有 JavaScript 的一般表單走 303 轉址。
-import { LOGIN_DELAY_MS, isConfigured, issueToken, safeEqual, safeNext, sessionCookie, sleep } from "../_lib/auth.js";
+import { LOGIN_DELAY_MS, isConfigured, issueToken, matchAccount, safeNext, sessionCookie, sleep } from "../_lib/auth.js";
 
 const JSON_TYPE = "application/json; charset=utf-8";
 const TEXT_TYPE = "text/plain; charset=utf-8";
@@ -21,15 +21,15 @@ export async function onRequestPost({ request, env }) {
   const password = String(form?.get("password") ?? "");
   const next = safeNext(form?.get("next"));
 
-  const [userOk, passwordOk] = await Promise.all([safeEqual(username, env.AUTH_USER), safeEqual(password, env.AUTH_PASSWORD)]);
-  if (!(userOk && passwordOk)) {
+  const accountId = await matchAccount(env, username, password);
+  if (!accountId) {
     await sleep(LOGIN_DELAY_MS);
     if (json) return new Response(JSON.stringify({ ok: false }), { status: 401, headers: { "Content-Type": JSON_TYPE, "Cache-Control": "no-store" } });
     return new Response(null, { status: 303, headers: { Location: `/login?e=1&next=${encodeURIComponent(next)}#login-error`, "Cache-Control": "no-store" } });
   }
 
   const headers = new Headers({ "Cache-Control": "no-store" });
-  headers.append("Set-Cookie", sessionCookie(await issueToken(env)));
+  headers.append("Set-Cookie", sessionCookie(await issueToken(env, undefined, accountId)));
   if (json) {
     headers.set("Content-Type", JSON_TYPE);
     return new Response(JSON.stringify({ ok: true, next }), { status: 200, headers });

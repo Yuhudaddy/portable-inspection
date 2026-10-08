@@ -68,6 +68,11 @@ outputPrint()
    「儲存到檔案」會多出一個 `文字.txt`（內容就是標題），傳 LINE 也可能多一則文字訊息。這種事只有真正的 iOS 看得到。
 9. **畫面外 iframe 的 `requestAnimationFrame` 要繞過。** `html-to-image` 每畫完一張圖會等一次 rAF，WebKit 把畫面外 iframe 的 rAF
    節流到約 10 秒一次（5 頁要 50 秒），所以把 iframe 視窗的 `requestAnimationFrame` 換成上層視窗的 `setTimeout(…, 0)`（降到約 2 秒）。
+10. **分享選單開著時，對話框只當完成提示並在約 2 秒後自動關閉。** 真機回報：分享選單與「PDF 已準備好」對話框同時開著，還要多點一次關閉，體驗差。
+    現在 `navigator.share` 一呼叫就把對話框切成沒有按鈕的「PDF 已準備好」，2 秒後自己關掉；使用者在 2 秒內取消分享選單就回到可再按一次的狀態，
+    之後取消就不處理；對話框關掉之後 share 才出錯，另開一個錯誤對話框顯示原因，不會無聲失敗。
+11. **「PDF 已準備好」畫面多一行「找不到 LINE？在分享選單點「列印」，再按右上角的分享圖示」。** 真機上 Web Share 分享檔案的選單沒有 LINE
+    （WebKit 已知問題 bug 261498：iOS 17 之後 Web Share 分享檔案時可選的 App 變少，Apple 尚未修），但分享選單裡的「列印」→ 預覽 → 分享走的是系統自己的 PDF 分享，有 LINE。
 
 ## 5. 元件
 
@@ -80,7 +85,7 @@ outputPrint()
 | `app.js` `wall-gc.js` `rebar.js` `steel.js` `template.js` | `window.print()` → `outputPrint()` |
 | `plan.js` | `window.print()` → `outputPrint({ pdf: false })`（只加保險說明） |
 | 六個 HTML | 引用 `pdf-share.css`、`pdf-share.js` |
-| `sw.js` | APP_SHELL 加三個檔、`CACHE_NAME` 升版（v140 → v142） |
+| `sw.js` | APP_SHELL 加三個檔、`CACHE_NAME` 升版（v140 → v143） |
 | `scripts/build_share.py` | 對外展示版要多複製 `vendor/html-to-image-*.min.js`（它不是 `<script>` 標籤引用，不會被自動收進去） |
 
 ## 6. 錯誤處理
@@ -126,4 +131,7 @@ outputPrint()
 | 主畫面 App：施工計畫頁按「輸出 PDF」 | iOS 吞掉列印，1.5 秒後跳出「請改用 Safari 開啟這一頁」 |
 | 階段 3 才發現並修掉 | `title` 造成多出 `文字.txt`；分享選單開著時對話框停在「轉換第 2／2 頁」；（測試用的種資料頁因為沒有 manifest 被 iOS 判成範圍外而跳出 App 模式——測試頁的問題，不是被測程式） |
 
-尚未驗證：真機（iOS 27.0.1）、LINE／Email 實際收到檔案、真機上十幾頁的速度與記憶體。
+真機（iPhone 13 Pro，iOS 27.0.1，Cloudflare 預覽版）回報：分享選單有跳出、頁數正確、速度可接受、沒有多出文字訊息；
+但 Web Share 的選單沒有 LINE／Discord（要走「列印」→ 分享才有），並要求分享選單開著時對話框自動關閉（見決定 10、11）。
+
+尚未驗證：LINE／Email 實際收到檔案的內容（只回報了分享選單的樣子）、對話框自動關閉後的真機觀感。

@@ -140,6 +140,7 @@
         <span class="pdf-share-spinner" aria-hidden="true"></span>
         <h2 id="pdf-share-title"></h2>
         <p id="pdf-share-message" role="status" aria-live="polite"></p>
+        <p class="pdf-share-hint" hidden>找不到 LINE？在分享選單點「列印」，再按右上角的分享圖示。</p>
         <div class="pdf-share-bar" aria-hidden="true"><span class="pdf-share-bar-fill"></span></div>
       </div>
       <div class="pdf-share-actions">
@@ -148,13 +149,16 @@
       </div>`;
     const title = dialog.querySelector("h2");
     const message = dialog.querySelector("#pdf-share-message");
+    const hint = dialog.querySelector(".pdf-share-hint");
     const fill = dialog.querySelector(".pdf-share-bar-fill");
     const secondary = dialog.querySelector(".pdf-share-secondary");
     const primary = dialog.querySelector(".pdf-share-primary");
     let closed = false;
+    let closeTimer = 0;
     const close = () => {
       if (closed) return;
       closed = true;
+      clearTimeout(closeTimer);
       if (dialog.open && typeof dialog.close === "function") dialog.close();
       dialog.remove();
     };
@@ -163,13 +167,17 @@
       get closed() { return closed; },
       close,
       set(state, heading, text) {
+        clearTimeout(closeTimer); // 換狀態就取消先前排定的自動關閉
         dialog.dataset.state = state;
         dialog.setAttribute("aria-busy", String(state === "working"));
         title.textContent = heading;
         message.textContent = text;
         secondary.textContent = state === "working" ? "取消" : "關閉";
+        secondary.hidden = state === "sharing"; // 分享選單開著時只留完成提示，不放按鈕
         primary.hidden = state !== "ready";
+        hint.hidden = state !== "ready";
       },
+      closeAfter(ms) { clearTimeout(closeTimer); closeTimer = setTimeout(close, ms); },
       progress(ratio) { fill.style.setProperty("--pdf-progress", String(Math.max(0, Math.min(1, ratio)))); },
       onPrimary(handler) { primary.onclick = handler; }
     };
@@ -392,6 +400,21 @@
     }
   }
 
+  const AUTO_CLOSE_MS = 2000;
+
+  // 分享選單開著時，這個對話框還在它後面：只留一個「PDF 已準備好」的完成提示（不能停在「正在轉換…」加轉圈，像是還沒做完），
+  // 約 2 秒後自己關掉，使用者不必再點關閉，也不會同時看到兩個要處理的視窗。
+  function enterSharing(ui) {
+    ui.set("sharing", "PDF 已準備好", "請在分享選單中選擇要傳送的 App。");
+    ui.closeAfter(AUTO_CLOSE_MS);
+  }
+
+  // 對話框可能已經自動關掉了，這時另開一個顯示原因
+  function reportShareError(ui, error) {
+    console.error(error);
+    (ui.closed ? openDialog() : ui).set("error", "無法開啟分享選單", `${error && error.name ? error.name : "錯誤"}：${error && error.message ? error.message : "請再試一次"}`);
+  }
+
   // 先直接嘗試分享（點擊後很快就好的話手勢還有效）；被擋就改成讓使用者再點一次
   async function deliver(file, pageCount, ui) {
     // 只交檔案，不帶 title／text：iOS 會把 title 當成第二個項目（存到「檔案」會多一個 文字.txt，傳 LINE 可能多一則文字訊息）
@@ -403,27 +426,23 @@
         // 這裡必須在點擊的同步流程裡呼叫 share：中間不能 await 任何東西（同步丟出的例外也要接住，變成同樣的錯誤處理）
         let pending;
         try { pending = navigator.share(data); } catch (error) { pending = Promise.reject(error); }
-        ui.set("sharing", "PDF 已準備好", "請在分享選單中選擇要傳送的 App。");
+        enterSharing(ui);
         pending.then(() => ui.close(), error => {
-          if (error && error.name === "AbortError") { showReady(); return; }
-          console.error(error);
-          ui.set("error", "無法開啟分享選單", `${error && error.name ? error.name : "錯誤"}：${error && error.message ? error.message : "請再試一次"}`);
+          // 使用者關掉分享選單：對話框還在（2 秒內）就回到可以再按一次的狀態，已經自動關掉了就什麼都不做
+          if (error && error.name === "AbortError") { if (!ui.closed) showReady(); return; }
+          reportShareError(ui, error);
         });
       });
     };
     if (ui.closed) return;
-    // 分享選單開著的時候這個對話框還在它後面：不能停在「正在轉換…」加轉圈，像是還沒做完
-    ui.set("sharing", "PDF 已準備好", "請在分享選單中選擇要傳送的 App。");
+    enterSharing(ui);
     try {
       await navigator.share(data);
       ui.close();
     } catch (error) {
       if (!error || error.name === "NotAllowedError") showReady();
       else if (error.name === "AbortError") ui.close();
-      else {
-        console.error(error);
-        ui.set("error", "無法開啟分享選單", `${error.name || "錯誤"}：${error.message || "請再試一次"}`);
-      }
+      else reportShareError(ui, error);
     }
   }
 

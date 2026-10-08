@@ -52,7 +52,8 @@ STUBS = """
     window.__shareCalls += 1;
     const mode = window.__shareMode;
     if (mode === "notallowed" || (mode === "notallowed-once" && window.__shareCalls === 1)) throw new DOMException("no gesture", "NotAllowedError");
-    if (mode === "slow") await new Promise(resolve => setTimeout(resolve, 2500));
+    if (mode === "slow" || mode === "slow-error") await new Promise(resolve => setTimeout(resolve, 3500));
+    if (mode === "slow-error") throw new DOMException("bad", "DataError");
     if (mode === "abort") throw new DOMException("cancelled", "AbortError");
     if (mode === "error") throw new DOMException("bad", "DataError");
     const file = data.files[0];
@@ -239,6 +240,8 @@ try:
         export(page, "pdf-all", wait_for="dialog")
         ready = page.evaluate("() => ({ state: document.querySelector('.pdf-share-dialog').dataset.state, text: document.querySelector('.pdf-share-dialog p').textContent, button: !document.querySelector('.pdf-share-primary').hidden })")
         check(ready["state"] == "ready" and ready["button"] and ".pdf" in ready["text"] and "頁" in ready["text"], "手勢失效：改顯示「PDF 已準備好」與分享按鈕", str(ready))
+        hint = page.evaluate("() => { const h = document.querySelector('.pdf-share-hint'); return { shown: getComputedStyle(h).display !== 'none', text: h.textContent }; }")
+        check(hint["shown"] and "LINE" in hint["text"] and "列印" in hint["text"], "「PDF 已準備好」畫面有找不到 LINE 時的提示", str(hint))
         check(page.evaluate("() => window.__shared.length") == 0, "手勢失效：還沒分享出去")
         page.click(".pdf-share-primary")
         page.wait_for_function("() => window.__shared.length === 1", timeout=15000)
@@ -266,15 +269,30 @@ try:
         page.click(".pdf-share-secondary")
         settled(page)
 
-        # 分享選單開著（share 還沒結束）時，對話框不再是「正在轉換」
+        # 分享選單開著（share 還沒結束）時：對話框只當「完成」提示，沒有按鈕，約 2 秒後自己關掉
         page.evaluate("() => { window.__shareMode = 'slow'; window.__shared.length = 0; window.__shareCalls = 0; }")
         page.click("#export-button")
         page.click('[data-export-format="pdf-current"]')
         page.wait_for_selector(".pdf-share-dialog[data-state=sharing]", timeout=240000)
-        sharing = page.evaluate("() => { const d = document.querySelector('.pdf-share-dialog'); return { text: d.querySelector('p').textContent, spinner: getComputedStyle(d.querySelector('.pdf-share-spinner')).display, bar: getComputedStyle(d.querySelector('.pdf-share-bar')).display, busy: d.getAttribute('aria-busy') }; }")
-        check("轉換" not in sharing["text"] and sharing["spinner"] == "none" and sharing["bar"] == "none" and sharing["busy"] == "false", "分享選單開著：對話框是「PDF 已準備好」，沒有轉圈與進度", str(sharing))
+        started = time.time()
+        sharing = page.evaluate("() => { const d = document.querySelector('.pdf-share-dialog'); const visible = el => getComputedStyle(el).display !== 'none'; return { text: d.querySelector('p').textContent, spinner: visible(d.querySelector('.pdf-share-spinner')), bar: visible(d.querySelector('.pdf-share-bar')), actions: visible(d.querySelector('.pdf-share-actions')), hint: visible(d.querySelector('.pdf-share-hint')), busy: d.getAttribute('aria-busy') }; }")
+        check("轉換" not in sharing["text"] and not sharing["spinner"] and not sharing["bar"] and sharing["busy"] == "false", "分享選單開著：對話框是「PDF 已準備好」，沒有轉圈與進度", str(sharing))
+        check(not sharing["actions"] and not sharing["hint"], "分享選單開著：沒有按鈕、沒有 LINE 提示（只剩完成提示）", str(sharing))
+        page.wait_for_function("() => !document.querySelector('.pdf-share-dialog')", timeout=6000)
+        spent = time.time() - started
+        check(1.5 < spent < 3.4 and page.evaluate("() => window.__shared.length") == 0, f"約 2 秒後對話框自己關掉，分享選單（share）還沒結束（{spent:.1f} 秒）", f"shared={page.evaluate('() => window.__shared.length')}")
         page.wait_for_function("() => window.__shared.length === 1", timeout=15000)
-        check(settled(page), "分享完成後對話框關閉")
+
+        # 對話框已自動關掉之後 share 才出錯：另開一個錯誤對話框顯示原因，不是無聲失敗
+        page.evaluate("() => { window.__shareMode = 'slow-error'; window.__shared.length = 0; window.__shareCalls = 0; }")
+        page.click("#export-button")
+        page.click('[data-export-format="pdf-current"]')
+        page.wait_for_selector(".pdf-share-dialog[data-state=sharing]", timeout=240000)
+        page.wait_for_function("() => !document.querySelector('.pdf-share-dialog')", timeout=6000)
+        page.wait_for_selector(".pdf-share-dialog[data-state=error]", timeout=10000)
+        check("DataError" in page.inner_text(".pdf-share-dialog p"), "對話框自動關掉之後 share 才出錯：另開錯誤對話框顯示原因")
+        page.click(".pdf-share-secondary")
+        settled(page)
 
         # 使用者關掉分享選單（AbortError）→ 安靜結束
         page.evaluate("() => { window.__shareMode = 'abort'; }")

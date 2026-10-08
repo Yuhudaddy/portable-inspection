@@ -7,7 +7,7 @@
 
 1. **函式庫與快取清單**
    `vendor/html-to-image-1.11.13.min.js`（已與 npm 套件逐位元組比對、MIT 授權檔一併放入）；`sw.js` APP_SHELL 加入
-   `pdf-share.css`、`pdf-share.js`、函式庫，`CACHE_NAME` 升版（v140 → v142）；`scripts/build_share.py` 複製函式庫與授權檔。
+   `pdf-share.css`、`pdf-share.js`、函式庫，`CACHE_NAME` 升版（v140 → v143）；`scripts/build_share.py` 複製函式庫與授權檔。
 
 2. **標題可還原**（`print-pages.js`）
    `setPrintDocumentTitle` 登記還原函式；新增 `restorePrintDocumentTitle()`；原本 `afterprint` 還原行為不變。

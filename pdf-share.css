@@ -38,6 +38,10 @@
 .pdf-share-dialog:not([data-state="working"]) .pdf-share-spinner,
 .pdf-share-dialog:not([data-state="working"]) .pdf-share-bar { display: none; }
 .pdf-share-dialog[data-state="error"] .pdf-share-body h2 { color: var(--glass-danger-ink); }
+.pdf-share-body .pdf-share-hint { color: var(--glass-muted); font-size: 0.75rem; }
+/* 分享選單開著時只留完成提示：沒有按鈕，下緣補回留白，約 2 秒後自動關閉 */
+.pdf-share-dialog[data-state="sharing"] .pdf-share-body { padding-bottom: 24px; }
+.pdf-share-actions:not(:has(button:not([hidden]))) { display: none; }
 .pdf-share-actions { display: flex; justify-content: center; gap: 8px; padding: 14px 22px 22px; }
 .pdf-share-actions button {
   min-width: 96px;

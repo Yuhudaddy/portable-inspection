@@ -75,7 +75,7 @@ outputPrint()
 | `app.js` `wall-gc.js` `rebar.js` `steel.js` `template.js` | `window.print()` → `outputPrint()` |
 | `plan.js` | `window.print()` → `outputPrint({ pdf: false })`（只加保險說明） |
 | 六個 HTML | 引用 `pdf-share.css`、`pdf-share.js` |
-| `sw.js` | APP_SHELL 加三個檔、`CACHE_NAME` v140 → v141 |
+| `sw.js` | APP_SHELL 加三個檔、`CACHE_NAME` 升版（v140 → v142） |
 | `scripts/build_share.py` | 對外展示版要多複製 `vendor/html-to-image-*.min.js`（它不是 `<script>` 標籤引用，不會被自動收進去） |
 
 ## 6. 錯誤處理

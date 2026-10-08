@@ -394,20 +394,26 @@
 
   // 先直接嘗試分享（點擊後很快就好的話手勢還有效）；被擋就改成讓使用者再點一次
   async function deliver(file, pageCount, ui) {
-    const data = { files: [file], title: file.name.replace(/\.pdf$/i, "") };
+    // 只交檔案，不帶 title／text：iOS 會把 title 當成第二個項目（存到「檔案」會多一個 文字.txt，傳 LINE 可能多一則文字訊息）
+    const data = { files: [file] };
     const describe = `${file.name}（${pageCount} 頁，${formatSize(file.size)}）`;
     const showReady = () => {
       ui.set("ready", "PDF 已準備好", describe);
       ui.onPrimary(() => {
-        // 這裡必須在點擊的同步流程裡呼叫 share：中間不能 await 任何東西
-        navigator.share(data).then(() => ui.close(), error => {
-          if (error && error.name === "AbortError") return;
+        // 這裡必須在點擊的同步流程裡呼叫 share：中間不能 await 任何東西（同步丟出的例外也要接住，變成同樣的錯誤處理）
+        let pending;
+        try { pending = navigator.share(data); } catch (error) { pending = Promise.reject(error); }
+        ui.set("sharing", "PDF 已準備好", "請在分享選單中選擇要傳送的 App。");
+        pending.then(() => ui.close(), error => {
+          if (error && error.name === "AbortError") { showReady(); return; }
           console.error(error);
           ui.set("error", "無法開啟分享選單", `${error && error.name ? error.name : "錯誤"}：${error && error.message ? error.message : "請再試一次"}`);
         });
       });
     };
     if (ui.closed) return;
+    // 分享選單開著的時候這個對話框還在它後面：不能停在「正在轉換…」加轉圈，像是還沒做完
+    ui.set("sharing", "PDF 已準備好", "請在分享選單中選擇要傳送的 App。");
     try {
       await navigator.share(data);
       ui.close();

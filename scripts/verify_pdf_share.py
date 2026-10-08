@@ -52,10 +52,11 @@ STUBS = """
     window.__shareCalls += 1;
     const mode = window.__shareMode;
     if (mode === "notallowed" || (mode === "notallowed-once" && window.__shareCalls === 1)) throw new DOMException("no gesture", "NotAllowedError");
+    if (mode === "slow") await new Promise(resolve => setTimeout(resolve, 2500));
     if (mode === "abort") throw new DOMException("cancelled", "AbortError");
     if (mode === "error") throw new DOMException("bad", "DataError");
     const file = data.files[0];
-    window.__shared.push({ name: file.name, type: file.type, size: file.size, title: data.title, b64: toBase64(new Uint8Array(await file.arrayBuffer())) });
+    window.__shared.push({ name: file.name, type: file.type, size: file.size, keys: Object.keys(data), files: data.files.length, b64: toBase64(new Uint8Array(await file.arrayBuffer())) });
   } });
 })();
 """
@@ -173,7 +174,7 @@ def run_matrix(label, context, html, scenario, scope, query="?export=share", nat
         colored = float(((rgb.max(axis=2) - rgb.min(axis=2)) > 40).mean())
         check(colored > 0.10, f"{name}：最後一頁（照片頁）有彩色照片（彩色面積 {colored:.0%}）")
     check(re.fullmatch(r'[^\\/:*?"<>|\s]+\.pdf', shared["name"]) is not None and (("完整檢核紀錄" in shared["name"]) == (scope == "all")), f"{name}：檔名 {shared['name']}")
-    check(shared["title"] == shared["name"][:-4], f"{name}：分享標題＝檔名", shared["title"])
+    check(shared["keys"] == ["files"] and shared["files"] == 1, f"{name}：分享內容只有一個檔案（帶 title 的話 iOS 會多出一個「文字」項目）", str(shared["keys"]))
     check(clean, f"{name}：對話框與隱藏 iframe 都已清掉")
     check(page.evaluate("() => document.title") == title_before, f"{name}：分享後頁面標題已還原")
     check(page.evaluate("() => window.__printCalls") == 0, f"{name}：沒有呼叫 window.print()")
@@ -244,6 +245,18 @@ try:
         check(settled(page), "手勢失效：點分享後檔案送出、對話框關閉")
         check(page.evaluate("() => window.__shareCalls") == 2, "手勢失效：share 被呼叫兩次（先被擋、再成功）")
 
+        # 在「PDF 已準備好」按分享後又關掉分享選單 → 回到可以再按一次的狀態，再按一次就成功
+        page.evaluate("() => { window.__shareMode = 'notallowed-once'; window.__shared.length = 0; window.__shareCalls = 0; }")
+        export(page, "pdf-current", wait_for="dialog")
+        page.evaluate("() => { window.__shareMode = 'abort'; }")
+        page.click(".pdf-share-primary")
+        page.wait_for_function("() => document.querySelector('.pdf-share-dialog')?.dataset.state === 'ready' && window.__shareCalls === 2", timeout=15000)
+        check(page.evaluate("() => !document.querySelector('.pdf-share-primary').hidden"), "完成對話框按分享後取消：回到可以再按一次的狀態")
+        page.evaluate("() => { window.__shareMode = 'ok'; }")
+        page.click(".pdf-share-primary")
+        page.wait_for_function("() => window.__shared.length === 1", timeout=15000)
+        check(settled(page), "再按一次分享成功、對話框關閉")
+
         # 一律被擋（連點擊裡也不行）→ 顯示錯誤，不是無聲失敗
         page.evaluate("() => { window.__shareMode = 'notallowed'; }")
         export(page, "pdf-current", wait_for="dialog")
@@ -252,6 +265,16 @@ try:
         check("無法開啟分享選單" in page.inner_text(".pdf-share-dialog h2"), "點擊裡 share 也被擋：顯示「無法開啟分享選單」")
         page.click(".pdf-share-secondary")
         settled(page)
+
+        # 分享選單開著（share 還沒結束）時，對話框不再是「正在轉換」
+        page.evaluate("() => { window.__shareMode = 'slow'; window.__shared.length = 0; window.__shareCalls = 0; }")
+        page.click("#export-button")
+        page.click('[data-export-format="pdf-current"]')
+        page.wait_for_selector(".pdf-share-dialog[data-state=sharing]", timeout=240000)
+        sharing = page.evaluate("() => { const d = document.querySelector('.pdf-share-dialog'); return { text: d.querySelector('p').textContent, spinner: getComputedStyle(d.querySelector('.pdf-share-spinner')).display, bar: getComputedStyle(d.querySelector('.pdf-share-bar')).display, busy: d.getAttribute('aria-busy') }; }")
+        check("轉換" not in sharing["text"] and sharing["spinner"] == "none" and sharing["bar"] == "none" and sharing["busy"] == "false", "分享選單開著：對話框是「PDF 已準備好」，沒有轉圈與進度", str(sharing))
+        page.wait_for_function("() => window.__shared.length === 1", timeout=15000)
+        check(settled(page), "分享完成後對話框關閉")
 
         # 使用者關掉分享選單（AbortError）→ 安靜結束
         page.evaluate("() => { window.__shareMode = 'abort'; }")

@@ -1058,10 +1058,11 @@ function preparePrint(scope) {
   paginatePrintReport();
 }
 
-// window.print() 必須留在點擊事件的同步流程裡：中間只要 await 過，Safari 就會當成「自動列印」擋下來。
+// 電腦的 window.print() 必須留在點擊事件的同步流程裡：中間只要 await 過，Safari 就會當成「自動列印」擋下來。
+// outputPrint（pdf-share.js）：iPhone／iPad 改產生 PDF 交給分享選單，其餘裝置仍是 window.print()。
 function exportPdf(scope) {
   preparePrint(scope);
-  window.print();
+  outputPrint();
 }
 
 function exportData() {

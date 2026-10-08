@@ -115,6 +115,14 @@ def main():
     for name in STATIC:
         shutil.copy2(ROOT / name, OUT / name)
 
+    # 手機輸出 PDF 的轉圖函式庫：由 pdf-share.js 在畫面外的 iframe 裡載入，不是 <script> 標籤，要照它宣告的路徑明確複製（連同授權檔）
+    library = re.search(r'LIBRARY = "\./(vendor/[^"]+)"', (ROOT / "pdf-share.js").read_text(encoding="utf8"))
+    if not library:
+        fail("pdf-share.js 找不到 LIBRARY 路徑，build_share.py 的規則要跟著更新")
+    (OUT / "vendor").mkdir()
+    for name in (library.group(1), "vendor/html-to-image-LICENSE.txt"):
+        shutil.copy2(ROOT / name, OUT / name)
+
     # 範例：只留完整版的三份，「←」回工具頁（根目錄）
     manifest = json.loads((ROOT / "examples" / "pages" / "manifest.json").read_text(encoding="utf8"))
     kept = {name: {**manifest[name], "back": ""} for name in EXAMPLES}

@@ -161,12 +161,23 @@
     const cleaned = String(value ?? "").trim().replace(/[\\/:*?"<>|\s]+/g, "-").replace(/-+/g, "-");
     return cleaned || fallback;
   };
-  // PDF 檔名＝document.title；列印完（afterprint）還原原本的標題
+  // PDF 檔名＝document.title；列印完（afterprint）還原原本的標題。
+  // 手機的分享路徑（pdf-share.js）沒有 afterprint，讀完標題後自己呼叫 restorePrintDocumentTitle()；
+  // 上一次沒還原就再設定時先還原，否則「已經改過的標題」會被當成原標題記下來。
+  let restoreTitle = null;
   function setPrintDocumentTitle(parts) {
+    if (restoreTitle) restoreTitle();
     const previousTitle = document.title;
     document.title = parts.filter(Boolean).map(value => safeFilePart(value)).filter(Boolean).join("_");
-    window.addEventListener("afterprint", () => { document.title = previousTitle; }, { once: true });
+    const restore = () => {
+      document.title = previousTitle;
+      window.removeEventListener("afterprint", restore);
+      if (restoreTitle === restore) restoreTitle = null;
+    };
+    restoreTitle = restore;
+    window.addEventListener("afterprint", restore, { once: true });
   }
+  function restorePrintDocumentTitle() { if (restoreTitle) restoreTitle(); }
 
-  Object.assign(window, { paginatePrintReport, printText, printFooter, safeFilePart, setPrintDocumentTitle });
+  Object.assign(window, { paginatePrintReport, printText, printFooter, safeFilePart, setPrintDocumentTitle, restorePrintDocumentTitle });
 })();

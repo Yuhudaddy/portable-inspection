@@ -309,7 +309,7 @@ function preparePrint(scope) {
 
 function exportPdf(scope) {
   preparePrint(scope);
-  window.print();
+  outputPrint();
 }
 
 function exportJson() {

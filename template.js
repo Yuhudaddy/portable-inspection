@@ -392,7 +392,7 @@ function preparePrint(scope) {
 
 function exportPdf(scope) {
   preparePrint(scope);
-  window.print();
+  outputPrint();
 }
 
 function clearAll() { draft.clear(); state = createState(); activeTab = "overview"; renderAll(); setTab("overview"); $("#clear-dialog").close(); }

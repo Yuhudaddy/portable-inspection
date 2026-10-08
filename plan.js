@@ -277,7 +277,7 @@ function initialize() {
     }
   });
   // window.print() 要留在點擊的同步流程裡（await 過 Safari 會擋）；流程圖還沒畫完時按鈕是停用的（setPrintBusy）
-  $("#print-button").addEventListener("click", () => { setPrintDocumentTitle(planFileName()); window.print(); });
+  $("#print-button").addEventListener("click", () => { setPrintDocumentTitle(planFileName()); outputPrint({ pdf: false }); });
 }
 
 initialize();

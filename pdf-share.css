@@ -1,0 +1,64 @@
+/* 手機輸出 PDF 的對話框（pdf-share.js）：產生中（進度）、完成（分享）、錯誤、說明。
+   沿用 glass.css 的色彩 tokens；視窗用原生 <dialog>，所以焦點、Esc、背景遮罩都由瀏覽器處理。
+   位置與進度用 CSSOM 設（頁面 CSP 是 style-src 'self'，行內 style 屬性會被擋）。 */
+.pdf-share-dialog {
+  width: min(100% - 24px, 360px);
+  padding: 0;
+  border: 0;
+  border-radius: var(--glass-radius-lg, 20px);
+  background: #fff;
+  color: var(--glass-ink);
+  box-shadow: var(--glass-card-shadow);
+}
+.pdf-share-dialog::backdrop { background: rgba(20, 20, 40, 0.4); backdrop-filter: blur(4px); }
+.pdf-share-body { display: grid; justify-items: center; gap: 10px; padding: 24px 22px 8px; text-align: center; }
+.pdf-share-body h2 { margin: 0; font-size: 1rem; font-weight: 600; }
+.pdf-share-body p { margin: 0; color: var(--glass-soft); font-size: 0.8125rem; line-height: 1.6; overflow-wrap: anywhere; }
+.pdf-share-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--glass-accent-soft);
+  border-top-color: var(--glass-accent);
+  border-radius: 50%;
+  animation: pdf-share-spin 0.9s linear infinite;
+}
+@keyframes pdf-share-spin { to { transform: rotate(360deg); } }
+.pdf-share-bar { width: 100%; height: 6px; overflow: hidden; border-radius: 999px; background: var(--glass-sunken); }
+.pdf-share-bar-fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--glass-accent);
+  transform: scaleX(var(--pdf-progress, 0));
+  transform-origin: left;
+  transition: transform 220ms ease;
+}
+/* 只有「產生中」才有進度圈與進度條 */
+.pdf-share-dialog:not([data-state="working"]) .pdf-share-spinner,
+.pdf-share-dialog:not([data-state="working"]) .pdf-share-bar { display: none; }
+.pdf-share-dialog[data-state="error"] .pdf-share-body h2 { color: var(--glass-danger-ink); }
+.pdf-share-actions { display: flex; justify-content: center; gap: 8px; padding: 14px 22px 22px; }
+.pdf-share-actions button {
+  min-width: 96px;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pdf-share-secondary { background: var(--glass-neutral-bg); color: var(--glass-ink); }
+.pdf-share-primary { background: var(--glass-accent); color: var(--glass-accent-on); box-shadow: var(--glass-accent-shadow); }
+.pdf-share-primary:hover { background: var(--glass-accent-strong); }
+.pdf-share-actions button:focus-visible { outline: 3px solid var(--glass-accent); outline-offset: 2px; }
+.pdf-share-actions button[hidden] { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .pdf-share-spinner { animation: none; }
+  .pdf-share-bar-fill { transition: none; }
+}
+@media print {
+  .pdf-share-dialog, .pdf-share-frame { display: none !important; }
+}

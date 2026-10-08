@@ -205,7 +205,7 @@ function setPdfDocumentTitle(scope) {
 }
 
 function preparePrint(scope) { renderPrint(); document.body.dataset.printScope = scope; const page = activeTab === "overview" || activeTab === "members" ? "overview" : activeTab; $$(".print-page").forEach(item => item.classList.toggle("print-selected", item.dataset.printPage === page)); setPdfDocumentTitle(scope); paginatePrintReport(); }
-function exportPdf(scope) { preparePrint(scope); window.print(); }
+function exportPdf(scope) { preparePrint(scope); outputPrint(); }
 function clearAll() { draft.clear(); state = createState(); activeTab = "overview"; renderAll(); setTab("overview"); $("#clear-dialog").close(); }
 
 function loadExample() {

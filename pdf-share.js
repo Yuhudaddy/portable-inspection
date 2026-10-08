@@ -155,10 +155,12 @@
     const primary = dialog.querySelector(".pdf-share-primary");
     let closed = false;
     let closeTimer = 0;
+    let fadeTimer = 0;
     const close = () => {
       if (closed) return;
       closed = true;
       clearTimeout(closeTimer);
+      clearTimeout(fadeTimer);
       if (dialog.open && typeof dialog.close === "function") dialog.close();
       dialog.remove();
     };
@@ -167,7 +169,9 @@
       get closed() { return closed; },
       close,
       set(state, heading, text) {
-        clearTimeout(closeTimer); // 換狀態就取消先前排定的自動關閉
+        clearTimeout(closeTimer); // 換狀態就取消先前排定的自動關閉（含淡出）
+        clearTimeout(fadeTimer);
+        dialog.classList.remove("is-closing");
         dialog.dataset.state = state;
         dialog.setAttribute("aria-busy", String(state === "working"));
         title.textContent = heading;
@@ -177,7 +181,12 @@
         primary.hidden = state !== "ready";
         hint.hidden = state !== "ready";
       },
-      closeAfter(ms) { clearTimeout(closeTimer); closeTimer = setTimeout(close, ms); },
+      // ms 毫秒後淡出並關閉（淡出約 0.2 秒，寫在 CSS 的 transition）
+      closeAfter(ms) {
+        clearTimeout(closeTimer);
+        clearTimeout(fadeTimer);
+        closeTimer = setTimeout(() => { dialog.classList.add("is-closing"); fadeTimer = setTimeout(close, 220); }, ms);
+      },
       progress(ratio) { fill.style.setProperty("--pdf-progress", String(Math.max(0, Math.min(1, ratio)))); },
       onPrimary(handler) { primary.onclick = handler; }
     };

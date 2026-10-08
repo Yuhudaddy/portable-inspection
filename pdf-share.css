@@ -39,8 +39,12 @@
 .pdf-share-dialog:not([data-state="working"]) .pdf-share-bar { display: none; }
 .pdf-share-dialog[data-state="error"] .pdf-share-body h2 { color: var(--glass-danger-ink); }
 .pdf-share-body .pdf-share-hint { color: var(--glass-muted); font-size: 0.75rem; }
-/* 分享選單開著時只留完成提示：沒有按鈕，下緣補回留白，約 2 秒後自動關閉 */
+/* 分享選單開著時只留完成提示：沒有按鈕，下緣補回留白，約 2 秒後淡出並自動關閉。
+   系統分享選單是從畫面下方蓋上來的（不會把我們的對話框往上推），所以完成提示放在畫面上方，選單蓋不到它。 */
+.pdf-share-dialog[data-state="sharing"] { margin-top: calc(env(safe-area-inset-top, 0px) + 72px); margin-bottom: auto; }
 .pdf-share-dialog[data-state="sharing"] .pdf-share-body { padding-bottom: 24px; }
+.pdf-share-dialog { transition: opacity 220ms ease; }
+.pdf-share-dialog.is-closing { opacity: 0; }
 .pdf-share-actions:not(:has(button:not([hidden]))) { display: none; }
 .pdf-share-actions { display: flex; justify-content: center; gap: 8px; padding: 14px 22px 22px; }
 .pdf-share-actions button {
@@ -60,6 +64,7 @@
 .pdf-share-actions button:focus-visible { outline: 3px solid var(--glass-accent); outline-offset: 2px; }
 .pdf-share-actions button[hidden] { display: none; }
 @media (prefers-reduced-motion: reduce) {
+  .pdf-share-dialog { transition: none; }
   .pdf-share-spinner { animation: none; }
   .pdf-share-bar-fill { transition: none; }
 }

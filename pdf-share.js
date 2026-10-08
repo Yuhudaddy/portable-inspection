@@ -98,7 +98,7 @@
     });
     const hex = Array.from({ length: title.length }, (_, i) => title.charCodeAt(i).toString(16).padStart(4, "0")).join("").toUpperCase();
     start(infoNo);
-    push(`<< /Title <FEFF${hex}> /Producer (Portable Inspection) >>\nendobj\n`);
+    push(`<< /Title <FEFF${hex}> >>\nendobj\n`);
     const xrefAt = offset;
     let xref = `xref\n0 ${infoNo + 1}\n0000000000 65535 f \n`;
     for (let number = 1; number <= infoNo; number += 1) xref += `${String(offsets[number]).padStart(10, "0")} 00000 n \n`;

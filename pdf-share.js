@@ -130,48 +130,55 @@
 
   // ---- 對話框（進度／完成／錯誤／說明）----------------------------------------------------------------
 
+  // 狀態列（上方滑下來）：製作中（進度條＋百分比＋取消）→ 完成（約 2 秒後往上收回）／要再點一次分享／錯誤。
+  // 不是置中的對話框：置中卡片換狀態時會瞬間跳位置，看起來像憑空出現；網頁也拿不到系統分享選單的位置，
+  // 沒辦法貼著選單，所以全程用 iOS 習慣的頂端橫幅。用非強制（show）的 <dialog>，頁面不會被鎖住、也不會壓暗。
+  const RETRACT_MS = 260;
+
   function openDialog({ onCancel } = {}) {
     const dialog = document.createElement("dialog");
     dialog.className = "pdf-share-dialog";
-    dialog.setAttribute("aria-labelledby", "pdf-share-title");
-    dialog.setAttribute("aria-describedby", "pdf-share-message");
+    dialog.setAttribute("role", "status");
     dialog.innerHTML = `
-      <div class="pdf-share-body">
+      <div class="pdf-share-main">
         <span class="pdf-share-spinner" aria-hidden="true"></span>
-        <h2 id="pdf-share-title"></h2>
-        <p id="pdf-share-message" role="status" aria-live="polite"></p>
-        <p class="pdf-share-hint" hidden>找不到 LINE？在分享選單點「列印」，再按右上角的分享圖示。</p>
-        <div class="pdf-share-bar" aria-hidden="true"><span class="pdf-share-bar-fill"></span></div>
+        <div class="pdf-share-text">
+          <div class="pdf-share-head"><h2 id="pdf-share-title"></h2><span class="pdf-share-percent" aria-hidden="true"></span></div>
+          <p id="pdf-share-message" aria-live="polite"></p>
+          <div class="pdf-share-bar" role="progressbar" aria-label="PDF 產生進度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span class="pdf-share-bar-fill"></span></div>
+        </div>
       </div>
       <div class="pdf-share-actions">
         <button type="button" class="pdf-share-secondary"></button>
         <button type="button" class="pdf-share-primary">分享</button>
-      </div>`;
+      </div>
+      <p class="pdf-share-hint" hidden>找不到 LINE？點「列印」，再按右上角的分享圖示。</p>`;
     const title = dialog.querySelector("h2");
     const message = dialog.querySelector("#pdf-share-message");
     const hint = dialog.querySelector(".pdf-share-hint");
+    const percent = dialog.querySelector(".pdf-share-percent");
+    const bar = dialog.querySelector(".pdf-share-bar");
     const fill = dialog.querySelector(".pdf-share-bar-fill");
     const secondary = dialog.querySelector(".pdf-share-secondary");
     const primary = dialog.querySelector(".pdf-share-primary");
     let closed = false;
     let closeTimer = 0;
-    let fadeTimer = 0;
+    const onKey = event => { if (event.key === "Escape") secondary.click(); };
+    // 關閉＝往上收回再移除；closed 立刻成立，流程不必等動畫結束
     const close = () => {
       if (closed) return;
       closed = true;
       clearTimeout(closeTimer);
-      clearTimeout(fadeTimer);
-      if (dialog.open && typeof dialog.close === "function") dialog.close();
-      dialog.remove();
+      document.removeEventListener("keydown", onKey);
+      dialog.classList.add("is-closing");
+      setTimeout(() => { if (dialog.open && typeof dialog.close === "function") dialog.close(); dialog.remove(); }, RETRACT_MS);
     };
     const controller = {
       element: dialog,
       get closed() { return closed; },
       close,
       set(state, heading, text) {
-        clearTimeout(closeTimer); // 換狀態就取消先前排定的自動關閉（含淡出）
-        clearTimeout(fadeTimer);
-        dialog.classList.remove("is-closing");
+        clearTimeout(closeTimer); // 換狀態就取消先前排定的自動關閉
         dialog.dataset.state = state;
         dialog.setAttribute("aria-busy", String(state === "working"));
         title.textContent = heading;
@@ -181,23 +188,24 @@
         primary.hidden = state !== "ready";
         hint.hidden = state !== "ready";
       },
-      // ms 毫秒後淡出並關閉（淡出約 0.2 秒，寫在 CSS 的 transition）
-      closeAfter(ms) {
-        clearTimeout(closeTimer);
-        clearTimeout(fadeTimer);
-        closeTimer = setTimeout(() => { dialog.classList.add("is-closing"); fadeTimer = setTimeout(close, 220); }, ms);
+      // ms 毫秒後往上收回並關閉
+      closeAfter(ms) { clearTimeout(closeTimer); closeTimer = setTimeout(close, ms); },
+      progress(ratio) {
+        const value = Math.max(0, Math.min(1, ratio));
+        fill.style.setProperty("--pdf-progress", String(value));
+        percent.textContent = `${Math.round(value * 100)}%`;
+        bar.setAttribute("aria-valuenow", String(Math.round(value * 100)));
       },
-      progress(ratio) { fill.style.setProperty("--pdf-progress", String(Math.max(0, Math.min(1, ratio)))); },
       onPrimary(handler) { primary.onclick = handler; }
     };
     secondary.addEventListener("click", () => { if (dialog.dataset.state === "working" && onCancel) onCancel(); close(); });
-    // Esc：產生中視同取消
-    dialog.addEventListener("cancel", event => { event.preventDefault(); secondary.click(); });
+    document.addEventListener("keydown", onKey); // Esc：產生中視同取消，其他狀態就是關閉
     document.body.append(dialog);
     controller.set("working", "正在準備 PDF", "正在整理版面…");
     controller.progress(0);
-    if (typeof dialog.showModal === "function") dialog.showModal(); else dialog.setAttribute("open", "");
-    secondary.focus({ preventScroll: true });
+    if (typeof dialog.show === "function") dialog.show(); else dialog.setAttribute("open", "");
+    // show() 會把焦點放到第一個按鈕，觸控裝置上會看到一圈外框；這是狀態列不是要輸入的視窗，立刻放掉
+    if (dialog.contains(document.activeElement)) document.activeElement.blur();
     return controller;
   }
 
@@ -363,7 +371,11 @@
   }
 
   async function run() {
-    if (busy) return;
+    // 狀態列不鎖頁面：產生中使用者可能再點一次輸出。preparePrint 已把標題設成檔名，這裡不做事也要還原，否則標題會卡在檔名
+    if (busy) {
+      if (typeof window.restorePrintDocumentTitle === "function") window.restorePrintDocumentTitle();
+      return;
+    }
     busy = true;
     const state = { cancelled: false };
     const ui = openDialog({ onCancel: () => { state.cancelled = true; } });
@@ -377,26 +389,30 @@
       if (!sources.length) throw new Error("找不到可以輸出的頁面");
 
       ui.set("working", "正在準備 PDF", "正在整理版面…");
+      ui.progress(0.04);
       const built = await buildFrame(sources);
       frame = built.frame;
       alive();
       if (!built.pages.length) throw new Error("沒有可以輸出的頁面");
       await prepareImages(built.doc.body);
       alive();
+      ui.progress(0.12);
 
       const rendered = [];
       for (const [index, node] of built.pages.entries()) {
-        ui.progress(0.1 + 0.85 * (index / built.pages.length));
         ui.set("working", "正在準備 PDF", `正在轉換第 ${index + 1} ／ ${built.pages.length} 頁…`);
         await sleep(0); // 讓進度文字有機會先畫出來
         rendered.push(await renderPage(node, built.view));
         alive();
+        ui.progress(0.12 + 0.83 * ((index + 1) / built.pages.length));
       }
-      ui.progress(1);
+      ui.set("working", "正在準備 PDF", "正在組成檔案…");
+      ui.progress(0.97);
       const pdf = buildPdf(rendered, { title: fileName.replace(/\.pdf$/i, "") });
       const file = new File([pdf], fileName, { type: "application/pdf" });
       frame.remove();
       frame = null;
+      ui.progress(1);
       await deliver(file, rendered.length, ui);
     } catch (error) {
       if (error !== CANCELLED) {

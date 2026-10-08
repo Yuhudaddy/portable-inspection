@@ -235,6 +235,18 @@ try:
         page = open_tool(desktop, "rebar.html", "empty")
         original_title = page.evaluate("() => document.title")
 
+        # 製作中的百分比：由小到大、不倒退，最後到 100%
+        page.evaluate("""() => {
+          window.__percents = [];
+          const read = () => { const el = document.querySelector('.pdf-share-dialog .pdf-share-percent'); if (el && el.textContent) { const v = parseInt(el.textContent, 10); if (window.__percents.at(-1) !== v) window.__percents.push(v); } };
+          new MutationObserver(read).observe(document.body, { subtree: true, childList: true, characterData: true });
+        }""")
+        page.evaluate("() => { window.__shareMode = 'ok'; window.__shared.length = 0; window.__shareCalls = 0; }")
+        export(page, "pdf-all")
+        settled(page)
+        percents = page.evaluate("() => window.__percents")
+        check(len(percents) >= 4 and percents == sorted(percents) and percents[0] <= 12 and percents[-1] == 100, "製作中的百分比逐步上升、不倒退、最後 100%", str(percents))
+
         # 手勢失效：第一次 share 被擋 → 出現「PDF 已準備好」→ 再點「分享」在新的點擊裡成功
         page.evaluate("() => { window.__shareMode = 'notallowed-once'; }")
         export(page, "pdf-all", wait_for="dialog")
@@ -319,7 +331,8 @@ try:
         page.wait_for_function("() => window.__shared.length >= 1", timeout=240000)
         settled(page)
         time.sleep(0.5)
-        check(count == 1 and page.evaluate("() => window.__shared.length") == 1, "重複觸發：只有一個對話框、一個檔案", f"dialogs={count}")
+        check(count == 1 and page.evaluate("() => window.__shared.length") == 1, "重複觸發：只有一個狀態列、一個檔案", f"dialogs={count}")
+        check(page.evaluate("() => document.title") == original_title, "重複觸發：標題沒有卡在檔名")
 
         # 產生中顯示進度、畫面沒有消失
         held = []
@@ -331,9 +344,17 @@ try:
         visible = page.evaluate("() => { const header = document.querySelector('header.app-header'); const main = document.querySelector('main, .app-shell'); return !!header && header.getBoundingClientRect().height > 0 && !!main && main.getBoundingClientRect().height > 0; }")
         check(visible, "產生中：原本的畫面沒有消失（在隱藏 iframe 轉圖）")
         check(page.inner_text(".pdf-share-secondary") == "取消" and page.evaluate("() => document.querySelector('.pdf-share-dialog').getAttribute('aria-busy')") == "true", "產生中：有取消鈕與 aria-busy")
+        pct = page.evaluate("() => { const d = document.querySelector('.pdf-share-dialog'); const bar = d.querySelector('.pdf-share-bar'); return { text: d.querySelector('.pdf-share-percent').textContent, shown: getComputedStyle(d.querySelector('.pdf-share-percent')).display !== 'none', now: bar.getAttribute('aria-valuenow'), role: bar.getAttribute('role') }; }")
+        check(re.fullmatch(r"\d+%", pct["text"]) is not None and pct["shown"] and pct["role"] == "progressbar" and pct["now"] == pct["text"][:-1], "產生中：進度條旁有百分比，aria-valuenow 一致", str(pct))
+        # 狀態列不鎖頁面：產生中再點一次輸出，不會多一個狀態列，標題也不會卡在檔名
+        page.evaluate("() => { window.__printCalls = 0; }")
+        page.click("#export-button")
+        page.click('[data-export-format="pdf-all"]')
+        check(page.evaluate("() => document.querySelectorAll('.pdf-share-dialog').length") == 1 and page.evaluate("() => document.title") == original_title, "產生中再點一次輸出：只有一個狀態列，標題已還原")
         # 在等函式庫的時候按取消
         page.click(".pdf-share-secondary")
-        check(page.evaluate("() => !document.querySelector('.pdf-share-dialog')"), "產生中按取消：對話框關閉")
+        page.wait_for_function("() => !document.querySelector('.pdf-share-dialog')", timeout=3000)
+        check(True, "產生中按取消：狀態列往上收回並移除")
         deadline = time.time() + 15
         while not held and time.time() < deadline:
             time.sleep(0.1)

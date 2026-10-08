@@ -2,7 +2,7 @@
 // 檔名一律帶版號：換版本就是換檔名，改 VENDOR_FILES 與引用處（plan.js），activate 時自動清掉不在清單裡的舊檔。
 const VENDOR_CACHE = "portable-inspection-vendor";
 const VENDOR_FILES = ["./vendor/mermaid-11.4.1.min.js"];
-const CACHE_NAME = "portable-inspection-v145";
+const CACHE_NAME = "portable-inspection-v146";
 // 登入頁與登入 API 不經過 Service Worker：未登入時伺服器回的是登入頁或導向，絕不能被當成工具頁或 app.css 存進快取。
 const GATE_PATH = /\/(login(\.css|\.js)?|api\/[^/]+)$/;
 // 範例 PDF（共約 8MB）不放進 shell：每次升版都要整批重抓，手機上安裝又慢又容易失敗；範例本來就需要連線。

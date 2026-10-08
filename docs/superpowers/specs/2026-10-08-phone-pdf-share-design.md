@@ -73,6 +73,9 @@ outputPrint()
     之後取消就不處理；對話框關掉之後 share 才出錯，另開一個錯誤對話框顯示原因，不會無聲失敗。
 11. **「PDF 已準備好」畫面多一行「找不到 LINE？在分享選單點「列印」，再按右上角的分享圖示」。** 真機上 Web Share 分享檔案的選單沒有 LINE
     （WebKit 已知問題 bug 261498：iOS 17 之後 Web Share 分享檔案時可選的 App 變少，Apple 尚未修），但分享選單裡的「列印」→ 預覽 → 分享走的是系統自己的 PDF 分享，有 LINE。
+12. **完成提示是頂端橫幅，不是會移動的卡片。** 先前把置中的卡片直接搬到畫面上方，真機看起來像憑空跳出來，也離分享選單很遠；
+    網頁拿不到系統分享選單的位置，無法「貼著選單上緣」。現在中央的「正在準備」卡片收掉，一條橫幅從上緣滑下來（0.26 秒），
+    停約 2 秒後往上收並淡出；頁面不再被壓暗（系統選單自己會壓暗）。
 
 ## 5. 元件
 
@@ -85,7 +88,7 @@ outputPrint()
 | `app.js` `wall-gc.js` `rebar.js` `steel.js` `template.js` | `window.print()` → `outputPrint()` |
 | `plan.js` | `window.print()` → `outputPrint({ pdf: false })`（只加保險說明） |
 | 六個 HTML | 引用 `pdf-share.css`、`pdf-share.js` |
-| `sw.js` | APP_SHELL 加三個檔、`CACHE_NAME` 升版（v140 → v144） |
+| `sw.js` | APP_SHELL 加三個檔、`CACHE_NAME` 升版（v140 → v145） |
 | `scripts/build_share.py` | 對外展示版要多複製 `vendor/html-to-image-*.min.js`（它不是 `<script>` 標籤引用，不會被自動收進去） |
 
 ## 6. 錯誤處理

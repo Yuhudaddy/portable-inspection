@@ -275,10 +275,11 @@ try:
         page.click('[data-export-format="pdf-current"]')
         page.wait_for_selector(".pdf-share-dialog[data-state=sharing]", timeout=240000)
         started = time.time()
-        sharing = page.evaluate("() => { const d = document.querySelector('.pdf-share-dialog'); const visible = el => getComputedStyle(el).display !== 'none'; return { text: d.querySelector('p').textContent, spinner: visible(d.querySelector('.pdf-share-spinner')), bar: visible(d.querySelector('.pdf-share-bar')), actions: visible(d.querySelector('.pdf-share-actions')), hint: visible(d.querySelector('.pdf-share-hint')), busy: d.getAttribute('aria-busy'), bottom: d.getBoundingClientRect().bottom, height: innerHeight }; }")
+        sharing = page.evaluate("() => { const d = document.querySelector('.pdf-share-dialog'); const visible = el => getComputedStyle(el).display !== 'none'; return { text: d.querySelector('p').textContent, spinner: visible(d.querySelector('.pdf-share-spinner')), bar: visible(d.querySelector('.pdf-share-bar')), actions: visible(d.querySelector('.pdf-share-actions')), hint: visible(d.querySelector('.pdf-share-hint')), busy: d.getAttribute('aria-busy'), bottom: d.getBoundingClientRect().bottom, top: d.getBoundingClientRect().top, width: d.getBoundingClientRect().width, height: innerHeight, innerWidth: innerWidth }; }")
         check("轉換" not in sharing["text"] and not sharing["spinner"] and not sharing["bar"] and sharing["busy"] == "false", "分享選單開著：對話框是「PDF 已準備好」，沒有轉圈與進度", str(sharing))
         check(not sharing["actions"] and not sharing["hint"], "分享選單開著：沒有按鈕、沒有 LINE 提示（只剩完成提示）", str(sharing))
         check(sharing["bottom"] < sharing["height"] * 0.5, "完成提示放在畫面上半部（系統分享選單從下方蓋上來時不會遮住它）", f"bottom={sharing['bottom']:.0f}, viewport={sharing['height']}")
+        check(sharing["top"] < 80 and sharing["width"] <= sharing["innerWidth"] - 20, "完成提示是貼著上緣的橫幅（不是置中的大卡片）", f"top={sharing['top']:.0f}, width={sharing['width']:.0f}, viewport={sharing['innerWidth']}")
         page.wait_for_function("() => !document.querySelector('.pdf-share-dialog')", timeout=6000)
         spent = time.time() - started
         check(1.5 < spent < 3.4 and page.evaluate("() => window.__shared.length") == 0, f"約 2 秒後對話框自己關掉，分享選單（share）還沒結束（{spent:.1f} 秒）", f"shared={page.evaluate('() => window.__shared.length')}")

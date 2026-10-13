@@ -27,7 +27,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "share" / "diaphragm-wall"
 ESBUILD = ["npx", "--yes", "esbuild@0.24.0"]
-EXAMPLES = ["diaphragm-wall-example", "guide-wall-example", "rebar-cage-example"]
+EXAMPLES = ["diaphragm-wall-example", "guide-wall-example", "rebar-cage-simple-example", "rebar-cage-detailed-example"]
 SITE_NAME = "連續壁施工紀錄"
 STATIC = ["app-icon-144.png", "apple-touch-icon.png", "taisei.png"]
 

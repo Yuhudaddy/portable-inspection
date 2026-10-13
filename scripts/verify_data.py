@@ -1302,6 +1302,83 @@ def verify_portal_wave(browser):
     ctx.close()
 
 
+def example_titles(name):
+    """範例 PDF 每頁表頭的大標題（英文小標題的下一行）。"""
+    import re
+    result = []
+    for page in fitz.open(ROOT / "examples" / f"{name}.pdf"):
+        lines = [line.strip() for line in page.get_text().splitlines() if line.strip()]
+        start = next((i for i, line in enumerate(lines) if re.match(r"DIAPHRAGM WALL", line)), None)
+        result.append(lines[start + 1] if start is not None and start + 1 < len(lines) else "")
+    return result
+
+
+def verify_help_examples(browser):
+    """說明視窗的「已填妥範例」：主表單範例只含該工具自己的分頁（不混入導溝、鋼筋籠）；鋼筋籠範例是下拉選單，
+    內有簡易版與詳細版；範例檔、頁數、清單三者一致；對外展示版的範例清單同步。"""
+    manifest = json.loads((ROOT / "examples" / "pages" / "manifest.json").read_text(encoding="utf8"))
+    plan = {
+        "diaphragm-wall": {"tool": "廠商版", "main": "diaphragm-wall-example", "guide": "guide-wall-example",
+                           "main_titles": ["連續壁施工品質自檢總表", "連續壁施工品質自檢總表", "開挖與前置紀錄", "澆置紀錄"],
+                           "simple": "rebar-cage-simple-example", "detailed": "rebar-cage-detailed-example"},
+        "diaphragm-wall-gc": {"tool": "營造廠版", "main": "diaphragm-wall-gc-example", "guide": "gc-guide-wall-example",
+                              "main_titles": ["連續壁營造廠查驗表", "連續壁營造廠查驗表（續）"],
+                              "simple": "gc-rebar-cage-simple-example", "detailed": "gc-rebar-cage-detailed-example"},
+    }
+    for html, item in plan.items():
+        tool = item["tool"]
+        titles = example_titles(item["main"]) if (ROOT / "examples" / f"{item['main']}.pdf").exists() else []
+        check(f"{tool}：主表單範例只含該工具自己的分頁（沒有導溝、鋼筋籠）", titles == item["main_titles"], str(titles))
+        for kind, label in (("simple", "簡易版"), ("detailed", "詳細版")):
+            name = item[kind]
+            path = ROOT / "examples" / f"{name}.pdf"
+            if not path.exists():
+                check(f"{tool}：鋼筋籠{label}範例檔存在", False, f"缺 examples/{name}.pdf")
+                continue
+            first = fitz.open(path)[0].get_text()
+            check(f"{tool}：鋼筋籠{label}範例是{label}的輸出（表頭欄位不同）",
+                  example_titles(name) == ["鋼筋籠吊放前複核表", "鋼筋籠複核照片"] and
+                  (("號數@間距" not in first and "說明" in first) if kind == "simple" else ("號數@間距" in first and "頂部" in first)), f"{example_titles(name)}")
+        for name in (item["main"], item["guide"], item["simple"], item["detailed"]):
+            entry = manifest.get(name)
+            pdf_pages = fitz.open(ROOT / "examples" / f"{name}.pdf").page_count if (ROOT / "examples" / f"{name}.pdf").exists() else -1
+            images = [(ROOT / "examples" / "pages" / f"{name}-{n}.webp").exists() for n in range(1, (entry or {"pages": 0})["pages"] + 1)]
+            check(f"{tool}：{name} 在 manifest、頁數與 PDF 一致、每頁圖片都存在", bool(entry) and entry["pages"] == pdf_pages and all(images) and entry["back"] == html, f"{entry} / pdf {pdf_pages}")
+        old = {"diaphragm-wall": "rebar-cage-example", "diaphragm-wall-gc": "gc-rebar-cage-example"}[html]
+        check(f"{tool}：舊的單一鋼筋籠範例（{old}）已移除", old not in manifest and not (ROOT / "examples" / f"{old}.pdf").exists())
+
+        page = open_clean(browser, html)
+        page.evaluate("() => document.querySelector('#help-dialog').showModal()")
+        menu = page.evaluate("""() => { const d = document.querySelector('#help-dialog .help-examples details.example-menu');
+          return d ? { open: d.open, summary: d.querySelector('summary').textContent.replace(/\\s+/g, ' ').trim(), items: [...d.querySelectorAll('a')].map(a => ({ text: a.textContent.trim(), href: a.getAttribute('href') })) } : null; }""")
+        check(f"{tool}：鋼筋籠範例是下拉選單（預設收合），內有簡易版與詳細版",
+              menu is not None and not menu["open"] and "鋼筋籠" in menu["summary"] and
+              [i["text"] for i in menu["items"]] == ["簡易版", "詳細版"] and
+              [i["href"] for i in menu["items"]] == [f"./example?file={item['simple']}", f"./example?file={item['detailed']}"], str(menu))
+        links = page.evaluate("() => [...document.querySelectorAll('#help-dialog .help-examples > .example-actions > a')].map(a => a.getAttribute('href'))")
+        check(f"{tool}：主表單與導溝仍是一般按鈕，沒有殘留舊的鋼筋籠按鈕",
+              links == [f"./example?file={item['main']}", f"./example?file={item['guide']}"], str(links))
+        if menu:
+            # 收合的 <details> 內容用 content-visibility 隱藏（不是移出版面），所以用 checkVisibility 判斷看不看得到
+            visible = "() => [...document.querySelectorAll('#help-dialog details.example-menu a')].map(a => a.checkVisibility({ contentVisibilityAuto: true, visibilityProperty: true }))"
+            hidden = not any(page.evaluate(visible))
+            page.click("#help-dialog details.example-menu summary")
+            shown = all(page.evaluate(visible))
+            check(f"{tool}：點一下按鈕才展開選單，兩個選項都看得到", hidden and shown, f"收合時隱藏={hidden}，展開後可見={shown}")
+        page.close()
+        for kind in ("simple", "detailed"):
+            viewer = new_page(browser)
+            viewer.goto(f"{BASE}/example?file={item[kind]}", wait_until="networkidle")
+            viewer.wait_for_selector("img.example-page")
+            count = viewer.evaluate("() => document.querySelectorAll('img.example-page').length")
+            check(f"{tool}：範例檢視頁開得起來（{item[kind]}，{manifest.get(item[kind], {}).get('pages')} 頁）", count == manifest.get(item[kind], {}).get("pages"), str(count))
+            viewer.close()
+
+    build = (ROOT / "scripts" / "build_share.py").read_text(encoding="utf8")
+    check("對外展示版（build_share.py）的範例清單換成簡易版／詳細版",
+          "rebar-cage-simple-example" in build and "rebar-cage-detailed-example" in build and '"rebar-cage-example"' not in build)
+
+
 server = subprocess.Popen([sys.executable, str(ROOT / "scripts" / "serve.py"), str(PORT)], cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 time.sleep(1.2)
 try:
@@ -1338,6 +1415,7 @@ try:
         verify_soil_date(browser)
         verify_multi_splice(browser)
         verify_portal_wave(browser)
+        verify_help_examples(browser)
         verify_signed_fields(browser, "diaphragm-wall", '[data-bind="wall.designDepth"]', "state.wall.designDepth")
         verify_signed_fields(browser, "diaphragm-wall", '[data-bind="wall.topElevation"]', "state.wall.topElevation")
         verify_signed_fields(browser, "diaphragm-wall", "#depth-value", "document.querySelector('#depth-value').value", in_dialog=True)

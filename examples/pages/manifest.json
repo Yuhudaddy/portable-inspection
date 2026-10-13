@@ -2,7 +2,7 @@
   "diaphragm-wall-example": {
     "title": "連續壁施工紀錄",
     "back": "diaphragm-wall",
-    "pages": 7,
+    "pages": 4,
     "width": 952,
     "height": 1348
   },
@@ -13,8 +13,15 @@
     "width": 952,
     "height": 1348
   },
-  "rebar-cage-example": {
-    "title": "鋼筋籠吊放前複核",
+  "rebar-cage-simple-example": {
+    "title": "鋼筋籠吊放前複核（簡易版）",
+    "back": "diaphragm-wall",
+    "pages": 2,
+    "width": 952,
+    "height": 1348
+  },
+  "rebar-cage-detailed-example": {
+    "title": "鋼筋籠吊放前複核（詳細版）",
     "back": "diaphragm-wall",
     "pages": 2,
     "width": 952,
@@ -23,7 +30,7 @@
   "diaphragm-wall-gc-example": {
     "title": "連續壁營造廠查驗",
     "back": "diaphragm-wall-gc",
-    "pages": 5,
+    "pages": 2,
     "width": 952,
     "height": 1348
   },
@@ -34,8 +41,15 @@
     "width": 952,
     "height": 1348
   },
-  "gc-rebar-cage-example": {
-    "title": "鋼筋籠吊放前複核",
+  "gc-rebar-cage-simple-example": {
+    "title": "鋼筋籠吊放前複核（簡易版）",
+    "back": "diaphragm-wall-gc",
+    "pages": 2,
+    "width": 952,
+    "height": 1348
+  },
+  "gc-rebar-cage-detailed-example": {
+    "title": "鋼筋籠吊放前複核（詳細版）",
     "back": "diaphragm-wall-gc",
     "pages": 2,
     "width": 952,

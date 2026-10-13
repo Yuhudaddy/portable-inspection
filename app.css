@@ -939,6 +939,28 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .example-button:active { transform: translateY(1px); }
 .example-button span { font-size: 0.8125rem; font-weight: 600; }
 .example-button small { color: var(--glass-muted); font-size: 0.6875rem; }
+/* 鋼筋籠範例：點按鈕展開「簡易版／詳細版」（原生 <details>，不需要 JS；展開往下長，所以對話框內不會被裁切） */
+.example-actions { align-items: start; }
+.example-menu { min-width: 0; }
+.example-menu > summary { list-style: none; user-select: none; }
+.example-menu > summary::-webkit-details-marker { display: none; }
+.example-menu > summary > :last-child::after { content: " ▾"; color: var(--glass-accent); }
+.example-menu[open] > summary > :last-child::after { content: " ▴"; }
+.example-menu-list { display: grid; gap: 6px; margin-top: 6px; }
+.example-menu-item {
+  display: grid;
+  place-items: center;
+  min-height: 44px;
+  border-radius: var(--glass-radius-sm);
+  background: var(--glass-accent-soft);
+  box-shadow: var(--glass-hairline);
+  color: var(--glass-accent);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.example-menu-item:active { transform: translateY(1px); }
+.example-menu > summary:focus-visible, .example-menu-item:focus-visible { outline: 3px solid var(--glass-accent); outline-offset: 2px; }
 .clear-confirmation p { margin: 0; color: var(--glass-soft); font-size: 0.8125rem; line-height: 1.7; }
 .danger-button { background: var(--glass-danger); box-shadow: 0 4px 12px oklch(58% 0.13 30 / 0.3); }
 

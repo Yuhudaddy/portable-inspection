@@ -523,7 +523,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 /* 最後新增的那次續接：時間右邊多一個「刪除」鈕（樣式與其他清單的修改／刪除共用，見 .record-item-actions button） */
 .phase-row.has-action { grid-template-columns: minmax(0, 1fr) auto auto; }
 
-.truck-list .record-item { box-shadow: inset 3px 0 var(--glass-accent); }
 .warning-list:empty { display: none; }
 .warning-list { display: grid; gap: 8px; margin-top: 10px; }
 .warning-item {
@@ -647,7 +646,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .t-tabs { --tabs-dur: 250ms; --tabs-ease: cubic-bezier(0.22, 1, 0.36, 1); position: relative; display: inline-flex; align-items: center; gap: 3px; padding: 3px; border-radius: 48px; background: var(--glass-sunken); box-shadow: var(--glass-hairline); }
 .t-tab { position: relative; z-index: 1; appearance: none; border: 0; background: transparent; height: 30px; padding: 4px 14px; border-radius: 48px; color: var(--glass-muted); font: inherit; font-size: 0.8125rem; font-weight: 600; cursor: pointer; transition: color var(--tabs-dur) var(--tabs-ease); }
 .t-tab[aria-selected="true"], .t-tab:not([aria-selected="true"]):hover { color: var(--glass-ink); }
-.t-tabs-pill { position: absolute; top: 3px; left: 0; z-index: 0; width: 0; height: 30px; border-radius: 48px; background: var(--glass-card-bg); box-shadow: var(--glass-lift-shadow); transform: translateX(0); transition: transform var(--tabs-dur) var(--tabs-ease), width var(--tabs-dur) var(--tabs-ease); will-change: transform, width; pointer-events: none; }
+.t-tabs-pill { position: absolute; top: 3px; left: 0; z-index: 0; width: 0; height: 30px; border-radius: 48px; background: var(--glass-card-bg); box-shadow: var(--glass-lift-shadow); transform: translateX(0); transition: transform var(--tabs-dur) var(--tabs-ease); will-change: transform; pointer-events: none; }
 @media (prefers-reduced-motion: reduce) { .t-tabs-pill, .t-tab { transition: none !important; } }
 
 /* 部位卡片：標題列一行擺「編號｜部位｜對稱｜填寫」，摘要文字＝PDF 會印的內容 */
@@ -1052,7 +1051,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   *, *::before, *::after { scroll-behavior: auto !important; }
 }
 
-@page { size: A4 portrait; margin: 10mm; }
+@page { size: A4 portrait; margin: 0; }
 
 @media print {
   :root { background: #fdfdfd; color: #222; }
@@ -1062,7 +1061,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .print-page { display: none; break-after: page; }
   .print-page:last-child { break-after: auto; }
   /* ---- 列印分頁器（print-pages.js）需要的固定尺寸 ---- */
-  .print-page { width: 190mm; }
+  .print-page { width: 190mm; margin: 10mm auto; }
   body[data-print-scope="all"] .print-page,
   body[data-print-scope="current"] .print-page.print-selected { position: relative; display: flex; flex-direction: column; min-height: var(--print-page-height, 277mm); padding-bottom: 0; }
   /* ---- 橫向配置印在直向紙上：內容盒維持「可用頁高 × 190mm」的橫向配置（Chrome 277mm、iOS 263mm），
@@ -1125,6 +1124,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .prework-print-table th:nth-child(3), .prework-print-table th:nth-child(4), .prework-print-table th:nth-child(5) { width: 18%; }
   .print-table th { padding: 1.4mm 1mm; background: #f2f3f4; border: 0.5pt solid #999; font-size: 6.5pt; line-height: 1.25; }
   .print-table td { height: 7mm; padding: 1.2mm 1.4mm; border: 0.5pt solid #aaa; font-size: 7.5pt; text-align: center; vertical-align: middle; }
+  .print-result-fail { text-decoration-thickness: 1px; text-underline-offset: 1px; }
   .print-table td.text-left { text-align: left; }
   .print-empty { color: #777; }
   .print-summary { display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 4mm; border: 0.5pt solid #888; }
@@ -1216,10 +1216,11 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .quality-print-table th:nth-child(2) { width: 23%; }
   .quality-print-table th:nth-child(3) { width: 28%; }
   .quality-print-table th:last-child { width: 11%; }
-  .quality-standard-print-table th:first-child { width: 28%; }
-  .quality-standard-print-table th:nth-child(2) { width: 43%; }
-  .quality-standard-print-table th:nth-child(3) { width: 15%; }
-  .quality-standard-print-table th:last-child { width: 10%; }
+  .quality-standard-print-table th:first-child { width: 26%; }
+  .quality-standard-print-table th:nth-child(2) { width: 40%; }
+  .quality-standard-print-table th:nth-child(3) { width: 13%; }
+  .quality-standard-print-table th:nth-child(4) { width: 8%; }
+  .quality-standard-print-table th:last-child { width: 13%; }
   .checklist-print-table th:nth-child(2), .rebar-cage-check-print-table th:nth-child(2) { width: 20%; }
   .checklist-print-table th:nth-child(3) { width: 42%; }
   .checklist-print-table th:nth-child(4) { width: 19%; }

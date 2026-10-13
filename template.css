@@ -223,13 +223,13 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 
 @media print {
-  @page { size: A4 portrait; margin: 10mm; }
+  @page { size: A4 portrait; margin: 0; }
   html, body { min-width: 0; margin: 0; padding: 0; background: #fdfdfd; color: #222; font-size: 9pt; }
   .app-header, .app-shell, .action-dock, .sheet-dialog, .undo-toast, .skip-link { display: none !important; }
   .print-report { display: block; }
   .print-page { display: none; position: relative; break-after: page; }
   .print-page:last-child { break-after: auto; }
-  .print-page { width: 190mm; }
+  .print-page { width: 190mm; margin: 10mm auto; }
   body[data-print-scope="all"] .print-page,
   body[data-print-scope="current"] .print-page.print-selected { display: flex; flex-direction: column; min-height: var(--print-page-height, 277mm); padding-bottom: 0; }
   .print-document-header { display: grid; grid-template-columns: 72mm minmax(0, 1fr) 18mm; align-items: center; gap: 5mm; padding: 0 0 3mm; border-top: 1.5pt solid #444; border-bottom: 1pt solid #666; }
@@ -261,6 +261,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .print-table tbody tr:last-child > td { border-bottom: 0; }
   .print-table th { padding: 1.4mm 1mm; background: #f2f3f4; border: .5pt solid #999; font-size: 6.5pt; line-height: 1.25; }
   .print-table td { height: 7mm; padding: 1.2mm 1.4mm; border: .5pt solid #aaa; font-size: 7.5pt; text-align: center; vertical-align: middle; }
+  .print-result-fail { text-decoration-thickness: 1px; text-underline-offset: 1px; }
   .print-table td.text-left { text-align: left; }
   .print-table, .print-table th, .print-table td, .print-summary, .print-summary span, .print-summary strong, .print-meta-grid, .print-meta-grid span, .print-meta-grid strong, .print-footer { font-family: "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif; }
   .print-summary { display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 4mm; border: .5pt solid #888; }

@@ -159,7 +159,7 @@ function rebarCagePrintTableHtml(cage) {
       return lines.map((row, i) => {
         const first = i === 0;
         const last = i === lines.length - 1;
-        return `<tr class="${first ? "" : "part-continued"} ${last ? "" : "part-has-more"}"><td>${first ? index + 1 : ""}</td><td class="text-left">${first ? escapeHtml(def.part) : ""}</td><td>${cell(row.top)}</td><td>${cell(row.bottom)}</td><td>${cell(row.count)}</td><td>${cell(row.bars)}</td><td>${first ? symmetric : ""}</td><td>${first ? escapeHtml(part.result) : ""}</td></tr>`;
+        return `<tr class="${first ? "" : "part-continued"} ${last ? "" : "part-has-more"}"><td>${first ? index + 1 : ""}</td><td class="text-left">${first ? escapeHtml(def.part) : ""}</td><td>${cell(row.top)}</td><td>${cell(row.bottom)}</td><td>${cell(row.count)}</td><td>${cell(row.bars)}</td><td>${first ? symmetric : ""}</td><td>${first ? printResultHtml(part.result) : ""}</td></tr>`;
       }).join("");
     }).join("");
     const dualNote = cage.parts.some(part => rebarCageDef(part.key).dual && !rebarCageMirrored(part, cage.parts) && part.intervals.some(interval => rebarCageText(interval.spacingH)))
@@ -168,7 +168,7 @@ function rebarCagePrintTableHtml(cage) {
   }
   const rows = cage.parts.map((part, index) => {
     const def = rebarCageDef(part.key);
-    return `<tr><td>${index + 1}</td><td class="text-left">${escapeHtml(def.part)}</td><td class="text-left">${escapeHtml(def.note || REBAR_CAGE_DEFAULT_NOTE)}</td><td>${escapeHtml(part.result)}</td></tr>`;
+    return `<tr><td>${index + 1}</td><td class="text-left">${escapeHtml(def.part)}</td><td class="text-left">${escapeHtml(def.note || REBAR_CAGE_DEFAULT_NOTE)}</td><td>${printResultHtml(part.result)}</td></tr>`;
   }).join("");
   return `<table class="print-table rebar-cage-print-table is-simple"><thead><tr><th>項次</th><th>部位</th><th>說明</th><th>結果</th></tr></thead><tbody>${rows}</tbody></table>`;
 }

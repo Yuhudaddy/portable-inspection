@@ -237,7 +237,7 @@ function printMeta(fields) {
 
 function printChecks(group) {
   const display = printText;
-  const rows = state[group].checks.map((check, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(check.item)}</td><td class="text-left">${esc(check.standard)}</td><td class="text-left">${esc(display(check.actual))}</td><td>${esc(check.result)}</td></tr>`).join("");
+  const rows = state[group].checks.map((check, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(check.item)}</td><td class="text-left">${esc(check.standard)}</td><td class="text-left">${esc(display(check.actual))}</td><td>${printResultHtml(check.result)}</td></tr>`).join("");
   return `<table class="print-table steel-print-table"><thead><tr><th>項次</th><th>檢查項目</th><th>判定標準</th><th>現場紀錄／文件編號</th><th>結果</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
@@ -246,7 +246,7 @@ function renderPrint() {
   const id = state.accuracy.memberNo || state.anchor.location || state.hsb.location || state.welding.location || "尚未指定構件";
   $("#print-overview").innerHTML = `${printHeader("鋼構施工複核表", "01", id)}<section class="print-section"><h2>工程概要</h2>${printMeta([["工程名稱", state.overview.project], ["施工廠商", state.overview.contractor], ["施工日期", state.overview.date], ["填表人", state.overview.reviewer]])}</section><section class="print-section"><h2>營造廠複核範圍</h2><div class="steel-print-note">確認設計、進場、安裝、關鍵檢測證據與放行條件；專業廠商的逐支螺栓及逐道銲接製程紀錄，請以文件編號或抽查結果確認。</div></section>${printFooter()}`;
 
-  const deliveryRows = state.delivery.records.length ? state.delivery.records.map((record, index) => `<tr><td>${index + 1}</td><td>${esc(record.type)}</td><td>${esc(record.memberNo)}</td><td class="text-left">${esc(display(record.spec))}</td><td>${esc(display(record.qty))}</td><td>${esc(display(record.doc))}</td><td>${esc(record.appearance)}／${esc(record.storage)}</td><td>${esc(record.result)}</td></tr>`).join("") : `<tr><td colspan="8" class="print-empty">尚無進場構件</td></tr>`;
+  const deliveryRows = state.delivery.records.length ? state.delivery.records.map((record, index) => `<tr><td>${index + 1}</td><td>${esc(record.type)}</td><td>${esc(record.memberNo)}</td><td class="text-left">${esc(display(record.spec))}</td><td>${esc(display(record.qty))}</td><td>${esc(display(record.doc))}</td><td>${printResultHtml(`${record.appearance}／${record.storage}`)}</td><td>${printResultHtml(record.result)}</td></tr>`).join("") : `<tr><td colspan="8" class="print-empty">尚無進場構件</td></tr>`;
   $("#print-delivery").innerHTML = `${printHeader("構件進場確認", "02", state.delivery.batch || id)}${printMeta([["進場日期", state.delivery.date], ["進場批次／文件", state.delivery.batch], ["複核人", state.delivery.reviewer], ["工程名稱", state.overview.project]])}<section class="print-section"><h2>構件清單</h2><table class="print-table steel-print-table"><thead><tr><th>項次</th><th>類型</th><th>構件編號</th><th>規格／材質</th><th>數量</th><th>材料文件</th><th>外觀／堆置</th><th>結果</th></tr></thead><tbody>${deliveryRows}</tbody></table></section><section class="print-section"><h2>進場文件／異常備註</h2><div class="steel-print-note">${esc(display(state.delivery.note))}</div></section>${printFooter()}`;
 
   $("#print-anchor").innerHTML = `${printHeader("基礎螺栓／柱腳複核", "03", state.anchor.location || id)}${printMeta([["柱腳／軸線", state.anchor.location], ["螺栓規格", state.anchor.boltSpec], ["設計／實際數量", `${display(state.anchor.designQty)} ／ ${display(state.anchor.actualQty)} 支`], ["柱腳標高設計／實測", `${display(state.anchor.designElevation)} ／ ${display(state.anchor.actualElevation)} m`], ["偏心實測", `${display(state.anchor.eccentricity)} mm`], ["複核人", state.anchor.reviewer]])}<section class="print-section"><h2>關鍵複核項目</h2>${printChecks("anchor")}</section><section class="print-section"><h2>柱腳／灌漿備註</h2><div class="steel-print-note">${esc(display(state.anchor.note))}</div></section>${printFooter()}`;
@@ -261,7 +261,7 @@ function renderPrint() {
 
   const optionalHidden = !state.optional.enabled;
   $("#print-optional").classList.toggle("print-page-empty", optionalHidden);
-  $("#print-optional").innerHTML = optionalHidden ? "" : `${printHeader("選用項目複核", "08", id)}${printMeta([["選用項目", state.optional.enabled], ["工程名稱", state.overview.project], ["施工日期", state.overview.date], ["複核人", state.overview.reviewer]])}<section class="print-section"><h2>選用項目紀錄</h2><div class="steel-print-note">${esc(display(state.optional.note))}</div></section><section class="print-section"><h2>檢查結果</h2><div class="steel-print-note">${esc(state.optional.result)}</div></section>${printFooter()}`;
+  $("#print-optional").innerHTML = optionalHidden ? "" : `${printHeader("選用項目複核", "08", id)}${printMeta([["選用項目", state.optional.enabled], ["工程名稱", state.overview.project], ["施工日期", state.overview.date], ["複核人", state.overview.reviewer]])}<section class="print-section"><h2>選用項目紀錄</h2><div class="steel-print-note">${esc(display(state.optional.note))}</div></section><section class="print-section"><h2>檢查結果</h2><div class="steel-print-note">${printResultHtml(state.optional.result)}</div></section>${printFooter()}`;
 }
 
 function exportData() {

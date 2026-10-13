@@ -993,17 +993,42 @@ def verify_rebar_cage_ui(browser, html):
 # ---------------------------------------------------------------- PDF 內容
 def verify_pdf_content(browser):
     page = open_clean(browser, "diaphragm-wall", "?example=1")
-    page.evaluate("""() => {
-      state.quality.checks[1].result = "不符合"; state.quality.checks[1].auto = ""; state.quality.checks[1].actual = "沉泥 35 cm";
+    table = page.evaluate("""() => {
+      state.wall.unitType = "公單元";
+      state.quality.checks[1].result = "不符合"; state.quality.checks[1].auto = ""; state.quality.checks[1].actual = "35";
       state.quality.checks[2].result = "待確認";
+      state.quality.checks[9].result = "不適用";
+      state.quality.checks[14].result = "符合"; state.quality.checks[14].actual = "19";
       state.rebarCage.cageNo = "C21-U";
       renderAll?.(); renderPrint();
+      const rows = [...document.querySelectorAll("#print-quality .quality-standard-print-table tbody tr")];
+      const row = label => rows.find(item => item.cells[0].textContent.trim() === label);
+      const cells = item => [...item.cells].map(cell => cell.textContent.trim());
+      return {
+        headers: [...document.querySelectorAll("#print-quality .quality-standard-print-table thead th")].map(cell => cell.textContent.trim()),
+        sediment: cells(row("沉泥厚度上限")),
+        slump: cells(row("混凝土坍度")),
+        blank: cells(row("含砂量上限")),
+        na: cells(row("特密管端距上限")),
+        failUnderlined: !!row("沉泥厚度上限").cells[4].querySelector(".print-result-fail"),
+        statusText: [printResultHtml("待確認"), printResultHtml("符合"), printResultHtml("不符合"), printResultHtml("N/A")]
+      };
     }""")
     text = pdf_text(page, "all")
-    check("廠商版 PDF：不符合項目與實測值都印出", "不符合" in text and "沉泥 35 cm" in text, text[:200])
-    check("廠商版 PDF：待確認項目印出", "待確認" in text)
+    check("廠商版 PDF：檢查項目表的數值來自實填欄，無填資料留白", table["headers"] == ["項目", "判定標準", "數值", "單位", "結果"] and table["sediment"][2:] == ["35", "cm", "不合格"] and table["slump"][2:] == ["19", "cm", "合格"] and table["blank"][2:] == ["", "%", ""] and table["failUnderlined"], table)
+    check("廠商版 PDF：未選結果空白、N/A 為全形 －、結果用合格／底線不合格", table["na"][4] == "－" and table["statusText"] == ["", "合格", '<u class="print-result-fail">不合格</u>', "－"], table)
+    check("廠商版 PDF：失敗列印為不合格，未選結果不列待確認", "不合格" in text and "不符合" not in text and "待確認" not in text and "不適用" not in text, text[:200])
     check("廠商版 PDF：導溝頁表頭印軸線編號，鋼筋籠頁帶壁體單元 21｜C21-U", "X3～X7 南側" in text and "不分單元" not in text and "21｜C21-U" in text)
     check("廠商版 PDF：跨午夜時間以 30 時制印出", "24:" in text or "25:" in text, "找不到 24:xx")
+    names = page.evaluate("""() => {
+      const tool = activeTool, tab = activeTab;
+      state.wall.unitNo = "U21";
+      activeTool = "diaphragmWall"; setPdfDocumentTitle("all"); const wall = document.title;
+      activeTool = "rebarCage"; activeTab = "rebarCage"; setPdfDocumentTitle("all"); const cage = document.title;
+      activeTool = tool; activeTab = tab; restorePrintDocumentTitle();
+      return [wall, cage];
+    }""")
+    check("完整版與鋼筋籠分頁輸出整份時共用主表名稱", names[0] == names[1] and names[0].startswith("連續壁施工紀錄_U21_完整檢核紀錄_"), names)
     page.context.close()
 
     page = open_clean(browser, "diaphragm-wall-gc", "?example=1")
@@ -1013,8 +1038,16 @@ def verify_pdf_content(browser):
       renderAll?.(); renderPrint();
     }""")
     text = pdf_text(page, "all")
-    check("營造廠版 PDF：不符合項目、實測值與結論都印出", "不符合" in text and "28 mm" in text and "限期改善後複驗" in text, text[:200])
+    check("營造廠版 PDF：不合格項目加底線、實測值與結論都印出", "不合格" in text and "不符合" not in text and "28 mm" in text and "限期改善後複驗" in text, text[:200])
     check("營造廠版 PDF：導溝表頭印軸線編號、鋼筋籠帶單元 21", "X3～X7 南側" in text and "不分單元" not in text and "21｜C21-U／C21-L" in text)
+    names = page.evaluate("""() => {
+      const tool = activeTool, tab = activeTab;
+      activeTool = "inspection"; setPdfDocumentTitle("all"); const inspection = document.title;
+      activeTool = "rebarCage"; setPdfDocumentTitle("all"); const cage = document.title;
+      activeTool = tool; activeTab = tab; restorePrintDocumentTitle();
+      return [inspection, cage];
+    }""")
+    check("營造廠查驗與鋼筋籠分頁輸出整份時共用營造廠查驗名稱", names[0] == names[1] and names[0].startswith("連續壁營造廠查驗_") and "完整檢核紀錄" in names[0], names)
     page.context.close()
 
     page = open_clean(browser, "diaphragm-wall-gc", "?example=1")

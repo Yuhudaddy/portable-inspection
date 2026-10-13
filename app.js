@@ -1174,16 +1174,34 @@ function renderPrint() {
   const truckRows = calculatedTrucks();
   const lastTruck = truckRows.at(-1);
 
-  const qualityRows = state.quality.checks.map((check, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(check.item)}</td><td class="text-left">${esc(qualityCheckStandard(index, check.standard))}</td><td class="text-left">${esc(qualityActualText(check))}</td><td>${esc(check.result)}</td></tr>`).join("");
+  const qualityRows = state.quality.checks.map((check, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(check.item)}</td><td class="text-left">${esc(qualityCheckStandard(index, check.standard))}</td><td class="text-left">${esc(qualityActualText(check))}</td><td>${printResultHtml(check.result)}</td></tr>`).join("");
+  const qualityChecksByItem = new Map(state.quality.checks.map(check => [check.item, check]));
   const qualityStandardRows = QUALITY_STANDARD_CONFIG.map(config => {
     const unitType = state.wall.unitType;
     const selectedKey = unitType === "公單元" ? "embedmentMale" : unitType === "母單元" ? "embedmentFemale" : unitType === "公母單元" ? "embedmentBoth" : null;
     if (config.key.startsWith("embedment") && selectedKey && config.key !== selectedKey) return "";
-    return `<tr><td class="text-left">${esc(config.label)}</td><td class="text-left">${esc(qualityStandardText(config.key))}</td><td>${esc(qualityStandardValue(config.key))}</td><td>${esc(config.unit)}</td></tr>`;
+    const linkedItem = {
+      sediment: "底部沉渣及泥屑清除確認",
+      tremieClearance: "開挖深度與特密管長度之配合",
+      slump: "混凝土坍度之確認",
+      verticalDenominator: "超音波記錄結果說明"
+    }[config.key] || (config.key === selectedKey ? "特密管埋入混凝土內之確認" : "");
+    const linkedCheck = linkedItem ? qualityChecksByItem.get(linkedItem) : null;
+    const volumeRate = config.key === "volumeDifference" ? volumeDifferenceRate() : null;
+    const actual = config.key === "volumeDifference"
+      ? volumeRate === null ? "" : volumeRate.toFixed(2)
+      : linkedCheck?.actual || "";
+    const volumeDesign = number(state.wall.designVolume) ?? calculatedDesignVolume();
+    const volumeComplete = volumeRate !== null && volumeDesign !== null
+      && (pouredVolume() > volumeDesign || pourLooksComplete());
+    const result = config.key === "volumeDifference"
+      ? volumeRate === null ? "" : volumeDifferenceExceeded() ? "不符合" : volumeComplete ? "符合" : ""
+      : linkedCheck?.result || "";
+    return `<tr><td class="text-left">${esc(config.label)}</td><td class="text-left">${esc(qualityStandardText(config.key))}</td><td>${esc(actual)}</td><td>${esc(config.unit)}</td><td>${printResultHtml(result)}</td></tr>`;
   }).filter(Boolean).join("");
   $("#print-quality").innerHTML = `${printHeader({ title: "連續壁施工品質自檢總表", sequence: "03", date: constructionPeriodText() })}
     ${printWallInfo()}
-    <section class="print-section compact-print-section"><h2>檢查項目</h2><table class="print-table quality-standard-print-table"><thead><tr><th>項目</th><th>判定標準</th><th>數值</th><th>單位</th></tr></thead><tbody>${qualityStandardRows}</tbody></table></section>
+    <section class="print-section compact-print-section"><h2>檢查項目</h2><table class="print-table quality-standard-print-table"><thead><tr><th>項目</th><th>判定標準</th><th>數值</th><th>單位</th><th>結果</th></tr></thead><tbody>${qualityStandardRows}</tbody></table></section>
     <section class="print-section compact-print-section"><h2>品質自檢項目</h2><table class="print-table quality-print-table"><thead><tr><th>項次</th><th>檢查項目</th><th>檢查標準</th><th>現場紀錄／實測</th><th>結果</th></tr></thead><tbody>${qualityRows}</tbody></table></section>
     <section class="print-section quality-note-section"><h2>缺失及改善結果</h2><div class="print-note">${esc(display(state.quality.note))}</div></section>${printFooter()}`;
 
@@ -1222,7 +1240,7 @@ function renderPrint() {
         <div><span>預估／實測／差異(m)</span><strong>${fixed(lastTruck?.expected ?? null)} ／ ${fixed(lastTruck?.measured ?? null)} ／ ${fixed(lastTruck?.difference ?? null)}</strong></div>
       </div></section><section class="print-section pouring-table-section"><h2>逐車混凝土澆置紀錄</h2><table class="print-table"><thead><tr><th>車次</th><th>車號</th><th>出廠</th><th>卸料</th><th>結束</th><th>坍度(cm)</th><th>方量(m³)</th><th>累積(m³)</th><th>預估高(m)</th><th>實際高(m)</th><th>澆置時間(分)</th></tr></thead><tbody>${pouringRows}</tbody></table><p class="print-table-note">跨午夜的時間以 24 時以後接續表示（例：25:30＝翌日 01:30）；澆置時間＝結束 − 出廠。</p></section></div><section class="print-section pouring-chart-section"><h2>澆置高度曲線</h2>${pouringChartSvg(truckRows)}</section></div></div>${printFooter()}`;
 
-  const guideWallRows = state.guideWall.checks.map((check, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(check.item)}</td><td class="text-left">${standardHtml(check.standard)}</td><td class="text-left">${esc(guideCheckActual(check))}</td><td>${esc(check.result)}</td></tr>`).join("");
+  const guideWallRows = state.guideWall.checks.map((check, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(check.item)}</td><td class="text-left">${standardHtml(check.standard)}</td><td class="text-left">${esc(guideCheckActual(check))}</td><td>${printResultHtml(check.result)}</td></tr>`).join("");
   $("#print-guide-wall").innerHTML = `${printHeader({ title: "導溝施工複核表", sequence: "07", identity: state.guideWall.axisNo || "未填軸線", date: state.guideWall.date, dateLabel: "複核日期", reviewer: state.guideWall.reviewer, reviewerLabel: "營造廠複核人" })}
     <section class="print-section"><h2>導溝資料</h2><div class="print-meta-grid">
       <div><span>軸線／方向編號</span><strong>${esc(display(state.guideWall.axisNo))}</strong></div>
@@ -1230,7 +1248,7 @@ function renderPrint() {
     </div></section>
     <section class="print-section"><h2>導溝複核項目</h2><table class="print-table checklist-print-table"><thead><tr><th>項次</th><th>複核項目</th><th>確認基準</th><th>現場紀錄／實測</th><th>結果</th></tr></thead><tbody>${guideWallRows}</tbody></table></section>${printFooter()}`;
 
-  const rebarCageRows = state.rebarCage.checks.map((check, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(check.item)}</td><td class="text-left">${standardHtml(check.standard)}</td><td class="text-left">${esc(display(check.actual))}</td><td>${esc(check.result)}</td></tr>`).join("");
+  const rebarCageRows = state.rebarCage.checks.map((check, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(check.item)}</td><td class="text-left">${standardHtml(check.standard)}</td><td class="text-left">${esc(display(check.actual))}</td><td>${printResultHtml(check.result)}</td></tr>`).join("");
   $("#print-rebar-cage").innerHTML = `${printHeader({ title: "鋼筋籠吊放前複核表", sequence: "08", identity: [state.wall.unitNo, state.rebarCage.cageNo].filter(Boolean).join("｜") || "未指定鋼筋籠", date: state.rebarCage.date, dateLabel: "複核日期", reviewer: state.rebarCage.reviewer, reviewerLabel: "營造廠複核人" })}
     <section class="print-section"><h2>鋼筋籠資料</h2><div class="print-meta-grid compact-meta">
       <div><span>單元編號</span><strong>${esc(display(wallUnitLabel()))}</strong></div>
@@ -1248,13 +1266,13 @@ function renderPrint() {
 }
 
 function setPdfDocumentTitle(scope) {
-  const toolName = TOOL_LABELS[activeTool] || "施工檢核紀錄";
-  const recordId = activeTool === "guideWall" ? state.guideWall.axisNo : state.wall.unitNo || (activeTool === "rebarCage" ? state.rebarCage.cageNo : "");
+  const toolName = scope === "all" ? TOOL_LABELS.diaphragmWall : TOOL_LABELS[activeTool] || "施工檢核紀錄";
+  const recordId = scope === "all" ? state.wall.unitNo : activeTool === "guideWall" ? state.guideWall.axisNo : state.wall.unitNo || (activeTool === "rebarCage" ? state.rebarCage.cageNo : "");
   const pageName = currentExportLabel(activeTool, activeTab);
   // 檔名的日期跟該張列印頁一致；完整紀錄與總表用最晚的紀錄日期
   const pageDates = { pouring: state.dates.pouring, "excavation-prework": state.dates.excavationStart, guideWall: state.guideWall.date, rebarCage: state.rebarCage.date };
   const group = activeTool === "diaphragmWall" ? PRINT_TAB_GROUPS[activeTab] : activeTool;
-  const date = (scope === "all" && activeTool === "diaphragmWall" ? null : pageDates[group]) || recordDates().at(-1) || today;
+  const date = scope === "all" ? recordDates().at(-1) || today : pageDates[group] || recordDates().at(-1) || today;
   const parts = [toolName, recordId, scope === "all" ? "完整檢核紀錄" : pageName, date];
   setPrintDocumentTitle(parts);
 }

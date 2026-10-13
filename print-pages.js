@@ -6,8 +6,8 @@
 // 的橫向配置排版，放進 .print-rotated 包裹層後由 CSS 逆時針轉 90° 印在直向紙上——iOS 的列印
 // 流程不吃 @page size / 具名頁，這是唯一在所有裝置上都一致的做法。
 //
-// 可用頁高：A4 直向扣掉 @page 上下各 10mm 是 277mm；iOS 列印會在頁面下方保留自己的頁尾（網址、頁碼），
-// 可用高度少 10mm 以上，固定 277mm 的頁盒會被擠出一條到下一頁，所以 iOS 用 263mm。
+// @page 外距設為 0，讓 Chrome 不留列印資訊的頁首頁尾空間；每張 .print-page 自己留 10mm 內距，
+// 所以 A4 直向可用內容高仍是 277mm。iOS 列印流程仍會保留額外頁尾，可用高度少 10mm 以上，因此用 263mm。
 // 這個值同時給 CSS（--print-page-height）與這裡的分頁量測用。
 (function () {
   const PX_PER_MM = 96 / 25.4;
@@ -154,6 +154,21 @@
   // ---- 列印共用小工具：五個工具頁都用同一份 ----------------------------------
   // PDF 用的文字：未填就留白，不印「—」（畫面上的 display() 才印「—」）
   const printText = value => String(value ?? "").trim();
+  const escapeHtml = value => String(value ?? "")
+    .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;").replaceAll("'", "&#039;");
+  // 輸出用的結果標示：空白／未選擇不印；各工具的通過、失敗與 N/A 統一成同一種文字。
+  function printResultHtml(value) {
+    const text = printText(value);
+    if (!text || ["待確認", "待量測"].includes(text)) return "";
+    return text.replace(/不符合|不合格|不適用|待確認|待量測|符合|合格|N\/A/gi, token => {
+      if (token === "符合" || token === "合格") return "合格";
+      if (token === "不符合" || token === "不合格") return '<u class="print-result-fail">不合格</u>';
+      if (token === "不適用" || token.toUpperCase() === "N/A") return "－";
+      return "";
+    }).replace(/[／/、,，;；]\s*$/, "").replace(/^[／/、,，;；]\s*/, "")
+      .split(/(<u class="print-result-fail">不合格<\/u>)/g).map(part => part.startsWith("<u ") ? part : escapeHtml(part)).join("");
+  }
   // 頁尾簽名欄（所長／副所長／擔當者），分頁器會把它放到最後一頁
   const printFooter = () => `<footer class="print-footer"><div class="print-signature-grid" aria-label="簽名欄"><div><span>所長</span><span aria-hidden="true"></span></div><div><span>副所長</span><span aria-hidden="true"></span></div><div><span>擔當者</span><span aria-hidden="true"></span></div></div></footer>`;
   // 檔名片段：去掉檔名不能用的字元
@@ -179,5 +194,5 @@
   }
   function restorePrintDocumentTitle() { if (restoreTitle) restoreTitle(); }
 
-  Object.assign(window, { paginatePrintReport, printText, printFooter, safeFilePart, setPrintDocumentTitle, restorePrintDocumentTitle });
+  Object.assign(window, { paginatePrintReport, printText, printResultHtml, printFooter, safeFilePart, setPrintDocumentTitle, restorePrintDocumentTitle });
 })();

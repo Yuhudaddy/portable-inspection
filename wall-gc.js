@@ -981,7 +981,7 @@ function printHoldSection(holdId) {
       <td class="text-left">${esc(definition.item)}${esc(unitSuffix)}</td>
       <td class="text-left">${esc(holdItemStandard(holdId, index))}</td>
       <td class="text-left">${esc(actual)}${warning ? `<br />※ ${esc(warning)}` : ""}</td>
-      <td>${esc(record.result)}</td>
+      <td>${printResultHtml(record.result)}</td>
     </tr>`;
   }).join("");
   const inspected = printText(state.holdDates[holdId]);
@@ -1013,7 +1013,7 @@ function renderPrint() {
     ${printHoldSection("hold4")}
     ${printConclusion()}${printFooter()}`;
 
-  const guideWallRows = state.guideWall.checks.map((check, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(check.item)}</td><td class="text-left">${standardHtml(check.standard)}</td><td class="text-left">${esc(guideCheckActual(check))}</td><td>${esc(check.result)}</td></tr>`).join("");
+  const guideWallRows = state.guideWall.checks.map((check, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(check.item)}</td><td class="text-left">${standardHtml(check.standard)}</td><td class="text-left">${esc(guideCheckActual(check))}</td><td>${printResultHtml(check.result)}</td></tr>`).join("");
   $("#print-guide-wall").innerHTML = `${printHeader({ title: "導溝施工複核表", sequence: "03", identity: state.guideWall.axisNo || "未填軸線", date: state.guideWall.date, dateLabel: "複核日期", reviewerLabel: "營造廠複核人" })}
     <section class="print-section"><h2>導溝資料</h2><div class="print-meta-grid three">
       <div><span>軸線／方向編號</span><strong>${esc(display(state.guideWall.axisNo))}</strong></div>
@@ -1022,7 +1022,7 @@ function renderPrint() {
     </div></section>
     <section class="print-section"><h2>導溝複核項目</h2><table class="print-table checklist-print-table"><thead><tr><th>項次</th><th>複核項目</th><th>確認基準</th><th>現場紀錄／實測</th><th>結果</th></tr></thead><tbody>${guideWallRows}</tbody></table></section>${printFooter()}`;
 
-  const rebarCageRows = state.rebarCage.checks.map((check, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(check.item)}</td><td class="text-left">${standardHtml(check.standard)}</td><td class="text-left">${esc(display(check.actual))}</td><td>${esc(check.result)}</td></tr>`).join("");
+  const rebarCageRows = state.rebarCage.checks.map((check, index) => `<tr><td>${index + 1}</td><td class="text-left">${esc(check.item)}</td><td class="text-left">${standardHtml(check.standard)}</td><td class="text-left">${esc(display(check.actual))}</td><td>${printResultHtml(check.result)}</td></tr>`).join("");
   $("#print-rebar-cage").innerHTML = `${printHeader({ title: "鋼筋籠吊放前複核表", sequence: "04", identity: [state.unit.unitNo, state.rebarCage.cageNo].filter(Boolean).join("｜") || "未指定鋼筋籠", date: state.rebarCage.date, dateLabel: "複核日期", reviewerLabel: "營造廠複核人" })}
     <section class="print-section"><h2>鋼筋籠資料</h2><div class="print-meta-grid three compact-meta">
       <div><span>單元編號</span><strong>${esc(display(wallUnitLabel()))}</strong></div>
@@ -1041,10 +1041,10 @@ function renderPrint() {
 }
 
 function setPdfDocumentTitle(scope) {
-  const toolName = TOOL_LABELS[activeTool] || "施工檢核紀錄";
-  const recordId = activeTool === "guideWall" ? state.guideWall.axisNo : state.unit.unitNo || (activeTool === "rebarCage" ? state.rebarCage.cageNo : "");
+  const toolName = TOOL_LABELS[scope === "all" ? "inspection" : activeTool] || "施工檢核紀錄";
+  const recordId = scope === "all" ? state.unit.unitNo : activeTool === "guideWall" ? state.guideWall.axisNo : state.unit.unitNo || (activeTool === "rebarCage" ? state.rebarCage.cageNo : "");
   const pageName = currentExportLabel(activeTool, activeTab);
-  const date = (activeTool === "inspection" ? inspectionDates().at(-1) : activeTool === "guideWall" ? state.guideWall.date : state.rebarCage.date) || today;
+  const date = (scope === "all" ? inspectionDates().at(-1) : activeTool === "inspection" ? inspectionDates().at(-1) : activeTool === "guideWall" ? state.guideWall.date : state.rebarCage.date) || today;
   const parts = [toolName, recordId, scope === "all" ? "完整檢核紀錄" : pageName, date];
   setPrintDocumentTitle(parts);
 }

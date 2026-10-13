@@ -684,14 +684,21 @@ function ensurePrework() {
   activePhases().forEach(phase => { state.prework[phase.id] = { date: "", start: "", end: "", ...state.prework[phase.id] }; });
 }
 
-// 重建「前置作業項目」選單並選到指定項目；沒指定就維持目前的，目前的已不存在就退到第一項，再重畫下面的日期／時間欄。
+// 重建「前置作業項目」選單（工序清單變了才重建）並選到指定項目；沒指定就維持目前的，目前的已不存在就退到第一項。
+// 有指定項目或選到的項目變了，才重畫下面的日期／時間欄（不打斷正在輸入、還沒按「確認更新」的欄位）。
 function syncPhaseSelect(preferred = null) {
   const select = $("#phase-select");
   const phases = activePhases();
+  const signature = phases.map(phase => `${phase.id}:${phase.label}`).join("|");
+  if (select.dataset.signature !== signature) {
+    select.innerHTML = phases.map(phase => `<option value="${phase.id}">${esc(phase.label)}</option>`).join("");
+    select.dataset.signature = signature;
+  }
   const wanted = preferred || select.value;
-  select.innerHTML = phases.map(phase => `<option value="${phase.id}">${esc(phase.label)}</option>`).join("");
-  select.value = phases.some(phase => phase.id === wanted) ? wanted : phases[0].id;
-  renderPhaseEditor();
+  const next = phases.some(phase => phase.id === wanted) ? wanted : phases[0].id;
+  const changed = select.value !== next || !$("#phase-time-fields").children.length;
+  select.value = next;
+  if (preferred || changed) renderPhaseEditor();
 }
 
 function addSplice() {

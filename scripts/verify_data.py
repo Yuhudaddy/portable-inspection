@@ -1245,6 +1245,13 @@ def verify_multi_splice(browser):
 
     # 刪除與復原；刪到剩一次時名稱回到「鋼筋籠續接」
     page.evaluate("() => showTab('prework')")
+    # 在別的工序打了字、還沒按「確認更新」，這時刪掉最後一次續接：那個工序的輸入不能被清掉
+    page.select_option("#phase-select", "slurry")
+    page.fill('[data-phase-input="start"]', "08:15")
+    page.click('[data-delete-splice="splice3"]')
+    kept = editor()
+    check("刪除續接時，另一個工序還沒確認的輸入不會被清掉", kept["selected"] == "slurry" and kept["start"] == "08:15", str(kept))
+    page.click("#undo-button")
     page.click('[data-delete-splice="splice3"]')
     toast = page.evaluate("() => ({ shown: !document.querySelector('#undo-toast').hidden, message: document.querySelector('#undo-message').textContent, undo: !document.querySelector('#undo-button').hidden })")
     check("刪除續接：出現「已刪除」與復原鈕，清單少一列",

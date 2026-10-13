@@ -4,12 +4,13 @@
 用法：python3 scripts/render_example_pdfs.py            全部重新產生
       python3 scripts/render_example_pdfs.py 名稱 [名稱…]  只重新產生指定範例（例如 rebar-cage-simple-example），
                                                           其他範例的檔案與圖片不動，manifest 只更新這幾筆
+      局部重產要求 manifest 裡已經有其他範例，缺的話會中止（請先全部重產一次）；產生到一半失敗時，舊的 PDF、圖片與 manifest 都保留。
 """
 import json
-import shutil
 import subprocess
 import sys
 import time
+from io import BytesIO
 from pathlib import Path
 
 import fitz
@@ -58,29 +59,38 @@ def normalize_pdf(pdf_path):
 
 
 def render_pages(pdf_path, name):
-    """PDF 逐頁轉 WebP，回傳 manifest 需要的頁數與尺寸。"""
+    """PDF 逐頁轉 WebP，回傳 manifest 需要的頁數與尺寸。每一頁都轉好了才換掉舊圖片，轉到一半出錯不會留下缺頁。"""
     document = fitz.open(pdf_path)
-    width = height = 0
-    for index, page in enumerate(document, start=1):
+    encoded = []
+    for page in document:
         pixmap = page.get_pixmap(matrix=fitz.Matrix(IMAGE_SCALE, IMAGE_SCALE))
-        image = Image.frombytes("RGB", (pixmap.width, pixmap.height), pixmap.samples)
-        image.save(PAGES / f"{name}-{index}.webp", "WEBP", quality=78, method=6)
-        width, height = pixmap.width, pixmap.height
-    return {"pages": len(document), "width": width, "height": height}
+        buffer = BytesIO()
+        Image.frombytes("RGB", (pixmap.width, pixmap.height), pixmap.samples).save(buffer, "WEBP", quality=78, method=6)
+        encoded.append(buffer.getvalue())
+    document.close()
+    for old in PAGES.glob(f"{name}-*.webp"):
+        old.unlink()
+    for index, data in enumerate(encoded, start=1):
+        (PAGES / f"{name}-{index}.webp").write_bytes(data)
+    return {"pages": len(encoded), "width": pixmap.width, "height": pixmap.height}
+
+
+manifest_path = PAGES / "manifest.json"
+PAGES.mkdir(exist_ok=True)
+manifest = json.loads(manifest_path.read_text(encoding="utf8")) if manifest_path.exists() else {}
+missing = [name for name in NAMES if ONLY and name not in ONLY and name not in manifest]
+if missing:
+    sys.exit(f"manifest 裡沒有這些範例：{', '.join(missing)}；局部重產不會補它們，請先不帶名稱全部重產一次")
+
+
+def save_manifest():
+    """只留目前 TARGETS 有的範例（改名、移除的舊範例不留），順序照 TARGETS。每做完一份就存，中途失敗時 manifest 與檔案仍然一致。"""
+    manifest_path.write_text(json.dumps({name: manifest[name] for name in NAMES if name in manifest}, ensure_ascii=False, indent=2) + "\n", encoding="utf8")
+
 
 server = subprocess.Popen([sys.executable, str(ROOT / "scripts" / "serve.py"), str(PORT)], cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 time.sleep(1.2)
-manifest_path = PAGES / "manifest.json"
-if ONLY:
-    # 只重做指定的範例：沿用現有 manifest 與其他範例的圖片，先清掉這幾份自己的舊圖片
-    manifest = json.loads(manifest_path.read_text(encoding="utf8"))
-    for name in ONLY:
-        for old in PAGES.glob(f"{name}-*.webp"):
-            old.unlink()
-else:
-    shutil.rmtree(PAGES, ignore_errors=True)
-    PAGES.mkdir()
-    manifest = {}
+staged = []
 try:
     with sync_playwright() as p:
         browser = p.chromium.launch(channel="chrome")
@@ -93,14 +103,23 @@ try:
               document.querySelectorAll('.print-page').forEach(page => {{ if (drop.includes(page.dataset.printTab)) page.remove(); }}); }}""",
                           SIDE_TABS if scope == "all" else [])
             page.emulate_media(media="print")
-            page.pdf(path=str(OUT / filename), prefer_css_page_size=True, print_background=True)
+            # 先輸出到暫存檔，圖片也轉好了才換掉正式的 PDF；中途失敗，舊的 PDF、圖片、manifest 都還在
+            staged.append(OUT / f"{name}.new.pdf")
+            page.pdf(path=str(staged[-1]), prefer_css_page_size=True, print_background=True)
             page.close()
-            normalize_pdf(OUT / filename)
-            manifest[name] = {"title": title, "back": html.removesuffix(".html"), **render_pages(OUT / filename, name)}
+            normalize_pdf(staged[-1])
+            pages = render_pages(staged[-1], name)
+            staged[-1].replace(OUT / filename)
+            manifest[name] = {"title": title, "back": html.removesuffix(".html"), **pages}
+            save_manifest()
             print(f"寫入 examples/{filename}（{manifest[name]['pages']} 頁）與 pages/{name}-*.webp")
         browser.close()
-    # manifest 只留目前 TARGETS 有的範例（改名、移除的舊範例不留），順序照 TARGETS
-    manifest = {name: manifest[name] for name in NAMES if name in manifest}
-    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
+    if not ONLY:
+        # 全部重產才清：改名、移除的舊範例留下的圖片
+        for old in PAGES.glob("*.webp"):
+            if old.stem.rsplit("-", 1)[0] not in NAMES:
+                old.unlink()
 finally:
     server.terminate()
+    for leftover in staged:
+        leftover.unlink(missing_ok=True)

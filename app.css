@@ -519,6 +519,20 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .phase-row strong { font-size: 0.875rem; font-weight: 600; }
 .phase-row span { color: var(--glass-soft); font-family: var(--glass-font-num); font-size: 0.75rem; font-variant-numeric: tabular-nums; text-align: right; }
 .phase-row .pending { color: var(--glass-muted); }
+/* 最後新增的那次續接：時間右邊多一個「刪除」（樣式同其他清單的修改／刪除） */
+.phase-row.has-action { grid-template-columns: minmax(0, 1fr) auto auto; gap: 6px 10px; }
+.phase-row-delete {
+  min-width: 40px;
+  min-height: 36px;
+  padding: 4px 6px;
+  border: 0;
+  background: transparent;
+  color: var(--glass-accent);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.add-button:disabled { color: var(--glass-muted); box-shadow: var(--glass-hairline); cursor: default; }
 
 .truck-list .record-item { box-shadow: inset 3px 0 var(--glass-accent); }
 .warning-list:empty { display: none; }

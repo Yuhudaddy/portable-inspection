@@ -32,6 +32,10 @@ def close(a, b, tolerance=0.005):
     return a is not None and b is not None and abs(a - b) <= tolerance
 
 
+def json_copy(payload):
+    return json.loads(json.dumps(payload))
+
+
 def strip_volatile(payload):
     """匯出時間每次不同，比對前拿掉。"""
     payload = json.loads(json.dumps(payload))
@@ -154,6 +158,7 @@ def verify_vendor_calculations(browser):
 
 # ---------------------------------------------------------------- JSON 來回與舊資料相容
 def verify_roundtrip(browser, html, tool, unit_path):
+    expected_schema = "1.8" if html == "diaphragm-wall" else "1.7"   # 廠商版 1.8 起前置紀錄可新增多次續接；營造廠版沒有前置紀錄，維持 1.7
     page = open_clean(browser, html)
     first = page.evaluate("""() => { loadExample(); state.rebarCage.mode = "detailed"; renderAll?.(); return exportData(); }""")
     parts = first["rebar_cage_review"]["parts"]
@@ -161,7 +166,7 @@ def verify_roundtrip(browser, html, tool, unit_path):
     second = page.evaluate("""(payload) => { clearAllData(); importJsonPayload(JSON.parse(JSON.stringify(payload))); return exportData(); }""", first)
     check(f"{tool}：JSON 匯出 → 清空 → 匯入 → 再匯出，內容一致", strip_volatile(first) == strip_volatile(second),
           json.dumps({k: (strip_volatile(first).get(k), strip_volatile(second).get(k)) for k in strip_volatile(first) if strip_volatile(first).get(k) != strip_volatile(second).get(k)}, ensure_ascii=False)[:600])
-    check(f"{tool}：schema 1.7，導溝／鋼筋籠不再各帶 unit_no", first["schema_version"] == "1.7" and "unit_no" not in first["guide_wall_review"] and "unit_no" not in first["rebar_cage_review"], first["schema_version"])
+    check(f"{tool}：schema {expected_schema}，導溝／鋼筋籠不再各帶 unit_no", first["schema_version"] == expected_schema and "unit_no" not in first["guide_wall_review"] and "unit_no" not in first["rebar_cage_review"], first["schema_version"])
     unit_no = page.evaluate(f"() => {unit_path}")
     check(f"{tool}：範例單元編號 21 存在壁體", unit_no == "21", unit_no)
 
@@ -1126,6 +1131,149 @@ def verify_member_delete(browser, html):
     page.context.close()
 
 
+def verify_multi_splice(browser):
+    """前置紀錄可新增多次「鋼筋籠續接」：選單與清單、預設值、草稿、JSON 來回與舊檔、列印表格、日期範圍、刪除與復原、上限。"""
+    base = ["清沉泥", "下方鋼筋籠吊放", "上方鋼筋籠吊放", "鋼筋籠續接", "鋼筋籠吊放完成", "特密管施工"]
+    three = ["清沉泥", "下方鋼筋籠吊放", "上方鋼筋籠吊放", "鋼筋籠續接①", "鋼筋籠續接②", "鋼筋籠續接③", "鋼筋籠吊放完成", "特密管施工"]
+    page = open_clean(browser, "diaphragm-wall")
+    page.evaluate("() => showTab('prework')")
+    options = lambda: page.evaluate("() => [...document.querySelectorAll('#phase-select option')].map(o => o.textContent)")
+    rows = lambda: page.evaluate("() => [...document.querySelectorAll('#phase-summary .phase-row strong')].map(e => e.textContent)")
+    keys = lambda: page.evaluate("() => Object.keys(state.prework)")
+    check("前置紀錄：預設仍是原本 6 道工序、只有一次續接（名稱不加編號）", options() == base and rows() == base, f"{options()} / {rows()}")
+    button = page.query_selector("#add-splice")
+    check("前置紀錄：「＋ 新增續接」按鈕在清單標題（工序時間）右邊",
+          button is not None and "新增續接" in (button.inner_text() if button else "") and
+          page.evaluate("() => { const b = document.querySelector('#add-splice'); const h = b && b.closest('.record-heading'); return !!h && h.textContent.includes('工序時間'); }"),
+          "找不到 #add-splice 或不在 .record-heading 內")
+    if button is None:
+        return
+
+    # 先填第一次續接，再新增第二次：日期帶上一次的、時間留白、自動選到新項目
+    page.select_option("#phase-select", "splice")
+    page.fill('[data-phase-input="date"]', "2026-08-11")
+    page.fill('[data-phase-input="start"]', "09:10")
+    page.fill('[data-phase-input="end"]', "09:50")
+    page.click("#confirm-phase")
+    page.click("#add-splice")
+    check("新增續接：名稱改成 ①②，新的排在最後一次續接之後、吊放完成之前",
+          options() == base[:3] + ["鋼筋籠續接①", "鋼筋籠續接②"] + base[4:] and rows() == options(), f"{options()} / {rows()}")
+    editor = page.evaluate("() => ({ selected: document.querySelector('#phase-select').value, date: document.querySelector('[data-phase-input=date]').value, start: document.querySelector('[data-phase-input=start]').value, end: document.querySelector('[data-phase-input=end]').value })")
+    check("新增續接：自動選到新項目，日期帶上一次續接的，時間留白", editor == {"selected": "splice2", "date": "2026-08-11", "start": "", "end": ""}, str(editor))
+    page.fill('[data-phase-input="start"]', "11:00")
+    page.fill('[data-phase-input="end"]', "11:35")
+    page.click("#confirm-phase")
+    check("新增續接：第二次的時間存進 state.prework.splice2",
+          page.evaluate("() => state.prework.splice2") == {"date": "2026-08-11", "start": "11:00", "end": "11:35"}, str(page.evaluate("() => state.prework.splice2")))
+    summary = page.evaluate("() => [...document.querySelectorAll('#phase-summary .phase-row')].map(r => r.textContent.replace(/\\s+/g, ' ').trim())")
+    check("新增續接：清單那一列顯示開始與完成時間", any("續接②" in row and "11:00" in row and "11:35" in row for row in summary), str(summary))
+
+    # 只有最後一次新增的續接可以刪（編號不會中間缺號）
+    page.click("#add-splice")
+    deletable = page.evaluate("() => [...document.querySelectorAll('#phase-summary [data-delete-splice]')].map(b => b.dataset.deleteSplice)")
+    check("只有最後新增的那一次續接有「刪除」鈕", deletable == ["splice3"], str(deletable))
+    page.select_option("#phase-select", "splice3")
+    page.fill('[data-phase-input="start"]', "13:00")
+    page.fill('[data-phase-input="end"]', "13:20")
+    page.click("#confirm-phase")
+
+    # 草稿：重新整理後仍是三次續接
+    page.reload(wait_until="networkidle")
+    page.evaluate("() => showTab('prework')")
+    check("草稿：重新整理後三次續接都還在（含時間）", options() == three and
+          page.evaluate("() => state.prework.splice3") == {"date": "2026-08-11", "start": "13:00", "end": "13:20"}, f"{options()}")
+
+    # 日期範圍（總表與檔名用）要算進新增續接的日期
+    page.evaluate("() => { state.prework.splice2.date = '2026-12-31'; }")
+    check("施工期間（recordDates）算進新增續接的日期", page.evaluate("() => recordDates().at(-1)") == "2026-12-31")
+    page.evaluate("() => { state.prework.splice2.date = '2026-08-11'; }")
+
+    # JSON：順序、名稱、版本；來回一致
+    payload = page.evaluate("() => exportData()")
+    check("JSON：schema_version 是 1.8", payload["schema_version"] == "1.8", payload["schema_version"])
+    exported = [(item["phase_id"], item["phase_name"]) for item in payload["prework"]]
+    check("JSON：prework 依工序順序列出，新增續接帶 phase_id 與名稱",
+          exported == [("slurry", "清沉泥"), ("lowerCage", "下方鋼筋籠吊放"), ("upperCage", "上方鋼筋籠吊放"), ("splice", "鋼筋籠續接①"), ("splice2", "鋼筋籠續接②"),
+                       ("splice3", "鋼筋籠續接③"), ("cageComplete", "鋼筋籠吊放完成"), ("tremie", "特密管施工")], str(exported))
+    again = page.evaluate("(data) => { clearAllData(); importJsonPayload(JSON.parse(JSON.stringify(data))); return exportData(); }", payload)
+    check("JSON：匯出 → 清空 → 匯入 → 再匯出，完全一致", strip_volatile(again) == strip_volatile(payload))
+    check("JSON：匯入後選單與清單也長出三次續接", options() == three and rows() == three, f"{options()} / {rows()}")
+
+    # 舊檔（沒有新增續接）匯入：只剩一次續接，上一份留下的 splice2、splice3 要清掉
+    legacy = json_copy(payload)
+    legacy["schema_version"] = "1.7"
+    legacy["prework"] = [item for item in legacy["prework"] if item["phase_id"] in ("slurry", "lowerCage", "upperCage", "splice", "cageComplete", "tremie")]
+    for item in legacy["prework"]:
+        if item["phase_id"] == "splice":
+            item["phase_name"] = "鋼筋籠續接"
+    page.evaluate("(data) => importJsonPayload(data)", legacy)
+    check("舊版 JSON 匯入：回到一次續接、名稱不加編號、前一份的新增續接不殘留", options() == base and rows() == base and keys() == ["slurry", "lowerCage", "upperCage", "splice", "cageComplete", "tremie"], f"{options()} / {keys()}")
+
+    # 缺號、超出範圍、不認得的 id：補成連續、超出範圍與不認得的忽略
+    weird = json_copy(payload)
+    weird["prework"] = [item for item in weird["prework"] if item["phase_id"] != "splice2"] + [
+        {"phase_id": "splice9", "phase_name": "x", "date": "2026-01-01", "start_time": "01:00", "finish_time": "02:00"},
+        {"phase_id": "somethingElse", "phase_name": "y", "date": "2026-01-01", "start_time": "01:00", "finish_time": "02:00"}]
+    page.evaluate("(data) => importJsonPayload(data)", weird)
+    filled = page.evaluate("() => state.prework.splice2")
+    check("匯入缺號（只有 splice3）：補出沒有時間的 splice2（日期同現有做法，用檔案的施工日期）；splice9 與不認得的 id 忽略",
+          options() == three and "splice9" not in keys() and "somethingElse" not in keys() and
+          filled == {"date": weird["project"]["construction_date"], "start": "", "end": ""}, f"{options()} / {keys()} / {filled}")
+
+    # 列印：PDF 的前置紀錄表格有各次續接，順序正確
+    text = pdf_text(page, "all")
+    page.emulate_media(media="screen")
+    positions = [text.find(label) for label in ("鋼筋籠續接①", "鋼筋籠續接②", "鋼筋籠續接③", "鋼筋籠吊放完成")]
+    check("PDF：前置紀錄表格依序印出續接①②③、再接吊放完成", all(pos >= 0 for pos in positions) and positions == sorted(positions), str(positions))
+    rows_in_pdf = page.evaluate("() => [...document.querySelectorAll('.prework-print-table tbody tr')].map(tr => tr.children[0].textContent)")
+    check("PDF：前置紀錄表格項次是 1～8 連號", rows_in_pdf == [str(n) for n in range(1, 9)], str(rows_in_pdf))
+
+    # 刪除與復原；刪到剩一次時名稱回到「鋼筋籠續接」
+    page.evaluate("() => showTab('prework')")
+    page.click('[data-delete-splice="splice3"]')
+    toast = page.evaluate("() => ({ shown: !document.querySelector('#undo-toast').hidden, message: document.querySelector('#undo-message').textContent, undo: !document.querySelector('#undo-button').hidden })")
+    check("刪除續接：出現「已刪除」與復原鈕，清單少一列",
+          toast["shown"] and "鋼筋籠續接③" in toast["message"] and toast["undo"] and rows() == three[:5] + three[6:], f"{toast} / {rows()}")
+    page.click("#undo-button")
+    check("按復原：續接③連同時間回來", options() == three and page.evaluate("() => state.prework.splice3.start") == "13:00", f"{options()}")
+    page.select_option("#phase-select", "splice3")
+    page.click('[data-delete-splice="splice3"]')
+    check("刪除後下拉選單不會停在已刪除的項目", page.evaluate("() => document.querySelector('#phase-select').value") in ("splice", "splice2"), page.evaluate("() => document.querySelector('#phase-select').value"))
+    page.click('[data-delete-splice="splice2"]')
+    check("刪到剩一次續接：名稱回到「鋼筋籠續接」、state 沒有殘留",
+          options() == base and keys() == ["slurry", "lowerCage", "upperCage", "splice", "cageComplete", "tremie"], f"{options()} / {keys()}")
+    text = pdf_text(page, "all")
+    page.emulate_media(media="screen")
+    check("PDF：只有一次續接時不出現編號", "鋼筋籠續接①" not in text and "鋼筋籠續接" in text)
+
+    # 上限：最多 5 次
+    for _ in range(4):
+        page.click("#add-splice")
+    disabled = page.evaluate("() => document.querySelector('#add-splice').disabled")
+    check("續接最多 5 次：第 5 次之後按鈕停用並說明已達上限", disabled and "上限" in page.inner_text("#add-splice") and len(options()) == 10, f"{page.inner_text('#add-splice')} / {len(options())}")
+    page.click('[data-delete-splice="splice5"]')
+    check("刪掉一次後按鈕恢復可用", not page.evaluate("() => document.querySelector('#add-splice').disabled") and "新增續接" in page.inner_text("#add-splice"))
+
+    # 清空、載入範例都回到一次續接；清空後選單回到第一項，下面的日期／時間欄位也一起歸零（不殘留清空前填的值）
+    page.select_option("#phase-select", "splice")
+    page.fill('[data-phase-input="date"]', "2026-08-11")
+    page.fill('[data-phase-input="start"]', "09:10")
+    page.click("#confirm-phase")
+    page.evaluate("() => clearAllData()")
+    check("清空：回到一次續接", options() == base and keys() == ["slurry", "lowerCage", "upperCage", "splice", "cageComplete", "tremie"], f"{options()} / {keys()}")
+    editor = page.evaluate("() => ({ selected: document.querySelector('#phase-select').value, date: document.querySelector('[data-phase-input=date]').value, start: document.querySelector('[data-phase-input=start]')?.value ?? null })")
+    check("清空：選單回到第一項，日期／時間欄位歸零", editor == {"selected": "slurry", "date": "", "start": ""}, str(editor))
+    page.select_option("#phase-select", "splice")
+    page.fill('[data-phase-input="start"]', "10:00")
+    page.click("#confirm-phase")
+    page.evaluate("(data) => importJsonPayload(data)", legacy)
+    editor = page.evaluate("() => ({ selected: document.querySelector('#phase-select').value, start: document.querySelector('[data-phase-input=start]')?.value ?? null })")
+    check("匯入：選單回到第一項，欄位換成匯入的內容", editor["selected"] == "slurry" and editor["start"] != "10:00", str(editor))
+    page.evaluate("() => clearAllData()")
+    page.evaluate("() => { clearAllData(); addSplice(); loadExample(); renderAll(); }")   # loadExample 只改資料，畫面由呼叫端的 renderAll 更新
+    check("載入範例：回到一次續接", options() == base and rows() == base, f"{options()} / {rows()}")
+
+
 server = subprocess.Popen([sys.executable, str(ROOT / "scripts" / "serve.py"), str(PORT)], cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 time.sleep(1.2)
 try:
@@ -1160,6 +1308,7 @@ try:
         for tool in ("diaphragm-wall", "diaphragm-wall-gc", "template", "rebar", "steel-structure"):
             verify_date_highlight(browser, tool)
         verify_soil_date(browser)
+        verify_multi_splice(browser)
         verify_signed_fields(browser, "diaphragm-wall", '[data-bind="wall.designDepth"]', "state.wall.designDepth")
         verify_signed_fields(browser, "diaphragm-wall", '[data-bind="wall.topElevation"]', "state.wall.topElevation")
         verify_signed_fields(browser, "diaphragm-wall", "#depth-value", "document.querySelector('#depth-value').value", in_dialog=True)

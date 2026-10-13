@@ -151,6 +151,10 @@ h1 {
   animation: portal-shock-out 0.6s cubic-bezier(0.15, 0.7, 0.3, 1);
 }
 
+/* 卡片都沒設 z-index，後面的卡片（DOM 順序在後）會蓋住前面卡片外擴的那圈邊框，只有每列最後一張看得到完整的擴散。
+   擴散期間把這張卡片抬到鄰居之上，邊框才會蓋在鄰居上方；動畫結束 .is-waving 移除就恢復。 */
+.tool-card-active.is-waving { z-index: 1; }
+
 @keyframes portal-shock-out {
   from { transform: scale(1); opacity: 0.9; }
   to { transform: scale(1.12); opacity: 0; }

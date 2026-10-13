@@ -1274,6 +1274,34 @@ def verify_multi_splice(browser):
     check("載入範例：回到一次續接", options() == base and rows() == base, f"{options()} / {rows()}")
 
 
+def verify_portal_wave(browser):
+    """首頁與連續壁選擇頁的卡片點擊擴散：外擴的那圈邊框要蓋在鄰居卡片上方（不是被後面的卡片蓋住）。
+    做法：把動畫凍結在最後一格、完全不透明，量邊框「右邊那條」在截圖上的像素是不是邊框色。"""
+    from io import BytesIO
+    from PIL import Image
+    freeze = ".tool-card-active.is-waving::after { animation: none !important; transform: scale(1.12) !important; opacity: 1 !important; }"
+    ctx = browser.new_context(viewport={"width": 1280, "height": 900}, device_scale_factor=2, service_workers="block")
+    for url in ("index.html", "diaphragm-wall-select.html"):
+        page = ctx.new_page()
+        page.goto(f"{BASE}/{url}", wait_until="networkidle")
+        page.route("**/__freeze.css", lambda route: route.fulfill(body=freeze, content_type="text/css"))
+        page.evaluate("() => new Promise(resolve => { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = './__freeze.css'; l.onload = resolve; l.onerror = resolve; document.head.append(l); })")
+        count = page.evaluate("() => document.querySelectorAll('.tool-card-active').length")
+        covered = []
+        for i in range(count):
+            page.evaluate("(i) => document.querySelectorAll('.tool-card-active').forEach((c, k) => c.classList.toggle('is-waving', k === i))", i)
+            info = page.evaluate("""(i) => { const c = document.querySelectorAll('.tool-card-active')[i]; const r = c.getBoundingClientRect();
+              return { name: c.querySelector('strong').textContent, right: r.right, cy: r.top + r.height / 2 + scrollY, w: r.width, hasRightNeighbour: [...document.querySelectorAll('.tool-card')].some(o => o !== c && o.getBoundingClientRect().left >= r.right - 1 && Math.abs(o.getBoundingClientRect().top - r.top) < 4) }; }""", i)
+            image = Image.open(BytesIO(page.screenshot(full_page=True))).convert("RGB")
+            x = info["right"] + info["w"] * 0.06 - 1.2   # 外擴後邊框右緣往內 1.2px，落在那條邊框線上
+            r, g, b = image.getpixel((int(x * 2), int(info["cy"] * 2)))
+            if not (r < 110 and b > r + 12):
+                covered.append(info["name"])
+        check(f"{url}：點擊擴散的邊框蓋在鄰居卡片上方（沒有被後面的卡片蓋住）", not covered, f"被蓋住的卡片：{covered}")
+        page.close()
+    ctx.close()
+
+
 server = subprocess.Popen([sys.executable, str(ROOT / "scripts" / "serve.py"), str(PORT)], cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 time.sleep(1.2)
 try:
@@ -1309,6 +1337,7 @@ try:
             verify_date_highlight(browser, tool)
         verify_soil_date(browser)
         verify_multi_splice(browser)
+        verify_portal_wave(browser)
         verify_signed_fields(browser, "diaphragm-wall", '[data-bind="wall.designDepth"]', "state.wall.designDepth")
         verify_signed_fields(browser, "diaphragm-wall", '[data-bind="wall.topElevation"]', "state.wall.topElevation")
         verify_signed_fields(browser, "diaphragm-wall", "#depth-value", "document.querySelector('#depth-value').value", in_dialog=True)

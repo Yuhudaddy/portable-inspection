@@ -286,14 +286,14 @@ const PHASES = [
 // 鋼筋籠分三節以上時會續接兩次以上：前置紀錄可以再新增續接（最多 SPLICE_MAX 次）。
 // 續接的次數不另外存：state.prework 裡有 splice、splice2…splice5 哪幾筆，就是幾次（草稿與 JSON 都只存各工序）。
 // 只有一次時名稱維持「鋼筋籠續接」；兩次以上依序編成①②…，排在最後一次續接之後、吊放完成之前。
-const SPLICE_MAX = 5;
 const SPLICE_MARKS = ["①", "②", "③", "④", "⑤"];
-const SPLICE_ID = /^splice([2-5])$/;
-const spliceId = number => number === 1 ? "splice" : `splice${number}`;
+const SPLICE_MAX = SPLICE_MARKS.length;
+const SPLICE_IDS = SPLICE_MARKS.map((_, index) => index ? `splice${index + 1}` : "splice");
+const spliceId = number => SPLICE_IDS[number - 1];
 
-function spliceCount(prework = state.prework) {
-  const numbers = Object.keys(prework).map(id => SPLICE_ID.exec(id)).filter(Boolean).map(match => Number(match[1]));
-  return Math.max(1, ...numbers);
+// ids 裡出現的最大續接編號（缺號時以最大的為準，缺的由 ensurePrework 補空白；不認得的 id 忽略）
+function spliceCount(ids = Object.keys(state.prework)) {
+  return Math.max(1, ...SPLICE_IDS.map((id, index) => ids.includes(id) ? index + 1 : 0));
 }
 
 function phasesFor(count) {
@@ -679,34 +679,28 @@ function phaseTimeText(phase) {
   return `${record.date ? `${formatDateDisplay(record.date).slice(5)}　` : ""}${values.join(" ／ ")}`;
 }
 
-// 每個目前的工序都要有一筆紀錄（草稿缺號、匯入缺號時補成空白）
+// 每個目前的工序都要有一筆紀錄；草稿缺號時補成空白（匯入由 phasesFor 建出完整清單，不需要）
 function ensurePrework() {
   activePhases().forEach(phase => { state.prework[phase.id] = { date: "", start: "", end: "", ...state.prework[phase.id] }; });
 }
 
-// 重建「前置作業項目」選單（工序清單變了才重建）並選到指定項目；沒指定就維持目前的，目前的已不存在就退到第一項。
-// 有指定項目或選到的項目變了，才重畫下面的日期／時間欄（不打斷正在輸入的欄位）。
+// 重建「前置作業項目」選單並選到指定項目；沒指定就維持目前的，目前的已不存在就退到第一項，再重畫下面的日期／時間欄。
 function syncPhaseSelect(preferred = null) {
   const select = $("#phase-select");
   const phases = activePhases();
-  const signature = phases.map(phase => `${phase.id}:${phase.label}`).join("|");
-  if (select.dataset.signature !== signature) {
-    select.innerHTML = phases.map(phase => `<option value="${phase.id}">${esc(phase.label)}</option>`).join("");
-    select.dataset.signature = signature;
-  }
   const wanted = preferred || select.value;
-  const next = phases.some(phase => phase.id === wanted) ? wanted : phases[0].id;
-  const changed = select.value !== next || !$("#phase-time-fields").children.length;
-  select.value = next;
-  if (preferred || changed) renderPhaseEditor();
+  select.innerHTML = phases.map(phase => `<option value="${phase.id}">${esc(phase.label)}</option>`).join("");
+  select.value = phases.some(phase => phase.id === wanted) ? wanted : phases[0].id;
+  renderPhaseEditor();
 }
 
 function addSplice() {
   const count = spliceCount();
   if (count >= SPLICE_MAX) return;
   // 新的續接日期帶上一次續接的（通常同一天），時間留白讓使用者填
-  state.prework[spliceId(count + 1)] = { date: state.prework[spliceId(count)]?.date || "", start: "", end: "" };
-  renderPrework(spliceId(count + 1));
+  const next = spliceId(count + 1);
+  state.prework[next] = { date: state.prework[spliceId(count)].date, start: "", end: "" };
+  renderPrework(next);
 }
 
 // 只能刪最後新增的那一次（編號不會中間缺號）；5 秒內可以復原
@@ -736,7 +730,6 @@ function renderPhaseEditor() {
 }
 
 function renderPrework(select = null) {
-  ensurePrework();
   syncPhaseSelect(select);
   const count = spliceCount();
   $("#phase-summary").innerHTML = activePhases().map(phase => {
@@ -1084,7 +1077,7 @@ function removeRecord(type, index) {
 
 // 施工期間：所有紀錄日期的最早～最晚（總表與檔名用）
 function recordDates() {
-  return [state.dates.excavationStart, state.dates.excavationEnd, ...activePhases().map(phase => state.prework[phase.id]?.date), state.dates.pouring].filter(Boolean).sort();
+  return [state.dates.excavationStart, state.dates.excavationEnd, ...activePhases().map(phase => state.prework[phase.id].date), state.dates.pouring].filter(Boolean).sort();
 }
 function dateRangeText(start, end) {
   if (!start && !end) return "";
@@ -1552,8 +1545,7 @@ function importJsonPayload(payload) {
   state.depth = (Array.isArray(excavation.depth_confirmations) ? excavation.depth_confirmations : [])
     .map(record => ({ time: importText(record.confirmation_time), value: importText(record.depth_m) }))
     .filter(record => record.time || record.value);
-  const importedSplices = prework.map(item => SPLICE_ID.exec(String(item?.phase_id))).filter(Boolean).map(match => Number(match[1]));
-  state.prework = Object.fromEntries(phasesFor(Math.max(1, ...importedSplices)).map(phase => {
+  state.prework = Object.fromEntries(phasesFor(spliceCount(prework.map(item => item.phase_id))).map(phase => {
     const record = prework.find(item => item.phase_id === phase.id) || {};
     return [phase.id, { date: importText(record.date) || legacyDate, start: importText(record.start_time), end: importText(record.finish_time) }];
   }));
@@ -1800,8 +1792,8 @@ function initialize() {
   $("#phase-select").addEventListener("change", renderPhaseEditor);
   $("#add-splice").addEventListener("click", addSplice);
   $("#confirm-phase").addEventListener("click", () => {
-    const phase = activePhases().find(item => item.id === $("#phase-select").value);
-    $$('[data-phase-input]').forEach(input => { state.prework[phase.id][input.dataset.phaseInput] = input.value; });
+    const record = state.prework[$("#phase-select").value];
+    $$('[data-phase-input]').forEach(input => { record[input.dataset.phaseInput] = input.value; });
     renderPrework();
   });
 

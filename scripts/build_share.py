@@ -1,4 +1,4 @@
-"""打包「連續壁完整版」的對外展示版：只有完整版的輸入頁面與它的三份範例輸出，其他工具、施工計畫、
+"""打包「連續壁完整版」的對外展示版：只有完整版的輸入頁面與它自己的範例輸出，其他工具、施工計畫、
 首頁與中繼頁都不帶。輸出到 share/diaphragm-wall/（不進 git），用 Cloudflare Pages「直接上傳」部署，
 不連結 GitHub：
 
@@ -13,7 +13,7 @@
 ・拿掉對外連結：返回中繼頁、施工計畫、回首頁；說明視窗與清空視窗裡提到施工計畫的文字
 ・拿掉離線快取（Service Worker）與 PWA manifest；網站名稱不出現 Portable Inspection
 ・JS／CSS 用 esbuild 壓縮並去掉註解，HTML 去掉註解；加上 noindex（_headers、robots.txt）
-・範例檢視頁只保留完整版的三份範例（說明視窗的範例按鈕），「←」回工具頁；不存在的路徑回 404
+・範例檢視頁只保留完整版的範例（說明視窗的範例按鈕），「←」回工具頁；不存在的路徑回 404
 
 主程式更新後重跑即可；每次都先清空輸出資料夾。需要 Node（npx 會自動下載 esbuild）。
 """
@@ -27,7 +27,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "share" / "diaphragm-wall"
 ESBUILD = ["npx", "--yes", "esbuild@0.24.0"]
-EXAMPLES = ["diaphragm-wall-example", "guide-wall-example", "rebar-cage-simple-example", "rebar-cage-detailed-example"]
 SITE_NAME = "連續壁施工紀錄"
 STATIC = ["app-icon-144.png", "apple-touch-icon.png", "taisei.png"]
 
@@ -123,11 +122,13 @@ def main():
     for name in (library.group(1), "vendor/html-to-image-LICENSE.txt"):
         shutil.copy2(ROOT / name, OUT / name)
 
-    # 範例：只留完整版的三份，「←」回工具頁（根目錄）
+    # 範例：只留完整版（diaphragm-wall.html）自己的，「←」回工具頁（根目錄）；清單跟著 manifest 走，新增範例不用改這裡
     manifest = json.loads((ROOT / "examples" / "pages" / "manifest.json").read_text(encoding="utf8"))
-    kept = {name: {**manifest[name], "back": ""} for name in EXAMPLES}
+    kept = {name: {**entry, "back": ""} for name, entry in manifest.items() if entry["back"] == "diaphragm-wall"}
+    if not kept:
+        fail("manifest 裡找不到完整版的範例，build_share.py 的規則要跟著更新")
     (OUT / "examples" / "pages" / "manifest.json").write_text(json.dumps(kept, ensure_ascii=False, indent=2), encoding="utf8")
-    for name in EXAMPLES:
+    for name in kept:
         shutil.copy2(ROOT / "examples" / f"{name}.pdf", OUT / "examples" / f"{name}.pdf")
         for index in range(1, kept[name]["pages"] + 1):
             shutil.copy2(ROOT / "examples" / "pages" / f"{name}-{index}.webp", OUT / "examples" / "pages" / f"{name}-{index}.webp")

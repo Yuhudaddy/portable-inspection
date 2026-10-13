@@ -21,27 +21,28 @@ OUT = ROOT / "examples"
 PAGES = OUT / "pages"
 PORT = 4198
 IMAGE_SCALE = 1.6  # 72dpi × 1.6 ≈ 115dpi，A4 約 950×1344px，手機看清楚也不會太肥
-# 主表單範例（連續壁、營造廠查驗表）用「整份」輸出，但整份會把導溝與鋼筋籠的頁也印進來；
-# 導溝、鋼筋籠各有自己的範例，所以主表單範例印出前先把它們的頁拿掉（續頁會沿用原頁的 data-print-tab，一併移除）。
+# 「整份」輸出（scope = all）會把導溝與鋼筋籠的頁也印進來，但它們各有自己的範例，
+# 所以整份範例印出前先把這些頁拿掉（續頁會沿用原頁的 data-print-tab，一併移除；其他工具沒有這些頁，等於沒動）。
 SIDE_TABS = ["guideWall", "rebarCage"]
 # 鋼筋籠有簡易、詳細兩種輸出（範例資料預設是詳細，簡易版把模式切過去）
-CAGE_SIMPLE = "showTool('rebarCage'); state.rebarCage.mode = 'simple'; renderAll?.();"
-# (頁面, 輸出檔名, 進頁後切換工具／分頁的 JS, 輸出範圍, 範例標題, 印出前要移除的頁（data-print-tab）)
+CAGE_SIMPLE = "showTool('rebarCage'); state.rebarCage.mode = 'simple'; renderAll();"
+# (頁面, 輸出檔名, 進頁後切換工具／分頁的 JS, 輸出範圍, 範例標題)
 TARGETS = [
-    ("diaphragm-wall.html", "diaphragm-wall-example.pdf", "showTool('diaphragmWall'); showTab('quality');", "all", "連續壁施工紀錄", SIDE_TABS),
-    ("diaphragm-wall.html", "guide-wall-example.pdf", "showTool('guideWall');", "current", "導溝施工複核", []),
-    ("diaphragm-wall.html", "rebar-cage-simple-example.pdf", CAGE_SIMPLE, "current", "鋼筋籠吊放前複核（簡易版）", []),
-    ("diaphragm-wall.html", "rebar-cage-detailed-example.pdf", "showTool('rebarCage');", "current", "鋼筋籠吊放前複核（詳細版）", []),
-    ("diaphragm-wall-gc.html", "diaphragm-wall-gc-example.pdf", "showTool('inspection'); showTab('design');", "all", "連續壁營造廠查驗", SIDE_TABS),
-    ("diaphragm-wall-gc.html", "gc-guide-wall-example.pdf", "showTool('guideWall');", "current", "導溝施工複核", []),
-    ("diaphragm-wall-gc.html", "gc-rebar-cage-simple-example.pdf", CAGE_SIMPLE, "current", "鋼筋籠吊放前複核（簡易版）", []),
-    ("diaphragm-wall-gc.html", "gc-rebar-cage-detailed-example.pdf", "showTool('rebarCage');", "current", "鋼筋籠吊放前複核（詳細版）", []),
-    ("template.html", "template-example.pdf", "", "all", "模板工程複核表", []),
-    ("rebar.html", "rebar-example.pdf", "", "all", "鋼筋工程查驗表", []),
-    ("steel-structure.html", "steel-structure-example.pdf", "", "all", "鋼構施工複核表", []),
+    ("diaphragm-wall.html", "diaphragm-wall-example.pdf", "showTool('diaphragmWall'); showTab('quality');", "all", "連續壁施工紀錄"),
+    ("diaphragm-wall.html", "guide-wall-example.pdf", "showTool('guideWall');", "current", "導溝施工複核"),
+    ("diaphragm-wall.html", "rebar-cage-simple-example.pdf", CAGE_SIMPLE, "current", "鋼筋籠吊放前複核（簡易版）"),
+    ("diaphragm-wall.html", "rebar-cage-detailed-example.pdf", "showTool('rebarCage');", "current", "鋼筋籠吊放前複核（詳細版）"),
+    ("diaphragm-wall-gc.html", "diaphragm-wall-gc-example.pdf", "showTool('inspection'); showTab('design');", "all", "連續壁營造廠查驗"),
+    ("diaphragm-wall-gc.html", "gc-guide-wall-example.pdf", "showTool('guideWall');", "current", "導溝施工複核"),
+    ("diaphragm-wall-gc.html", "gc-rebar-cage-simple-example.pdf", CAGE_SIMPLE, "current", "鋼筋籠吊放前複核（簡易版）"),
+    ("diaphragm-wall-gc.html", "gc-rebar-cage-detailed-example.pdf", "showTool('rebarCage');", "current", "鋼筋籠吊放前複核（詳細版）"),
+    ("template.html", "template-example.pdf", "", "all", "模板工程複核表"),
+    ("rebar.html", "rebar-example.pdf", "", "all", "鋼筋工程查驗表"),
+    ("steel-structure.html", "steel-structure-example.pdf", "", "all", "鋼構施工複核表"),
 ]
+NAMES = [target[1].removesuffix(".pdf") for target in TARGETS]
 ONLY = set(sys.argv[1:])
-unknown = ONLY - {target[1][:-len(".pdf")] for target in TARGETS}
+unknown = ONLY - set(NAMES)
 if unknown:
     sys.exit(f"找不到這些範例：{', '.join(sorted(unknown))}")
 
@@ -83,25 +84,23 @@ else:
 try:
     with sync_playwright() as p:
         browser = p.chromium.launch(channel="chrome")
-        for html, filename, setup, scope, title, drop_tabs in TARGETS:
-            if ONLY and filename[:-len(".pdf")] not in ONLY:
+        for (html, filename, setup, scope, title), name in zip(TARGETS, NAMES):
+            if ONLY and name not in ONLY:
                 continue
             page = browser.new_page()
             page.goto(f"http://127.0.0.1:{PORT}/{html}?example=1", wait_until="networkidle")
-            page.evaluate(f"""() => {{ window.print = () => {{}}; {setup} preparePrint('{scope}');
-              const drop = {json.dumps(drop_tabs)};
-              document.querySelectorAll('.print-page').forEach(page => {{ if (drop.includes(page.dataset.printTab)) page.remove(); }}); }}""")
+            page.evaluate(f"""drop => {{ window.print = () => {{}}; {setup} preparePrint('{scope}');
+              document.querySelectorAll('.print-page').forEach(page => {{ if (drop.includes(page.dataset.printTab)) page.remove(); }}); }}""",
+                          SIDE_TABS if scope == "all" else [])
             page.emulate_media(media="print")
             page.pdf(path=str(OUT / filename), prefer_css_page_size=True, print_background=True)
             page.close()
             normalize_pdf(OUT / filename)
-            name = filename[:-len(".pdf")]
             manifest[name] = {"title": title, "back": html.removesuffix(".html"), **render_pages(OUT / filename, name)}
             print(f"寫入 examples/{filename}（{manifest[name]['pages']} 頁）與 pages/{name}-*.webp")
         browser.close()
     # manifest 只留目前 TARGETS 有的範例（改名、移除的舊範例不留），順序照 TARGETS
-    names = [target[1][:-len(".pdf")] for target in TARGETS]
-    manifest = {name: manifest[name] for name in names if name in manifest}
+    manifest = {name: manifest[name] for name in NAMES if name in manifest}
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
 finally:
     server.terminate()

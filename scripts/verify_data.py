@@ -5,6 +5,8 @@
 每個案例都是固定輸入 → 預期輸出，改到 app.js／wall-gc.js 的計算或 schema 後跑一次，任何一項失敗就以非零結束。
 """
 import json
+import math
+import re
 import subprocess
 import sys
 import time
@@ -15,6 +17,7 @@ from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "tmp" / "verify-data"
+EXAMPLES = ROOT / "examples"
 OUT.mkdir(parents=True, exist_ok=True)
 PORT = 4198
 BASE = f"http://127.0.0.1:{PORT}"
@@ -38,7 +41,7 @@ def json_copy(payload):
 
 def strip_volatile(payload):
     """匯出時間每次不同，比對前拿掉。"""
-    payload = json.loads(json.dumps(payload))
+    payload = json_copy(payload)
     payload.pop("exported_at", None)
     payload.get("export_context", {}).pop("exported_at", None)
     return payload
@@ -1135,11 +1138,14 @@ def verify_multi_splice(browser):
     """前置紀錄可新增多次「鋼筋籠續接」：選單與清單、預設值、草稿、JSON 來回與舊檔、列印表格、日期範圍、刪除與復原、上限。"""
     base = ["清沉泥", "下方鋼筋籠吊放", "上方鋼筋籠吊放", "鋼筋籠續接", "鋼筋籠吊放完成", "特密管施工"]
     three = ["清沉泥", "下方鋼筋籠吊放", "上方鋼筋籠吊放", "鋼筋籠續接①", "鋼筋籠續接②", "鋼筋籠續接③", "鋼筋籠吊放完成", "特密管施工"]
+    base_keys = ["slurry", "lowerCage", "upperCage", "splice", "cageComplete", "tremie"]
     page = open_clean(browser, "diaphragm-wall")
     page.evaluate("() => showTab('prework')")
     options = lambda: page.evaluate("() => [...document.querySelectorAll('#phase-select option')].map(o => o.textContent)")
     rows = lambda: page.evaluate("() => [...document.querySelectorAll('#phase-summary .phase-row strong')].map(e => e.textContent)")
     keys = lambda: page.evaluate("() => Object.keys(state.prework)")
+    editor = lambda: page.evaluate("""() => { const value = name => document.querySelector(`[data-phase-input=${name}]`)?.value ?? null;
+      return { selected: document.querySelector('#phase-select').value, date: value('date'), start: value('start'), end: value('end') }; }""")
     check("前置紀錄：預設仍是原本 6 道工序、只有一次續接（名稱不加編號）", options() == base and rows() == base, f"{options()} / {rows()}")
     button = page.query_selector("#add-splice")
     check("前置紀錄：「＋ 新增續接」按鈕在清單標題（工序時間）右邊",
@@ -1158,8 +1164,8 @@ def verify_multi_splice(browser):
     page.click("#add-splice")
     check("新增續接：名稱改成 ①②，新的排在最後一次續接之後、吊放完成之前",
           options() == base[:3] + ["鋼筋籠續接①", "鋼筋籠續接②"] + base[4:] and rows() == options(), f"{options()} / {rows()}")
-    editor = page.evaluate("() => ({ selected: document.querySelector('#phase-select').value, date: document.querySelector('[data-phase-input=date]').value, start: document.querySelector('[data-phase-input=start]').value, end: document.querySelector('[data-phase-input=end]').value })")
-    check("新增續接：自動選到新項目，日期帶上一次續接的，時間留白", editor == {"selected": "splice2", "date": "2026-08-11", "start": "", "end": ""}, str(editor))
+    check("新增續接：自動選到新項目，日期帶上一次續接的，時間留白",
+          editor() == {"selected": "splice2", "date": "2026-08-11", "start": "", "end": ""}, str(editor()))
     page.fill('[data-phase-input="start"]', "11:00")
     page.fill('[data-phase-input="end"]', "11:35")
     page.click("#confirm-phase")
@@ -1183,6 +1189,15 @@ def verify_multi_splice(browser):
     check("草稿：重新整理後三次續接都還在（含時間）", options() == three and
           page.evaluate("() => state.prework.splice3") == {"date": "2026-08-11", "start": "13:00", "end": "13:20"}, f"{options()}")
 
+    # 草稿缺號（例如只存了續接③）：載入時補出續接②，選單與資料都不會缺一格
+    gap = page.evaluate("""() => { const data = JSON.parse(JSON.stringify(state)); delete data.prework.splice2; data.overview.date = '2026-07-01';
+      localStorage.setItem(INSPECTION_STANDARDS['diaphragm-wall'].draftKey, JSON.stringify({ schema: 'project-portal.draft.v1', data })); return Object.keys(data.prework); }""")
+    page.reload(wait_until="networkidle")
+    page.evaluate("() => showTab('prework')")
+    check("草稿缺號（只存了續接③）：載入時補出續接②，日期用舊草稿的施工日期、時間留白",
+          "splice2" not in gap and options() == three and page.evaluate("() => state.prework.splice2") == {"date": "2026-07-01", "start": "", "end": ""},
+          f"{gap} / {options()} / {page.evaluate('() => state.prework.splice2')}")
+
     # 日期範圍（總表與檔名用）要算進新增續接的日期
     page.evaluate("() => { state.prework.splice2.date = '2026-12-31'; }")
     check("施工期間（recordDates）算進新增續接的日期", page.evaluate("() => recordDates().at(-1)") == "2026-12-31")
@@ -1202,12 +1217,12 @@ def verify_multi_splice(browser):
     # 舊檔（沒有新增續接）匯入：只剩一次續接，上一份留下的 splice2、splice3 要清掉
     legacy = json_copy(payload)
     legacy["schema_version"] = "1.7"
-    legacy["prework"] = [item for item in legacy["prework"] if item["phase_id"] in ("slurry", "lowerCage", "upperCage", "splice", "cageComplete", "tremie")]
+    legacy["prework"] = [item for item in legacy["prework"] if item["phase_id"] in base_keys]
     for item in legacy["prework"]:
         if item["phase_id"] == "splice":
             item["phase_name"] = "鋼筋籠續接"
     page.evaluate("(data) => importJsonPayload(data)", legacy)
-    check("舊版 JSON 匯入：回到一次續接、名稱不加編號、前一份的新增續接不殘留", options() == base and rows() == base and keys() == ["slurry", "lowerCage", "upperCage", "splice", "cageComplete", "tremie"], f"{options()} / {keys()}")
+    check("舊版 JSON 匯入：回到一次續接、名稱不加編號、前一份的新增續接不殘留", options() == base and rows() == base and keys() == base_keys, f"{options()} / {keys()}")
 
     # 缺號、超出範圍、不認得的 id：補成連續、超出範圍與不認得的忽略
     weird = json_copy(payload)
@@ -1241,7 +1256,7 @@ def verify_multi_splice(browser):
     check("刪除後下拉選單不會停在已刪除的項目", page.evaluate("() => document.querySelector('#phase-select').value") in ("splice", "splice2"), page.evaluate("() => document.querySelector('#phase-select').value"))
     page.click('[data-delete-splice="splice2"]')
     check("刪到剩一次續接：名稱回到「鋼筋籠續接」、state 沒有殘留",
-          options() == base and keys() == ["slurry", "lowerCage", "upperCage", "splice", "cageComplete", "tremie"], f"{options()} / {keys()}")
+          options() == base and keys() == base_keys, f"{options()} / {keys()}")
     text = pdf_text(page, "all")
     page.emulate_media(media="screen")
     check("PDF：只有一次續接時不出現編號", "鋼筋籠續接①" not in text and "鋼筋籠續接" in text)
@@ -1260,16 +1275,13 @@ def verify_multi_splice(browser):
     page.fill('[data-phase-input="start"]', "09:10")
     page.click("#confirm-phase")
     page.evaluate("() => clearAllData()")
-    check("清空：回到一次續接", options() == base and keys() == ["slurry", "lowerCage", "upperCage", "splice", "cageComplete", "tremie"], f"{options()} / {keys()}")
-    editor = page.evaluate("() => ({ selected: document.querySelector('#phase-select').value, date: document.querySelector('[data-phase-input=date]').value, start: document.querySelector('[data-phase-input=start]')?.value ?? null })")
-    check("清空：選單回到第一項，日期／時間欄位歸零", editor == {"selected": "slurry", "date": "", "start": ""}, str(editor))
+    check("清空：回到一次續接", options() == base and keys() == base_keys, f"{options()} / {keys()}")
+    check("清空：選單回到第一項，日期／時間欄位歸零", editor() == {"selected": "slurry", "date": "", "start": "", "end": ""}, str(editor()))
     page.select_option("#phase-select", "splice")
     page.fill('[data-phase-input="start"]', "10:00")
     page.click("#confirm-phase")
     page.evaluate("(data) => importJsonPayload(data)", legacy)
-    editor = page.evaluate("() => ({ selected: document.querySelector('#phase-select').value, start: document.querySelector('[data-phase-input=start]')?.value ?? null })")
-    check("匯入：選單回到第一項，欄位換成匯入的內容", editor["selected"] == "slurry" and editor["start"] != "10:00", str(editor))
-    page.evaluate("() => clearAllData()")
+    check("匯入：選單回到第一項，欄位換成匯入的內容", editor()["selected"] == "slurry" and editor()["start"] != "10:00", str(editor()))
     page.evaluate("() => { clearAllData(); addSplice(); loadExample(); renderAll(); }")   # loadExample 只改資料，畫面由呼叫端的 renderAll 更新
     check("載入範例：回到一次續接", options() == base and rows() == base, f"{options()} / {rows()}")
 
@@ -1280,21 +1292,21 @@ def verify_portal_wave(browser):
     from io import BytesIO
     from PIL import Image
     freeze = ".tool-card-active.is-waving::after { animation: none !important; transform: scale(1.12) !important; opacity: 1 !important; }"
-    ctx = browser.new_context(viewport={"width": 1280, "height": 900}, device_scale_factor=2, service_workers="block")
+    ctx = browser.new_context(viewport={"width": 1280, "height": 900}, device_scale_factor=2, service_workers="block", bypass_csp=True)   # 頁面 CSP 不准內嵌樣式，測試才能注入凍結用的 CSS
     for url in ("index.html", "diaphragm-wall-select.html"):
         page = ctx.new_page()
         page.goto(f"{BASE}/{url}", wait_until="networkidle")
-        page.route("**/__freeze.css", lambda route: route.fulfill(body=freeze, content_type="text/css"))
-        page.evaluate("() => new Promise(resolve => { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = './__freeze.css'; l.onload = resolve; l.onerror = resolve; document.head.append(l); })")
+        page.add_style_tag(content=freeze)
         count = page.evaluate("() => document.querySelectorAll('.tool-card-active').length")
         covered = []
         for i in range(count):
             page.evaluate("(i) => document.querySelectorAll('.tool-card-active').forEach((c, k) => c.classList.toggle('is-waving', k === i))", i)
             info = page.evaluate("""(i) => { const c = document.querySelectorAll('.tool-card-active')[i]; const r = c.getBoundingClientRect();
               return { name: c.querySelector('strong').textContent, right: r.right, cy: r.top + r.height / 2 + scrollY, w: r.width, hasRightNeighbour: [...document.querySelectorAll('.tool-card')].some(o => o !== c && o.getBoundingClientRect().left >= r.right - 1 && Math.abs(o.getBoundingClientRect().top - r.top) < 4) }; }""", i)
-            image = Image.open(BytesIO(page.screenshot(full_page=True))).convert("RGB")
             x = info["right"] + info["w"] * 0.06 - 1.2   # 外擴後邊框右緣往內 1.2px，落在那條邊框線上
-            r, g, b = image.getpixel((int(x * 2), int(info["cy"] * 2)))
+            left, top = math.floor(x) - 2, math.floor(info["cy"]) - 2   # 只截要量的那一小塊（截圖範圍會取整數，所以像素位置要從取整後的左上角算）
+            clip = {"x": left, "y": top, "width": 4, "height": 4}
+            r, g, b = Image.open(BytesIO(page.screenshot(full_page=True, clip=clip))).convert("RGB").getpixel((int((x - left) * 2), int((info["cy"] - top) * 2)))
             if not (r < 110 and b > r + 12):
                 covered.append(info["name"])
         check(f"{url}：點擊擴散的邊框蓋在鄰居卡片上方（沒有被後面的卡片蓋住）", not covered, f"被蓋住的卡片：{covered}")
@@ -1304,9 +1316,8 @@ def verify_portal_wave(browser):
 
 def example_titles(name):
     """範例 PDF 每頁表頭的大標題（英文小標題的下一行）。"""
-    import re
     result = []
-    for page in fitz.open(ROOT / "examples" / f"{name}.pdf"):
+    for page in fitz.open(EXAMPLES / f"{name}.pdf"):
         lines = [line.strip() for line in page.get_text().splitlines() if line.strip()]
         start = next((i for i, line in enumerate(lines) if re.match(r"DIAPHRAGM WALL", line)), None)
         result.append(lines[start + 1] if start is not None and start + 1 < len(lines) else "")
@@ -1316,7 +1327,7 @@ def example_titles(name):
 def verify_help_examples(browser):
     """說明視窗的「已填妥範例」：主表單範例只含該工具自己的分頁（不混入導溝、鋼筋籠）；鋼筋籠範例是下拉選單，
     內有簡易版與詳細版；範例檔、頁數、清單三者一致；對外展示版的範例清單同步。"""
-    manifest = json.loads((ROOT / "examples" / "pages" / "manifest.json").read_text(encoding="utf8"))
+    manifest = json.loads((EXAMPLES / "pages" / "manifest.json").read_text(encoding="utf8"))
     plan = {
         "diaphragm-wall": {"tool": "廠商版", "main": "diaphragm-wall-example", "guide": "guide-wall-example",
                            "main_titles": ["連續壁施工品質自檢總表", "連續壁施工品質自檢總表", "開挖與前置紀錄", "澆置紀錄"],
@@ -1327,11 +1338,11 @@ def verify_help_examples(browser):
     }
     for html, item in plan.items():
         tool = item["tool"]
-        titles = example_titles(item["main"]) if (ROOT / "examples" / f"{item['main']}.pdf").exists() else []
+        titles = example_titles(item["main"]) if (EXAMPLES / f"{item['main']}.pdf").exists() else []
         check(f"{tool}：主表單範例只含該工具自己的分頁（沒有導溝、鋼筋籠）", titles == item["main_titles"], str(titles))
         for kind, label in (("simple", "簡易版"), ("detailed", "詳細版")):
             name = item[kind]
-            path = ROOT / "examples" / f"{name}.pdf"
+            path = EXAMPLES / f"{name}.pdf"
             if not path.exists():
                 check(f"{tool}：鋼筋籠{label}範例檔存在", False, f"缺 examples/{name}.pdf")
                 continue
@@ -1341,11 +1352,11 @@ def verify_help_examples(browser):
                   (("號數@間距" not in first and "說明" in first) if kind == "simple" else ("號數@間距" in first and "頂部" in first)), f"{example_titles(name)}")
         for name in (item["main"], item["guide"], item["simple"], item["detailed"]):
             entry = manifest.get(name)
-            pdf_pages = fitz.open(ROOT / "examples" / f"{name}.pdf").page_count if (ROOT / "examples" / f"{name}.pdf").exists() else -1
-            images = [(ROOT / "examples" / "pages" / f"{name}-{n}.webp").exists() for n in range(1, (entry or {"pages": 0})["pages"] + 1)]
+            pdf_pages = fitz.open(EXAMPLES / f"{name}.pdf").page_count if (EXAMPLES / f"{name}.pdf").exists() else -1
+            images = [(EXAMPLES / "pages" / f"{name}-{n}.webp").exists() for n in range(1, (entry or {"pages": 0})["pages"] + 1)]
             check(f"{tool}：{name} 在 manifest、頁數與 PDF 一致、每頁圖片都存在", bool(entry) and entry["pages"] == pdf_pages and all(images) and entry["back"] == html, f"{entry} / pdf {pdf_pages}")
         old = {"diaphragm-wall": "rebar-cage-example", "diaphragm-wall-gc": "gc-rebar-cage-example"}[html]
-        check(f"{tool}：舊的單一鋼筋籠範例（{old}）已移除", old not in manifest and not (ROOT / "examples" / f"{old}.pdf").exists())
+        check(f"{tool}：舊的單一鋼筋籠範例（{old}）已移除", old not in manifest and not (EXAMPLES / f"{old}.pdf").exists())
 
         page = open_clean(browser, html)
         page.evaluate("() => document.querySelector('#help-dialog').showModal()")
@@ -1374,9 +1385,10 @@ def verify_help_examples(browser):
             check(f"{tool}：範例檢視頁開得起來（{item[kind]}，{manifest.get(item[kind], {}).get('pages')} 頁）", count == manifest.get(item[kind], {}).get("pages"), str(count))
             viewer.close()
 
-    build = (ROOT / "scripts" / "build_share.py").read_text(encoding="utf8")
-    check("對外展示版（build_share.py）的範例清單換成簡易版／詳細版",
-          "rebar-cage-simple-example" in build and "rebar-cage-detailed-example" in build and '"rebar-cage-example"' not in build)
+    # 對外展示版（build_share.py）的範例清單是從 manifest 挑出完整版（back == diaphragm-wall）的那幾筆
+    vendor = [name for name, entry in manifest.items() if entry["back"] == "diaphragm-wall"]
+    check("對外展示版會帶的範例：完整版的主表單、導溝、鋼筋籠簡易版與詳細版",
+          vendor == [plan["diaphragm-wall"][key] for key in ("main", "guide", "simple", "detailed")], str(vendor))
 
 
 server = subprocess.Popen([sys.executable, str(ROOT / "scripts" / "serve.py"), str(PORT)], cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

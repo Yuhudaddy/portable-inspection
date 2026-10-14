@@ -359,6 +359,8 @@
     flipPrintRules(doc);
     if (doc.fonts && doc.fonts.ready) await doc.fonts.ready;
     const pages = [...report.querySelectorAll(".print-page")].filter(page => view.getComputedStyle(page).display !== "none");
+    // 列印樣式用 .print-page 的外距留 10mm 白邊（@page 外距是 0）；手機 PDF 的 10mm 邊界是放進 PDF 時另外加的，轉圖的頁面不能再帶外距，否則內容位移、橫向頁被切掉
+    pages.forEach(page => { page.style.margin = "0"; });
     return { frame, doc, view, pages };
   }
 

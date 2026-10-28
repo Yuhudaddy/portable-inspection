@@ -478,7 +478,7 @@
   const api = { buildPdf, isIosDevice, canShareFiles, exportMode, fileNameFor, printWithWatchdog, run };
   window.PdfShare = api;
 
-  // 各工具頁把原本的 window.print() 換成這個。{ pdf: false } 只走列印（施工計畫頁：長文件沒有固定頁盒，這次不轉 PDF）。
+  // 各工具頁把原本的 window.print() 換成這個。{ pdf: false } 只走列印（施工計畫頁自己先排出 .print-page 再呼叫 run()，電腦則走這條）。
   window.outputPrint = function outputPrint(options = {}) {
     if (options.pdf !== false && exportMode(navigator, location.search) === "share") {
       try {

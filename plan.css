@@ -117,10 +117,16 @@ body { margin: 0; background: var(--glass-page-bg); background-image: var(--glas
   .header-print svg + * { display: none; }
 }
 
+.print-report { display: none; }
 @media print {
   @page { size: A4 portrait; margin: 18mm 16mm; }
   body { background: #fff; color: #000; }
   .app-header, .plan-toc-details summary, .no-print { display: none !important; }
+  /* 手機 PDF（pdf-share.js）用的固定頁：版面契約同 app.css 的 .print-page，分頁器會把它排成固定高度 */
+  .print-report { display: block; }
+  .print-page { position: relative; display: flex; flex-direction: column; width: 190mm; min-height: var(--print-page-height, 277mm); margin: 10mm auto; break-after: page; }
+  .print-page:last-child { break-after: auto; }
+  .plan-keep { break-inside: avoid; }
   .plan-shell { width: auto; margin: 0; }
   .plan-cover, .plan-block, .plan-article, .plan-toc-details { padding: 0; border-radius: 0; background: transparent; box-shadow: none; }
   .plan-cover { min-height: 240mm; display: flex; flex-direction: column; margin: 0; break-after: page; }

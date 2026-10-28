@@ -268,6 +268,86 @@ function unfilledCoverLabels() {
     .map(key => document.querySelector(`[data-cover="${key}"]`)?.closest("div")?.querySelector("dt")?.textContent || key);
 }
 
+// ---- iPhone／iPad：主畫面 App 模式會默默吞掉 window.print()，改走 pdf-share.js 產生 PDF 交給分享選單 ----
+// pdf-share.js 只吃「已分好頁的 .print-page」。施工計畫是流動的長文件，這裡把封面、修訂紀錄、目錄與各章區塊
+// 複製成 .print-page，再交給共用分頁器（print-pages.js）排成固定高度的 A4 頁：段落整塊移到下一頁，表格以列為單位拆頁。
+function planPrintItems() {
+  const items = [];
+  let heading = null;   // 標題先暫存，和後面第一個區塊綁成一組，避免標題單獨留在頁尾
+  const place = node => {
+    if (heading) { heading.append(node); items.push(heading); heading = null; } else items.push(node);
+  };
+  const walk = parent => [...parent.children].forEach(child => {
+    if (child.matches("section")) { walk(child); return; }
+    const clone = child.cloneNode(true);
+    clone.removeAttribute("id");
+    clone.querySelectorAll(".plan-table").forEach(table => table.classList.add("print-table"));   // 分頁器靠這個 class 找可以拆列的表格
+    if (child.matches("h2, h3")) {
+      if (heading) heading.append(clone);
+      else { heading = document.createElement("div"); heading.className = "plan-keep"; heading.append(clone); }
+    } else place(clone);
+  });
+  walk($("#plan-article"));
+  if (heading) items.push(heading);
+  return items;
+}
+
+function buildPlanReport() {
+  document.getElementById("print-report")?.remove();
+  const report = document.createElement("div");
+  report.className = "print-report";
+  report.id = "print-report";
+  const addPage = (...nodes) => {
+    const page = document.createElement("article");
+    page.className = "print-page plan-article";
+    page.append(...nodes);
+    report.append(page);
+  };
+
+  const cover = $("#plan-cover").cloneNode(true);
+  cover.removeAttribute("id");
+  cover.querySelectorAll("[data-cover]").forEach(input => {
+    input.setAttribute("value", state.cover[input.dataset.cover] ?? "");   // 複製不會帶走使用者輸入的值
+    input.removeAttribute("placeholder");   // 轉成圖片時抓不到 ::placeholder 的透明樣式，沒填就會印出提示字
+    input.type = "text";                    // 日期欄不要帶日期選擇器的圖示
+  });
+  addPage(cover);
+
+  const revisions = $("#plan-revisions").cloneNode(true);
+  revisions.removeAttribute("id");
+  addPage(revisions);
+
+  const toc = document.createElement("nav");
+  toc.className = "plan-toc";
+  toc.append($("#plan-toc .plan-toc-details").cloneNode(true));
+  toc.querySelectorAll("[id]").forEach(el => el.removeAttribute("id"));
+  addPage(toc);
+
+  const items = planPrintItems();
+  if (items.length) addPage(...items);
+  report.querySelectorAll("[id]").forEach(el => { if (!el.closest("svg")) el.removeAttribute("id"); });   // 複本不留重複的 id（流程圖 SVG 的樣式靠自己的 id，不動）
+  document.body.append(report);
+  document.body.dataset.printScope = "all";
+  paginatePrintReport();
+}
+
+function removePlanReport() {
+  document.getElementById("print-report")?.remove();
+  delete document.body.dataset.printScope;
+}
+
+function outputPlan() {
+  if (window.PdfShare?.exportMode(navigator, location.search) !== "share") { outputPrint({ pdf: false }); return; }
+  try {
+    buildPlanReport();
+    Promise.resolve(window.PdfShare.run()).catch(error => console.error(error)).finally(removePlanReport);
+  } catch (error) {
+    console.error(error);   // 分頁本身壞了：退回列印，至少 Safari 分頁還能用
+    removePlanReport();
+    outputPrint({ pdf: false });
+  }
+}
+
 function planFileName() {
   return [content.title, state.cover.project, VERSION_LABEL[state.version], state.cover.date || today];
 }
@@ -327,7 +407,7 @@ function initialize() {
     const missing = unfilledCoverLabels();
     if (missing.length && !window.confirm(`封面還有未填的欄位：${missing.join("、")}。\n仍要輸出嗎？（未填處會印成空白或「○○」）`)) return;
     setPrintDocumentTitle(planFileName());
-    outputPrint({ pdf: false });
+    outputPlan();
   });
 }
 

@@ -20,7 +20,8 @@ const esc = value => String(value ?? "").replaceAll("&", "&amp;").replaceAll("<"
 
 const state = {
   version: "brief",
-  cover: { project: "", contractor: "", author: "", date: today }
+  cover: { project: "", contractor: "", author: "", date: today },
+  disabledSections: []   // 使用者取消勾選的章節 id（存「停用清單」，範本日後新增章節時預設就是顯示）
 };
 const draft = work ? createDraftStore(planDraftKey(work), () => state) : null;
 
@@ -52,7 +53,7 @@ function writeCoverToTool(field) {
 }
 
 function visibleSections(version) {
-  const keep = section => version === "full" || section.level !== "full";
+  const keep = section => (version === "full" || section.level !== "full") && !state.disabledSections.includes(section.id);
   const trim = section => ({
     ...section,
     blocks: (section.blocks || []).filter(block => version === "full" || block.level !== "full"),
@@ -98,8 +99,17 @@ function standardHtml(key, format) {
     : `<span class="plan-value is-adjusted" title="${esc(`本公司預設 ${(TOKEN_FORMATS[format] || String)(item.default)}`)}">${shown}</span>`;
 }
 
-// 內文字串：跳脫 HTML 後把 {{key}} 換成標準值
-const txt = value => esc(value).replace(/\{\{(\w+)(?::(\w+))?\}\}/g, (match, key, format) => standardHtml(key, format));
+// 封面欄位也能當變數：{{project}} 工程名稱、{{contractor}} 施工廠商、{{author}} 編製單位、{{date}} 編製日期。
+// 還沒填就顯示醒目的「○○」，輸出前會提醒；封面輸入時 data-var 的位置即時更新，不必整份重畫。
+const COVER_VARS = ["project", "contractor", "author", "date"];
+const placeholderHtml = key => {
+  const value = String(state.cover[key] ?? "").trim();
+  return `<span class="plan-var${value ? "" : " plan-placeholder"}" data-var="${key}">${value ? esc(value) : "○○"}</span>`;
+};
+const tokenHtml = (key, format) => COVER_VARS.includes(key) ? placeholderHtml(key) : standardHtml(key, format);
+
+// 內文字串：跳脫 HTML 後把 {{key}} 換成標準值或封面欄位
+const txt = value => esc(value).replace(/\{\{(\w+)(?::(\w+))?\}\}/g, (match, key, format) => tokenHtml(key, format));
 
 // 條列項目可以是字串，或 { text, items } 帶一層子條列（例：「特密管埋入混凝土內：」下分高分子系／皂土系）。
 // 表格儲存格裡的 \n 換行，讓同一格可分行列出不同條件。
@@ -219,6 +229,18 @@ function renderArticle() {
   renderFlowcharts();
 }
 
+// 章節勾選面板：列出目前版本會出現的章節（含子章節），取消勾選就從內文與目錄拿掉，章號自動重排。
+// 父章節取消時子章節一起消失，所以子章節的勾選框同步停用。
+function renderSectionPanel() {
+  const allowed = section => state.version === "full" || section.level !== "full";
+  const item = (section, parentOff) => {
+    const off = state.disabledSections.includes(section.id);
+    const children = (section.children || []).filter(allowed);
+    return `<li><label class="plan-section-toggle"><input type="checkbox" data-section-toggle="${esc(section.id)}"${off ? "" : " checked"}${parentOff ? " disabled" : ""}><span>${esc(section.heading)}</span></label>${children.length ? `<ul>${children.map(child => item(child, parentOff || off)).join("")}</ul>` : ""}</li>`;
+  };
+  $("#section-list").innerHTML = content.sections.filter(allowed).map(section => item(section, false)).join("");
+}
+
 function renderCover() {
   document.querySelectorAll("[data-cover]").forEach(input => { input.value = state.cover[input.dataset.cover] ?? ""; });
   $("#plan-title").textContent = content.title;
@@ -238,7 +260,13 @@ function renderRevisions() {
   $("#plan-adjusted").textContent = adjusted ? `本案調整 ${adjusted} 項（內文以底色標示）` : "";
 }
 
-function renderPlan() { standards = readStandards(); renderCover(); renderRevisions(); renderArticle(); }
+function renderPlan() { standards = readStandards(); renderCover(); renderRevisions(); renderSectionPanel(); renderArticle(); }
+
+// 封面欄位（含編製日期：可被清空，內文的 {{date}} 會變成「○○」）；輸出前列出還沒填的
+function unfilledCoverLabels() {
+  return COVER_VARS.filter(key => !String(state.cover[key] ?? "").trim())
+    .map(key => document.querySelector(`[data-cover="${key}"]`)?.closest("div")?.querySelector("dt")?.textContent || key);
+}
 
 function planFileName() {
   return [content.title, state.cover.project, VERSION_LABEL[state.version], state.cover.date || today];
@@ -256,6 +284,8 @@ function initialize() {
   // 舊草稿裡使用者自填的版次與修訂紀錄不再使用（改由 plans/revisions.js 統一維護）
   delete state.revisions;
   delete state.cover.revision;
+  // 舊草稿沒有章節勾選欄位；內容不是字串陣列就當作全部顯示
+  state.disabledSections = Array.isArray(state.disabledSections) ? state.disabledSections.filter(id => typeof id === "string") : [];
   syncCoverFromTool();
   renderPlan();
   draft.watch();
@@ -268,16 +298,37 @@ function initialize() {
     renderPlan();
   });
 
-  $("#plan-version").addEventListener("change", event => { state.version = event.target.value === "full" ? "full" : "brief"; renderArticle(); });
+  $("#plan-version").addEventListener("change", event => { state.version = event.target.value === "full" ? "full" : "brief"; renderSectionPanel(); renderArticle(); });
+  $("#section-list").addEventListener("change", event => {
+    const box = event.target.closest("[data-section-toggle]");
+    if (!box) return;
+    const id = box.dataset.sectionToggle;
+    state.disabledSections = box.checked ? state.disabledSections.filter(item => item !== id) : [...new Set([...state.disabledSections, id])];
+    // 不重畫面板（鍵盤操作時焦點會跑掉），只同步子章節勾選框的停用狀態
+    box.closest("li").querySelectorAll("ul [data-section-toggle]").forEach(child => { child.disabled = !box.checked || child.closest("li").parentElement.closest("li").querySelector("[data-section-toggle]").disabled; });
+    renderArticle();
+  });
   document.addEventListener("input", event => {
     const cover = event.target.closest("[data-cover]");
     if (cover) {
       state.cover[cover.dataset.cover] = cover.value;
+      if (COVER_VARS.includes(cover.dataset.cover)) {
+        document.querySelectorAll(`[data-var="${cover.dataset.cover}"]`).forEach(node => {
+          const value = cover.value.trim();
+          node.textContent = value || "○○";
+          node.classList.toggle("plan-placeholder", !value);
+        });
+      }
       if (COVER_SYNC_FIELDS.includes(cover.dataset.cover)) writeCoverToTool(cover.dataset.cover);
     }
   });
   // window.print() 要留在點擊的同步流程裡（await 過 Safari 會擋）；流程圖還沒畫完時按鈕是停用的（setPrintBusy）
-  $("#print-button").addEventListener("click", () => { setPrintDocumentTitle(planFileName()); outputPrint({ pdf: false }); });
+  $("#print-button").addEventListener("click", () => {
+    const missing = unfilledCoverLabels();
+    if (missing.length && !window.confirm(`封面還有未填的欄位：${missing.join("、")}。\n仍要輸出嗎？（未填處會印成空白或「○○」）`)) return;
+    setPrintDocumentTitle(planFileName());
+    outputPrint({ pdf: false });
+  });
 }
 
 initialize();

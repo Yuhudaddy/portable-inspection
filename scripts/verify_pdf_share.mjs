@@ -132,6 +132,50 @@ await check("buildPdf：每頁是 A4，圖片原封不動放進串流，位置�
   });
 });
 
+// ---- section: 紙張參數（改善表用 A3 橫式、邊界 0；各工具頁不傳 paper，行為不變）----
+const A3_PAGES = [
+  { jpeg: fakeJpeg(4000, 7), px: [3175, 2245], mm: [420, 297] },
+  { jpeg: fakeJpeg(2000, 8), px: [3175, 2245], mm: [420, 297] }
+];
+const A3 = { mm: [420, 297], marginMm: 0 };
+
+await check("buildPdf：沒傳 paper 與明確傳 A4／邊界 10mm 的輸出位元組完全相同（其他工具不受影響）", async () => {
+  const implicit = new Uint8Array(await app.PdfShare.buildPdf(PAGES, { title: "T" }).arrayBuffer());
+  const explicit = new Uint8Array(await app.PdfShare.buildPdf(PAGES, { title: "T", paper: { mm: [210, 297], marginMm: 10 } }).arrayBuffer());
+  assert(Buffer.compare(Buffer.from(implicit), Buffer.from(explicit)) === 0, "預設與明確 A4 的輸出不同");
+});
+
+await check("buildPdf：paper 指定 A3 橫式、邊界 0 時，頁面是 1190.55×841.89，圖片滿版", async () => {
+  const bytes = new Uint8Array(await app.PdfShare.buildPdf(A3_PAGES, { title: "A3 測試", paper: A3 }).arrayBuffer());
+  const text = latin1(bytes);
+  equal((text.match(/\/MediaBox \[0 0 1190\.55 841\.89\]/g) || []).length, 2, "A3 橫式頁數");
+  assert(!/\/MediaBox \[0 0 595\.28/.test(text), "不該殘留 A4 的 MediaBox");
+  const placements = [...text.matchAll(/q ([\d.]+) 0 0 ([\d.]+) ([\d.]+) ([\d.]+) cm \/Im0 Do Q/g)].map(m => ({ w: Number(m[1]), h: Number(m[2]), x: Number(m[3]), y: Number(m[4]) }));
+  equal(placements.length, 2, "放置指令數");
+  placements.forEach((item, index) => {
+    assert(Math.abs(item.w - 1190.55) < 0.05, `第 ${index + 1} 頁寬度 ${item.w}`);
+    assert(Math.abs(item.h - 841.89) < 0.05, `第 ${index + 1} 頁高度 ${item.h}`);
+    assert(item.x === 0, `第 ${index + 1} 頁左邊界 ${item.x}`);
+    assert(Math.abs(item.y) < 0.05, `第 ${index + 1} 頁上邊界 ${item.y}（滿版應貼齊）`);
+  });
+  const hex = /\/Title <([0-9A-F]+)>/.exec(text);
+  equal(Buffer.from(hex[1].slice(4), "hex").swap16().toString("utf16le"), "A3 測試", "標題");
+});
+
+await check("buildPdf：paper 的尺寸不合法時丟錯，而不是產出壞檔", () => {
+  for (const bad of [{ mm: [0, 297] }, { mm: [420] }, { mm: ["a", "b"] }, {}, null]) {
+    let thrown = false;
+    try { app.PdfShare.buildPdf(A3_PAGES, { paper: bad }); } catch { thrown = true; }
+    assert(thrown, `paper=${JSON.stringify(bad)} 應該丟錯`);
+  }
+});
+
+await check("對外介面：改善表要用的轉圖、重試、對話框、遞送函式都有公開", () => {
+  for (const name of ["loadLibrary", "prepareImages", "renderPage", "openDialog", "deliver"]) {
+    equal(typeof app.PdfShare[name], "function", `PdfShare.${name}`);
+  }
+});
+
 await check("buildPdf：標題寫成 UTF-16BE 十六進位字串（中文不亂碼）", () => {
   const text = latin1(pdfBytes);
   const hex = /\/Title <([0-9A-F]+)>/.exec(text);
@@ -158,6 +202,19 @@ await check("qpdf --check 與 pdfinfo 都能讀懂產出的檔案（沒安裝則
   const info = spawnSync("pdfinfo", [file], { encoding: "utf8" }).stdout;
   assert(/Pages:\s+3/.test(info), `pdfinfo 頁數：${info}`);
   assert(/Page size:\s+595\.28 x 841\.89 pts \(A4\)/.test(info), `pdfinfo 尺寸：${info}`);
+});
+
+await check("qpdf／pdfinfo 讀 A3 橫式的檔案：尺寸 1190.55×841.89、頁數正確（沒安裝則略過）", async () => {
+  if (!tool("qpdf") || !tool("pdfinfo")) { console.log("   （略過：沒有 qpdf 或 pdfinfo）"); return; }
+  const file = path.join(mkdtempSync(path.join(os.tmpdir(), "pdf-share-")), "a3.pdf");
+  const realA3 = A3_PAGES.map(page => ({ ...page, jpeg: REAL_JPEG, px: [16, 16] }));
+  writeFileSync(file, new Uint8Array(await app.PdfShare.buildPdf(realA3, { title: "A3", paper: A3 }).arrayBuffer()));
+  const qpdf = spawnSync("qpdf", ["--check", file], { encoding: "utf8" });
+  assert(qpdf.status === 0 || qpdf.status === 3, `qpdf 退出碼 ${qpdf.status}：${qpdf.stdout}${qpdf.stderr}`);
+  assert(!/error/i.test(qpdf.stderr), `qpdf 報錯：${qpdf.stderr}`);
+  const info = spawnSync("pdfinfo", [file], { encoding: "utf8" }).stdout;
+  assert(/Pages:\s+2/.test(info), `pdfinfo 頁數：${info}`);
+  assert(/Page size:\s+1190\.55 x 841\.89 pts/.test(info), `pdfinfo 尺寸：${info}`);
 });
 
 // ---- section: 平台判斷 ----

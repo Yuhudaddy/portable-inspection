@@ -82,7 +82,7 @@ button { font: inherit; }
 .select-heading p {
   font-family: var(--glass-font-num);
   color: var(--glass-muted);
-  font-size: 0.625rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -162,7 +162,7 @@ h1 {
 
 .tool-card-coming {
   border: 1.5px dashed var(--glass-dash);
-  color: var(--glass-faint);
+  color: var(--glass-muted);
 }
 
 .tool-card-head {
@@ -204,7 +204,7 @@ h1 {
   border-radius: 999px;
   background: var(--glass-sunken);
   font-family: var(--glass-font-num);
-  font-size: 0.625rem;
+  font-size: 0.6875rem;
   font-weight: 700;
 }
 
@@ -218,7 +218,7 @@ h1 {
 .header-back svg { display: block; color: var(--glass-icon); }
 .portal-shell.is-sub { width: min(100% - 32px, 880px); padding-top: 6px; }
 .select-heading { padding: 20px 4px 16px; }
-.select-heading p { margin: 0 0 6px; font-size: 0.65625rem; letter-spacing: 0.14em; }
+.select-heading p { margin: 0 0 6px; letter-spacing: 0.14em; }
 .select-heading h1 { color: #000; font-size: 1.625rem; line-height: 1.15; letter-spacing: 0; }
 @media (min-width: 640px) { .select-heading h1 { font-size: 1.875rem; } }
 .version-index { margin-top: 4px; }
@@ -228,7 +228,7 @@ h1 {
 .version-tag {
   font-family: var(--glass-font-num);
   color: var(--glass-accent);
-  font-size: 0.625rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.14em;
 }

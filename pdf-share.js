@@ -19,8 +19,8 @@
 
   const MM_TO_PT = 72 / 25.4;
   const PX_PER_MM = 96 / 25.4;
-  const A4_PT = [595.28, 841.89];
-  const MARGIN_PT = 10 * MM_TO_PT;
+  // 各工具頁的紙張：A4 直式、四邊 10mm。buildPdf 的 paper 參數可以改（改善表用 A3 橫式、邊界 0）。
+  const DEFAULT_PAPER = { mm: [210, 297], marginMm: 10 };
   const LIBRARY = "./vendor/html-to-image-1.11.13.min.js";
   const PIXEL_RATIO = 2;
   const JPEG_QUALITY = 0.88;
@@ -63,10 +63,19 @@
     return `${Array.from(base || "inspection").slice(0, 120).join("")}.pdf`;
   }
 
-  // pages：[{ jpeg: Uint8Array, px: [寬, 高], mm: [寬, 高] }]。每頁一張 JPEG 放在 A4 上緣置左（四邊 10mm），
+  // pages：[{ jpeg: Uint8Array, px: [寬, 高], mm: [寬, 高] }]。每頁一張 JPEG 放在紙張上緣置左（預設 A4、四邊 10mm），
   // 圖片超出可用範圍時等比縮小。標題用 UTF-16BE 十六進位字串寫進 Info，中文才不會亂碼。
-  function buildPdf(pages, { title = "" } = {}) {
+  // paper：{ mm: [寬, 高], marginMm }，沒傳就是 A4 直式、邊界 10mm（各工具頁的行為，輸出與以前逐位元組相同）。
+  function buildPdf(pages, { title = "", paper = DEFAULT_PAPER } = {}) {
     if (!pages || !pages.length) throw new Error("沒有可以放進 PDF 的頁面");
+    const sizeMm = paper && paper.mm;
+    const marginMm = paper && (paper.marginMm ?? DEFAULT_PAPER.marginMm);
+    if (!Array.isArray(sizeMm) || sizeMm.length !== 2 || !sizeMm.every(value => Number.isFinite(value) && value > 0)
+      || !Number.isFinite(marginMm) || marginMm < 0 || marginMm * 2 >= Math.min(...sizeMm)) {
+      throw new Error("紙張尺寸不正確");
+    }
+    const paperPt = sizeMm.map(value => Number((value * MM_TO_PT).toFixed(2))); // A4 → [595.28, 841.89]
+    const marginPt = marginMm * MM_TO_PT;
     const encoder = new TextEncoder();
     const chunks = [];
     const offsets = [];
@@ -83,11 +92,11 @@
     start(2); push(`<< /Type /Pages /Kids [${pages.map((_, index) => `${3 + index * 3} 0 R`).join(" ")}] /Count ${pages.length} >>\nendobj\n`);
     pages.forEach((page, index) => {
       const pageNo = 3 + index * 3, contentNo = pageNo + 1, imageNo = pageNo + 2;
-      const fit = Math.min(1, (A4_PT[0] - 2 * MARGIN_PT) / (page.mm[0] * MM_TO_PT), (A4_PT[1] - 2 * MARGIN_PT) / (page.mm[1] * MM_TO_PT));
+      const fit = Math.min(1, (paperPt[0] - 2 * marginPt) / (page.mm[0] * MM_TO_PT), (paperPt[1] - 2 * marginPt) / (page.mm[1] * MM_TO_PT));
       const width = page.mm[0] * MM_TO_PT * fit, height = page.mm[1] * MM_TO_PT * fit;
-      const x = MARGIN_PT, y = A4_PT[1] - MARGIN_PT - height;
+      const x = marginPt, y = paperPt[1] - marginPt - height;
       start(pageNo);
-      push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${A4_PT[0]} ${A4_PT[1]}] /Resources << /XObject << /Im0 ${imageNo} 0 R >> >> /Contents ${contentNo} 0 R >>\nendobj\n`);
+      push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${paperPt[0]} ${paperPt[1]}] /Resources << /XObject << /Im0 ${imageNo} 0 R >> >> /Contents ${contentNo} 0 R >>\nendobj\n`);
       const content = `q ${width.toFixed(2)} 0 0 ${height.toFixed(2)} ${x.toFixed(2)} ${y.toFixed(2)} cm /Im0 Do Q`;
       start(contentNo);
       push(`<< /Length ${content.length} >>\nstream\n${content}\nendstream\nendobj\n`);
@@ -289,7 +298,20 @@
     });
   }
 
-  async function renderPage(node, view) {
+  // 在目前頁面載入轉圖函式庫。run() 的流程在隱藏 iframe 裡自己載入，用不到這個；
+  // 改善表的紙張不需要切列印樣式，直接在目前頁面轉圖，就用它（版本檔名只在 LIBRARY 一處）。
+  async function loadLibrary() {
+    if (window.htmlToImage) return;
+    const script = document.createElement("script");
+    script.src = new URL(LIBRARY, document.baseURI).href;
+    const loaded = waitFor(script);
+    document.head.append(script);
+    await withTimeout(loaded, LOAD_TIMEOUT_MS, "載入轉圖函式庫逾時（請確認網路後再試）");
+    if (!window.htmlToImage) throw new Error("轉圖函式庫沒有載入成功");
+  }
+
+  // 把一頁節點轉成 { jpeg, px, mm }；整片空白（Safari 第一次畫圖的老毛病）會重畫。view 預設是目前視窗。
+  async function renderPage(node, view = window) {
     inlineSvgStyles(node, view);
     let canvas;
     for (let tries = 0; tries < BLANK_RETRIES; tries += 1) {
@@ -475,7 +497,8 @@
 
   // ---- 對外介面 -----------------------------------------------------------------------------------
 
-  const api = { buildPdf, isIosDevice, canShareFiles, exportMode, fileNameFor, printWithWatchdog, run };
+  // loadLibrary、prepareImages、renderPage、openDialog、deliver 給不走 run() 流程的頁面用（改善表：自己排版成固定紙張，直接轉圖）
+  const api = { buildPdf, isIosDevice, canShareFiles, exportMode, fileNameFor, printWithWatchdog, run, loadLibrary, prepareImages, renderPage, openDialog, deliver };
   window.PdfShare = api;
 
   // 各工具頁把原本的 window.print() 換成這個。{ pdf: false } 只走列印（施工計畫頁自己先排出 .print-page 再呼叫 run()，電腦則走這條）。

@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description" content="缺失改善照排版工具，A4 每頁 3 張或 A3 每頁 12 張，輸出 PDF" />
+    <meta name="referrer" content="no-referrer" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self'" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Portable Inspection" />
+    <link rel="icon" href="./app-icon-144.png" type="image/png" sizes="144x144" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="stylesheet" href="./glass.css" />
+    <link rel="stylesheet" href="./improvement-sheet.css" />
+    <link rel="stylesheet" href="./pdf-share.css" />
+    <script src="./sw-client.js" defer></script>
+    <script src="./pdf-share.js" defer></script>
+    <script src="./improvement-sheet.js" defer></script>
+    <title>改善表｜Portable Inspection</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#sheet-tool">跳至改善表</a>
+
+    <header class="app-header">
+      <nav class="header-nav" aria-label="主要功能">
+        <a class="glass-pill header-back" href="./" aria-label="返回工具首頁"><svg width="10" height="16" viewBox="0 0 12 20" fill="none" aria-hidden="true"><path d="M10 2L2 10l8 8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span>工具首頁</span></a>
+      </nav>
+    </header>
+
+    <main class="app-shell" id="sheet-tool">
+      <div class="tool-title">
+        <p>缺失改善照</p>
+        <h1>改善表</h1>
+      </div>
+
+      <div class="sheet-layout">
+        <div class="col col-input">
+          <section class="panel" aria-labelledby="sec-info">
+            <div class="panel-heading"><div><span>01</span><h2 id="sec-info">表頭資料</h2></div></div>
+            <div class="form-grid">
+              <label class="field span-two"><span>工程名稱</span><input id="fProject" type="text" maxlength="60" autocomplete="off" /></label>
+              <label class="field"><span>施工項目</span><input id="fWork" type="text" maxlength="60" autocomplete="off" /></label>
+              <label class="field"><span>承包單位</span><input id="fContractor" type="text" maxlength="60" autocomplete="off" /></label>
+            </div>
+
+            <div class="option-block">
+              <span class="option-label">版型</span>
+              <div class="seg" role="radiogroup" aria-label="版型">
+                <label><input type="radio" name="paper" value="a4" /><span>A4・每頁 3 張</span></label>
+                <label><input type="radio" name="paper" value="a3" /><span>A3・每頁 12 張</span></label>
+              </div>
+            </div>
+
+            <div class="option-block">
+              <span class="option-label">照片顯示</span>
+              <div class="seg" role="radiogroup" aria-label="照片顯示">
+                <label><input type="radio" name="fit" value="auto" /><span>自動</span></label>
+                <label><input type="radio" name="fit" value="contain" /><span>完整</span></label>
+                <label><input type="radio" name="fit" value="cover" /><span>填滿</span></label>
+              </div>
+              <p class="hint">完整：整張照片都看得到，可能留白。填滿：蓋滿格子，邊緣可能被裁掉。自動：比例接近格子時填滿，否則完整。</p>
+            </div>
+
+            <div class="option-block" id="sideBlock">
+              <span class="option-label">照片位置（A4）</span>
+              <div class="seg" role="radiogroup" aria-label="照片位置">
+                <label><input type="radio" name="side" value="left" /><span>照片左側</span></label>
+                <label><input type="radio" name="side" value="right" /><span>照片右側</span></label>
+              </div>
+            </div>
+
+            <div class="option-block toggles">
+              <div class="toggle-row">
+                <button class="toggle" id="togDate" type="button" aria-pressed="false"><span class="switch" aria-hidden="true"></span>同日施工</button>
+                <span class="help">
+                  <button class="help-btn" type="button" aria-label="說明：同日施工" aria-expanded="false">？</button>
+                  <span class="help-pop" role="tooltip">全項目與第一張照片的日期同步</span>
+                </span>
+              </div>
+              <div class="toggle-row">
+                <button class="toggle" id="togLoc" type="button" aria-pressed="false"><span class="switch" aria-hidden="true"></span>同地點施工</button>
+                <span class="help">
+                  <button class="help-btn" type="button" aria-label="說明：同地點施工" aria-expanded="false">？</button>
+                  <span class="help-pop" role="tooltip">全項目與第一張照片的施工地點同步</span>
+                </span>
+              </div>
+            </div>
+
+            <div class="file-row">
+              <button class="btn" type="button" id="btnSaveProject">儲存專案檔</button>
+              <button class="btn" type="button" id="btnOpenProject">開啟專案檔</button>
+            </div>
+            <p class="hint save-state" id="saveState" role="status" aria-live="polite"></p>
+          </section>
+
+          <section class="panel" aria-labelledby="sec-list">
+            <div class="panel-heading">
+              <div><span>02</span><h2 id="sec-list">照片清單</h2></div>
+              <p id="listCount">0 張</p>
+            </div>
+            <div class="list-actions">
+              <button class="btn primary" type="button" id="btnPick">新增照片</button>
+              <button class="btn" type="button" id="btnCamera">拍照</button>
+              <button class="btn ghost" type="button" id="btnClear">清空全部</button>
+            </div>
+            <div id="list" class="photo-list"></div>
+            <button class="dropzone" type="button" id="dropzone">拖曳照片到這裡，或點此選擇</button>
+          </section>
+        </div>
+
+        <section class="preview" aria-labelledby="sec-preview">
+          <div class="preview-head">
+            <div>
+              <div class="panel-title" id="sec-preview">預覽</div>
+              <div class="meta" id="pvMeta"></div>
+            </div>
+            <button class="btn primary" type="button" id="btnExport">輸出 PDF</button>
+          </div>
+          <div class="share-slot" id="shareSlot" role="status" aria-live="polite"></div>
+          <div id="preview" class="pages"></div>
+        </section>
+      </div>
+
+      <input class="file-hidden" id="inPick" type="file" accept="image/*" multiple tabindex="-1" aria-hidden="true" />
+      <input class="file-hidden" id="inCamera" type="file" accept="image/*" capture="environment" tabindex="-1" aria-hidden="true" />
+      <input class="file-hidden" id="inOpen" type="file" accept="application/json,.json" tabindex="-1" aria-hidden="true" />
+    </main>
+
+    <div id="printRoot" aria-hidden="true"></div>
+    <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  </body>
+</html>

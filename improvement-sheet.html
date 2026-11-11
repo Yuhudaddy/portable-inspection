@@ -105,11 +105,29 @@
 
           <section class="panel pane" data-pane="photos" aria-labelledby="sec-list">
             <div class="panel-heading">
-              <div><span>02</span><h2 id="sec-list">照片</h2></div>
+              <div class="panel-title-row">
+                <span>02</span>
+                <h2 id="sec-list">照片</h2>
+                <span class="help">
+                  <button class="help-btn" type="button" aria-label="說明：檔名怎麼帶入欄位" aria-expanded="false"><span class="help-mark" aria-hidden="true">?</span></button>
+                  <span class="help-pop" role="tooltip">
+                    <p class="help-title">檔名格式</p>
+                    <code class="help-format">施工地點_改善內容_日期.jpg</code>
+                    <ul>
+                      <li><b>第 1 段</b>：自動填入「施工地點」</li>
+                      <li><b>第 2 段</b>：自動填入「改善內容」</li>
+                      <li><b>第 3 段</b>：自動填入「日期」，可省略。寫成 20261026 或 2026-10-26</li>
+                      <li>副檔名 png、jpg、jpeg、webp 都可以</li>
+                      <li>[文字].png：無底線文字判定為「改善內容」</li>
+                    </ul>
+                    <p class="help-note">※其他格式不支援自動輸入</p>
+                    <p class="help-note">🔴：照片內容尚未填妥</p>
+                  </span>
+                </span>
+              </div>
               <p id="photoCount">0 張</p>
             </div>
             <div id="grid" class="tile-grid"></div>
-            <p class="tile-legend" id="legend" hidden><i aria-hidden="true"></i>紅點：施工地點還沒填</p>
             <p class="empty-note" id="emptyNote">還沒有照片。按右下角的＋，或直接把照片拖進來。</p>
 
             <div class="fab-dock">

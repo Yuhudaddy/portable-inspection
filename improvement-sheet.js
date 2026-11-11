@@ -234,8 +234,8 @@
     if (idx === 0 && ((field === "loc" && state.sameLoc) || (field === "date" && state.sameDate))) {
       enforce();
       refreshValues();
-    } else if (field === "loc") {
-      refreshGridDots();   // 地點填了或清空，紅點要跟著變
+    } else if (field === "loc" || field === "content") {
+      refreshGridDots();   // 地點或內容填了、或清空，紅點要跟著變
     }
     schedulePreview();
     scheduleSave();
@@ -275,12 +275,15 @@
 
   // ---------- 縮圖格 ----------
   // 每格只有縮圖與編號；施工地點還沒填的，右上角有紅點。填寫在編輯面板裡，不在格子上。
+  // 「照片內容尚未填妥」：施工地點或改善內容任一還沒填，就在縮圖右上角顯示紅點
+  const needsFill = it => !it.loc || !it.content;
+
   function tileHtml(it, i) {
-    const needsLoc = !it.loc;
-    return `<button class="tile" type="button" data-id="${it.id}" data-idx="${i}" aria-label="No.${i + 1}${needsLoc ? "，施工地點還沒填" : ""}">
+    const incomplete = needsFill(it);
+    return `<button class="tile" type="button" data-id="${it.id}" data-idx="${i}" aria-label="No.${i + 1}${incomplete ? "，照片內容尚未填妥" : ""}">
       <img src="${esc(it.src)}" alt="">
       <span class="tile-no" aria-hidden="true">${i + 1}</span>
-      ${needsLoc ? '<span class="tile-dot" aria-hidden="true"></span>' : ""}
+      ${incomplete ? '<span class="tile-dot" aria-hidden="true"></span>' : ""}
     </button>`;
   }
 
@@ -369,16 +372,16 @@
       const it = byId.get(tile.dataset.id);
       if (!it) return;
       const dot = tile.querySelector(".tile-dot");
-      if (!it.loc && !dot) {
+      if (needsFill(it) && !dot) {
         const made = document.createElement("span");
         made.className = "tile-dot";
         made.setAttribute("aria-hidden", "true");
         tile.append(made);
-      } else if (it.loc && dot) {
+      } else if (!needsFill(it) && dot) {
         dot.remove();
       }
+      tile.setAttribute("aria-label", `No.${state.items.indexOf(it) + 1}${needsFill(it) ? "，照片內容尚未填妥" : ""}`);
     });
-    $("#legend").hidden = !state.items.some(it => !it.loc);
   }
 
   function emptyCellHtml(idx, forExport) {

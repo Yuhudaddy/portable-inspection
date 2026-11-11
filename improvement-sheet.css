@@ -1,6 +1,9 @@
 /* 改善表：左側表頭與照片清單，右側即時預覽（A4 每頁 3 張／A3 每頁 12 張）。
    紙張尺寸一律用 mm；螢幕預覽用 transform 等比縮小，輸出 PDF 時用未縮放的原尺寸離屏渲染。 */
 
+/* 字型：與連續壁頁同一組專案字型變數。文字用 --glass-font；數字、計數、頁碼用 --glass-font-num（連續壁頁的做法）。 */
+body { font-family: var(--glass-font); }
+
 :root { --sheet-ink: #1f2a33; --sheet-sub: #4f5f6d; --sheet-line: #8a98a5; --sheet-hair: #cdd5dc; }
 
 .skip-link { position: fixed; top: -80px; left: 12px; z-index: 600; padding: 9px 12px; border-radius: var(--glass-radius-sm); background: var(--glass-ink); color: var(--glass-page-bg); text-decoration: none; }
@@ -21,7 +24,7 @@
 .panel { background: var(--glass-card-bg); border-radius: 14px; box-shadow: var(--glass-card-shadow); padding: 16px; }
 .panel-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
 .panel-heading > div { display: flex; align-items: baseline; gap: 8px; }
-.panel-heading span { font-size: 12px; color: var(--glass-faint); font-variant-numeric: tabular-nums; }
+.panel-heading > div > span:first-child { font-size: 12px; color: var(--glass-muted); font-variant-numeric: tabular-nums; }
 .panel-heading h2 { margin: 0; font-size: 16px; font-weight: 700; color: var(--glass-ink); }
 .panel-heading p { margin: 0; font-size: 13px; color: var(--glass-muted); }
 .panel-title { font-size: 16px; font-weight: 700; color: var(--glass-ink); }
@@ -148,8 +151,7 @@
 .tile.drop-over { outline: 2px dashed var(--glass-accent); outline-offset: 2px; }
 .pane.drop-over { outline: 2px dashed var(--glass-accent); outline-offset: 2px; }
 .tile.flash { outline: 3px solid var(--glass-accent); outline-offset: 2px; }
-.tile-legend { margin: 8px 2px 0; font-size: 12px; color: var(--glass-muted); display: flex; align-items: center; gap: 6px; }
-.tile-legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--glass-danger); }
+
 .empty-note { margin: 10px 0 0; font-size: 13px; line-height: 1.6; color: var(--glass-muted); }
 
 /* 右下角浮動按鈕：點開是 Gooey 選單（新增／拍照／清空）。樣式用 glass.css 的 .export-fab，這裡只定位與主按鈕 */
@@ -266,3 +268,23 @@
 .ed-grab::before { content: ""; position: absolute; left: 50%; top: 9px; width: 36px; height: 4px; margin-left: -18px; border-radius: 999px; background: var(--glass-dash); }
 .ed-grab, .ed-head, .ed-photo { touch-action: none; user-select: none; -webkit-user-select: none; }
 @media (min-width: 640px) { .ed-grab { display: none; } .ed-head { padding-top: 12px; } }
+
+/* 照片標題列的「？」：說明框要對齊整個面板標題列，而不是只對齊問號本身 */
+.panel-title-row { position: relative; display: flex; align-items: center; gap: 8px; min-width: 0; }
+.panel-title-row > span:first-child { font-size: 12px; color: var(--glass-muted); }
+.panel-heading .help-pop, .panel-heading .help-pop * { color: #fff; }
+.panel-title-row .help { position: static; }
+.panel-title-row .help-pop { left: 0; right: auto; width: min(300px, calc(100vw - 64px)); top: calc(100% + 6px); }
+.help-title { margin: 0 0 4px; font-size: 13px; font-weight: 600; }
+.help-format { display: block; margin: 0 0 8px; padding: 4px 6px; border-radius: 6px; background: rgba(255, 255, 255, 0.12); font-family: var(--glass-font-num, ui-monospace, monospace); font-size: 12px; white-space: normal; word-break: break-all; }
+.help-pop ul { font-size: 12px; }
+
+/* 標題列要置中對齊：原有的 .panel-heading > div 是基線對齊（權重較高），不蓋過的話「？」會比文字低一點 */
+.panel-heading > .panel-title-row { align-items: center; }
+.help-note { margin: 8px 0 0; font-size: 12px; line-height: 1.5; }
+
+/* 數字與計數：等寬數字，字型用連續壁頁的數字變數（M PLUS 1p 未載入時自動退回 Noto Sans TC） */
+.tile-no, .tab-count, #photoCount, #pvMeta, .sh-foot, .sh-no, .sh-date-t, .ed-head strong, .panel-heading > div > span:first-child, .panel-title-row > span:first-child, .help-format {
+  font-family: var(--glass-font-num);
+  font-variant-numeric: tabular-nums;
+}

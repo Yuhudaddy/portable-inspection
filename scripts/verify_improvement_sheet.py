@@ -401,6 +401,28 @@ try:
         check(got == want, "檔名帶入結果正確（IMG_1234 不帶；沒有底線的「漏水」整個當改善內容）", f"實際 {got}")
         check(saved_items[5]["date"] == "2026-10-26", f"檔名尾端的日期 20261026 帶入為 2026-10-26（{saved_items[5]['date']}）")
         check(page.evaluate("() => document.querySelectorAll('.tile-dot').length") == 2, "沒帶入地點的 2 張有紅點")
+        check(page.locator("#legend").count() == 0, "縮圖格下方不再有獨立的紅點說明（已併進「？」說明框）")
+        # 紅點規則：施工地點或改善內容任一未填就紅；兩者都填了才消失
+        page.click('#grid .tile[data-idx="1"]')           # IMG_1234：地點與內容都沒有
+        page.wait_for_selector("#editor[open]", timeout=5000)
+        page.fill("#edLoc", "5F走廊")
+        page.wait_for_timeout(300)
+        check(page.evaluate("() => document.querySelectorAll('.tile-dot').length") == 2, "只填地點、內容還沒填：仍是紅點")
+        page.fill("#edContent", "補防水")
+        page.wait_for_timeout(300)
+        check(page.evaluate("() => document.querySelectorAll('.tile-dot').length") == 1, "地點與內容都填了：紅點消失（剩下「漏水」那張）")
+        page.click("#edClose")
+        # 照片標題旁的「？」：檔名格式說明
+        check(page.locator(".panel-title-row .help-btn").is_visible(), "照片標題旁有「？」說明按鈕")
+        page.click(".panel-title-row .help-btn")
+        page.wait_for_timeout(200)
+        pop = page.inner_text(".panel-title-row .help-pop")
+        check("施工地點_改善內容_日期.jpg" in pop and "第 1 段" in pop and "第 3 段" in pop, "說明框條列：檔名格式與三段欄位")
+        check("[文字].png：無底線文字判定為「改善內容」" in pop and "※其他格式不支援自動輸入" in pop and "🔴：照片內容尚未填妥" in pop, f"說明框的三行文案與紅點說明正確")
+        center_gap = page.evaluate("""() => { const text = document.createRange(); text.selectNodeContents(document.querySelector('.panel-title-row h2')); const t = text.getBoundingClientRect(); const m = document.querySelector('.panel-title-row .help-mark').getBoundingClientRect(); return Math.abs((t.top + t.bottom) / 2 - (m.top + m.bottom) / 2); }""")
+        check(center_gap < 1, f"「照片」標題旁的「？」與文字垂直置中（差 {center_gap:.1f}px）")
+        page.click(".panel-title-row .help-btn")
+        page.wait_for_timeout(200)
         page.close()
 
         page = open_sheet(desktop, paper="a4", photos=0, errors=errors)

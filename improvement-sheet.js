@@ -250,8 +250,7 @@
     $("#photoCount").textContent = `${n} 張`;
     $("#tabCount").textContent = String(n);
     $("#emptyNote").hidden = n > 0;
-    $("#grid").innerHTML = state.items.map((it, i) => tileHtml(it, i)).join("")
-      + '<button class="tile tile-add" type="button" data-add="1"><span aria-hidden="true">＋</span><span>新增</span></button>';
+    $("#grid").innerHTML = state.items.map((it, i) => tileHtml(it, i)).join("");
     refreshGridDots();
   }
 
@@ -771,7 +770,7 @@
     if (tile) return { el: tile, at: Number(tile.dataset.idx) };
     const cell = target.closest(".sh-cell[data-idx]");
     if (cell) return { el: cell, at: Number(cell.dataset.idx) };
-    const zone = target.closest(".tile-add, #grid, .sheet-frame");
+    const zone = target.closest('.pane[data-pane="photos"], .sheet-frame');
     if (zone) return { el: zone, at: null };
     return null;
   }
@@ -842,9 +841,8 @@
       if (file) await openProjectFile(file);
     });
 
-    // 縮圖格：點格子開編輯面板；最後一格是「新增」
+    // 縮圖格：點格子開編輯面板（新增照片用右下角的浮動按鈕）
     $("#grid").addEventListener("click", event => {
-      if (event.target.closest("[data-add]")) { pick("inPick"); return; }
       const tile = event.target.closest(".tile[data-idx]");
       if (tile) openEditor(Number(tile.dataset.idx));
     });
@@ -872,6 +870,7 @@
 
     // 預覽：點有照片的格子開編輯面板
     $("#preview").addEventListener("click", event => {
+      if (event.target.closest("[data-add]")) { pick("inPick"); return; }
       const cell = event.target.closest(".sh-cell[data-idx]");
       if (cell && !cell.classList.contains("empty")) openEditor(Number(cell.dataset.idx));
     });

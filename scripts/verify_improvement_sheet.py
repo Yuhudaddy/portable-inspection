@@ -320,6 +320,29 @@ try:
         check(not page.locator("#photoMenuButton").is_visible(), "手機：切到「預覽」頁籤，浮動按鈕就不出現")
         page.close()
 
+        # ---- 空狀態：點預覽的空格子、把照片拖到照片面板 ----
+        print("== 空狀態：點預覽空格子與拖曳")
+        page = open_sheet(desktop, paper="a4", photos=0, errors=errors)
+        check(page.evaluate("() => document.querySelectorAll('#grid .tile').length === 0"), "還沒有照片時縮圖格是空的（沒有多餘的「新增」格）")
+        with page.expect_file_chooser(timeout=5000) as chooser:
+            page.click("#preview .sh-add >> nth=0")
+        check(chooser.value is not None, "點預覽的空格子會開啟檔案選擇器")
+        page.evaluate("""async () => {
+          const canvas = document.createElement('canvas'); canvas.width = 800; canvas.height = 600;
+          const ctx = canvas.getContext('2d'); ctx.fillStyle = '#3a7'; ctx.fillRect(0, 0, 800, 600);
+          const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9));
+          const dt = new DataTransfer(); dt.items.add(new File([blob], 'dropped.jpg', { type: 'image/jpeg' }));
+          const pane = document.querySelector('.pane[data-pane="photos"]');
+          pane.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer: dt }));
+          pane.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }));
+        }""")
+        page.wait_for_function("() => document.querySelectorAll('#grid .tile[data-id]').length === 1", timeout=15000)
+        check(True, "空狀態下把照片拖到照片面板：加入 1 張")
+        page.wait_for_selector("#editor[open]", timeout=5000)
+        check(page.evaluate("() => document.querySelectorAll('#grid .tile').length === document.querySelectorAll('#grid .tile[data-id]').length"), "縮圖格裡只有照片格，沒有「新增」格")
+        page.click("#edClose")
+        page.close()
+
         # ---- 專案檔：iPhone 走分享，存出來再開回去 ----
         print("== 專案檔存與開")
         page = open_sheet(iphone, query="", paper="a3", photos=3, errors=errors)

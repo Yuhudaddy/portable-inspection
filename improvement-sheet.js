@@ -917,13 +917,11 @@
     $("#inPick").addEventListener("change", handlePicked);
     $("#inCamera").addEventListener("change", handlePicked);
 
+    // 新增、拍照只能在照片分頁做，所以先切過去再開選檔（手機上另外兩個分頁也能直接按）
     const ACTS = {
-      pick: () => pick("inPick"),
-      camera: () => pick("inCamera"),
-      clear: clearAll,
-      save: saveProject,
-      open: () => $("#inOpen").click(),
-      export: exportPdf
+      pick: () => { setView("photos"); pick("inPick"); },
+      camera: () => { setView("photos"); pick("inCamera"); },
+      clear: clearAll
     };
     $$(".export-fab-item[data-act]").forEach(item => item.addEventListener("click", () => ACTS[item.dataset.act]()));
 
@@ -1009,41 +1007,23 @@
 
   // 右下角的浮動按鈕：Gooey 選單（export-menu.js 共用）。項目由左到上排：
   // 清空放在離拇指最遠的位置，最不會誤觸；新增放在正上方，最順手。
-  // 三個分頁各有一顆浮動選單，項目只放該頁用得到的操作。「全部清除」在每個分頁都有，手機不用切頁就能找到。
+  // 一顆 Gooey Menu，三個分頁都看得到，項目固定是新增、拍照、全部清除。
   const GLYPH = {
     trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
     camera: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
-    plus: '<path d="M12 5v14M5 12h14"/>',
-    save: '<path d="M12 4v11M7 10l5 5 5-5M5 19h14"/>',
-    open: '<path d="M4 8V6a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v2"/><path d="M4 8h16v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/>',
-    pdf: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>'
+    plus: '<path d="M12 5v14M5 12h14"/>'
   };
-  const CLEAR_AIA = "全部清除（照片與表頭文字）";
   function mountMenus() {
     const { mount, icon } = window.GooeyMenu;
-    const menus = [
-      { fab: "#photo-fab", button: "#photoMenuButton", items: [
-        { id: "btnClear", act: "clear", label: "全部清除", aria: CLEAR_AIA, glyph: "trash" },
-        { id: "btnCamera", act: "camera", label: "拍照", aria: "拍照", glyph: "camera" },
-        { id: "btnPick", act: "pick", label: "新增", aria: "新增照片", glyph: "plus" }
-      ] },
-      { fab: "#info-fab", button: "#infoMenuButton", items: [
-        { act: "save", label: "儲存", aria: "儲存專案檔", glyph: "save" },
-        { act: "open", label: "開啟", aria: "開啟專案檔", glyph: "open" },
-        { act: "clear", label: "全部清除", aria: CLEAR_AIA, glyph: "trash" }
-      ] },
-      { fab: "#preview-fab", button: "#previewMenuButton", items: [
-        { act: "export", label: "輸出", aria: "輸出 PDF", glyph: "pdf" },
-        { act: "save", label: "儲存", aria: "儲存專案檔", glyph: "save" },
-        { act: "clear", label: "全部清除", aria: CLEAR_AIA, glyph: "trash" }
-      ] }
+    const items = [
+      { id: "btnClear", act: "clear", label: "全部清除", aria: "全部清除（照片與表頭文字）", glyph: "trash" },
+      { id: "btnCamera", act: "camera", label: "拍照", aria: "拍照", glyph: "camera" },
+      { id: "btnPick", act: "pick", label: "新增", aria: "新增照片", glyph: "plus" }
     ];
-    menus.forEach(menu => {
-      const { items } = mount($(menu.fab), $(menu.button), menu.items.map(it => ({
-        id: it.id, label: it.label, aria: it.aria, icon: icon(GLYPH[it.glyph])
-      })));
-      items.forEach((item, i) => { item.dataset.act = menu.items[i].act; });
-    });
+    const { items: nodes } = mount($("#photo-fab"), $("#photoMenuButton"), items.map(it => ({
+      id: it.id, label: it.label, aria: it.aria, icon: icon(GLYPH[it.glyph])
+    })));
+    nodes.forEach((node, i) => { node.dataset.act = items[i].act; });
   }
 
   // 全部清除：照片與表頭文字一起清掉（會先確認）

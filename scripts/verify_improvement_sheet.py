@@ -4,7 +4,7 @@
 navigator.share 換成會把檔案收起來的假的，再用 PyMuPDF 檢查收到的 PDF：頁數、紙張（A4 直式／A3 橫式）、
 每頁有內容且滿版、有照片的色彩、標題資訊、檔名、分享內容只有一個檔案。
 另外檢查：手勢失效（NotAllowedError）改顯示「分享」按鈕、產生中取消、不能分享檔案時改下載、
-電腦走 window.print()、專案檔存與開（含 iPhone 走分享）、沒有頁面錯誤或 CSP 違規。
+電腦走 window.print()、右下角浮動按鈕（Gooey 選單）、專案檔存與開（含 iPhone 走分享）、沒有頁面錯誤或 CSP 違規。
 PDF 的組檔、轉圖重試、進度橫幅與分享遞送是 pdf-share.js 共用的；它自己的純函式檢查在 scripts/verify_pdf_share.mjs。
 """
 import base64
@@ -105,9 +105,16 @@ def open_sheet(context, query="?export=share", paper="a4", photos=14, errors=Non
     page.click(f'input[name="paper"][value="{paper}"] + span')
     if photos:
         page.evaluate(MAKE_PHOTOS, photos)
-        page.wait_for_function(f"() => document.querySelectorAll('.photo-card').length === {photos}", timeout=120000)
-        page.fill(".photo-card [data-field=loc]", "4F客室漏水")
-        page.fill(".photo-card [data-field=content]", "打針改善")
+        page.wait_for_function(f"() => document.querySelectorAll('#grid .tile[data-id]').length === {photos}", timeout=120000)
+        # 加照片後編輯面板會自動打開（第一張）：填地點與內容，再逐張用 › 切換，最後關閉
+        page.wait_for_selector("#editor[open]", timeout=10000)
+        for index in range(photos):
+            page.fill("#edLoc", "4F客室漏水")
+            page.fill("#edContent", "打針改善")
+            if index < photos - 1:
+                page.click("#edNext")
+        page.click("#edClose")
+        page.wait_for_function("() => !document.getElementById('editor').open", timeout=5000)
     return page
 
 
@@ -244,6 +251,7 @@ try:
         print("== iPhone（WebKit）A3 與 A4")
         for paper, pages, size in (("a3", 2, (1190.55, 841.89)), ("a4", 5, (595.28, 841.89))):
             page = open_sheet(iphone, query="", paper=paper, photos=14, errors=errors)
+            page.click('[data-view-tab="preview"]')   # 手機版的「輸出 PDF」在預覽頁籤裡
             start = time.time()
             page.click("#btnExport")
             page.wait_for_function("() => window.__shared.length > 0 || document.querySelector('.pdf-share-dialog[data-state=error]')", timeout=240000)
@@ -254,6 +262,63 @@ try:
                 analyse(decode(shared[0]), pages, size, 0.05 if paper == "a4" else 0.1)
             check(spent < 90, f"iPhone {paper} 產生時間 {spent:.1f} 秒（上限 90 秒）")
             page.close()
+
+        # ---- 右下角浮動按鈕（Gooey 選單）----
+        print("== 右下角浮動按鈕（Gooey 選單）")
+        page = open_sheet(desktop, paper="a4", photos=3, errors=errors)
+        fab = page.locator("#photoMenuButton")
+        check(fab.is_visible(), "電腦：浮動按鈕可見")
+        geometry = page.evaluate("() => { const f = document.getElementById('photo-fab').getBoundingClientRect(), c = document.querySelector('.col-input').getBoundingClientRect(), p = document.querySelector('.preview').getBoundingClientRect(); return { fabRight: f.right, colRight: c.right, previewLeft: p.left }; }")
+        check(geometry["fabRight"] <= geometry["colRight"] + 1 and geometry["fabRight"] <= geometry["previewLeft"], f"電腦：浮動按鈕在左欄內，沒有蓋到右邊的預覽（{geometry}）")
+        # 收起時項目是透明的（Playwright 仍算「可見」），所以改查透明度與 inert：不能被點，也不能被 Tab 到
+        check(page.evaluate("() => [...document.querySelectorAll('#photo-fab .export-fab-item')].every(e => getComputedStyle(e).opacity === '0') && document.getElementById('photo-fab-items').inert"), "選單收起時，三個項目是透明的，也不能被點或用 Tab 選取")
+        fab.click()
+        page.wait_for_function("() => document.getElementById('photo-fab').classList.contains('is-open')", timeout=3000)
+        page.wait_for_timeout(800)   # 等彈出動畫播完
+        labels = page.evaluate("() => [...document.querySelectorAll('#photo-fab .export-fab-item span')].map(e => e.textContent)")
+        check(labels == ["清空", "拍照", "新增"], f"展開後有三個項目，文字與順序正確（{labels}）")
+        check(all(page.locator(sel).is_visible() for sel in ("#btnClear", "#btnCamera", "#btnPick")), "展開後三個項目都看得到")
+        check(page.evaluate("() => document.querySelectorAll('#photo-fab .export-fab-item svg').length") == 3, "每個項目都有圖示")
+        check(fab.get_attribute("aria-expanded") == "true", "主按鈕的 aria-expanded 是 true")
+        page.keyboard.press("Escape")
+        page.wait_for_function("() => !document.getElementById('photo-fab').classList.contains('is-open')", timeout=3000)
+        check(fab.get_attribute("aria-expanded") == "false", "按 Esc 收起")
+        fab.click()
+        page.wait_for_timeout(800)
+        with page.expect_file_chooser(timeout=5000) as chooser:
+            page.click("#btnPick")
+        check(chooser.value is not None, "按「新增」會開啟檔案選擇器")
+        check(not page.evaluate("() => document.getElementById('photo-fab').classList.contains('is-open')"), "選完一項後選單自動收起")
+        fab.click()
+        page.wait_for_timeout(800)
+        page.once("dialog", lambda d: d.dismiss())
+        page.click("#btnClear")
+        page.wait_for_timeout(500)
+        check(page.evaluate("() => document.querySelectorAll('#grid .tile[data-id]').length") == 3, "「清空」按取消：照片都還在")
+        fab.click()
+        page.wait_for_timeout(800)
+        page.once("dialog", lambda d: d.accept())
+        page.click("#btnClear")
+        page.wait_for_function("() => document.querySelectorAll('#grid .tile[data-id]').length === 0", timeout=5000)
+        check(True, "「清空」確認後：照片全部清除")
+        page.close()
+
+        print("== 浮動按鈕（iPhone 版面）")
+        page = open_sheet(iphone, query="", paper="a4", photos=3, errors=errors)
+        check(not page.locator("#photoMenuButton").is_visible(), "手機：在「表頭」頁籤看不到浮動按鈕")
+        page.click('[data-view-tab="photos"]')
+        check(page.locator("#photoMenuButton").is_visible(), "手機：在「照片」頁籤看得到浮動按鈕")
+        view = page.evaluate("() => { const f = document.getElementById('photoMenuButton').getBoundingClientRect(); return { right: f.right, bottom: f.bottom, w: innerWidth, h: innerHeight, size: [f.width, f.height] }; }")
+        check(view["right"] > view["w"] - 40 and view["bottom"] > view["h"] - 40, f"手機：按鈕固定在畫面右下角（{view}）")
+        check(view["size"][0] >= 44 and view["size"][1] >= 44, f"手機：按鈕大小 {view['size']}（至少 44px）")
+        page.click("#photoMenuButton")
+        page.wait_for_timeout(800)
+        inside = page.evaluate("() => [...document.querySelectorAll('#photo-fab .export-fab-item')].map(e => { const r = e.getBoundingClientRect(); return r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight; })")
+        check(all(inside), f"手機：展開的三個項目都在畫面內（{inside}）")
+        page.keyboard.press("Escape")
+        page.click('[data-view-tab="preview"]')
+        check(not page.locator("#photoMenuButton").is_visible(), "手機：切到「預覽」頁籤，浮動按鈕就不出現")
+        page.close()
 
         # ---- 專案檔：iPhone 走分享，存出來再開回去 ----
         print("== 專案檔存與開")
@@ -273,12 +338,16 @@ try:
         page.set_input_files("#inOpen", str(saved))
         page.wait_for_timeout(1500)   # 不能用 time.sleep：Playwright 的同步 API 要在它自己的等待裡才會處理對話框事件
         check(bool(messages) and "取代目前的內容" in messages[0], "目前有內容時，開啟專案檔會先詢問")
-        check(page.evaluate("() => document.querySelectorAll('.photo-card').length") == 0 and page.input_value("#fWork") == "客室漏水改善", "按取消：目前的內容維持原樣")
+        check(page.evaluate("() => document.querySelectorAll('#grid .tile[data-id]').length") == 0 and page.input_value("#fWork") == "客室漏水改善", "按取消：目前的內容維持原樣")
         page.once("dialog", lambda d: d.accept())
         page.set_input_files("#inOpen", str(saved))
-        page.wait_for_function("() => document.querySelectorAll('.photo-card').length === 3", timeout=15000)
+        page.wait_for_function("() => document.querySelectorAll('#grid .tile[data-id]').length === 3", timeout=15000)
         check(page.evaluate("() => document.querySelector('input[name=paper]:checked').value") == "a3" and page.input_value("#fWork") == "客室漏水改善", "開啟專案檔：版型與表頭都還原")
-        check(page.evaluate("() => document.querySelector('.photo-card [data-field=loc]').value") == "4F客室漏水", "開啟專案檔：照片的文字還原")
+        page.click('[data-view-tab="photos"]')   # 手機版縮圖在「照片」頁籤裡
+        page.click('#grid .tile[data-idx="0"]')
+        page.wait_for_selector("#editor[open]", timeout=5000)
+        check(page.input_value("#edLoc") == "4F客室漏水", "開啟專案檔：照片的文字還原")
+        page.click("#edClose")
         page.close()
 
         # ---- 沒有任何錯誤 ----

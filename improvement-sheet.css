@@ -38,16 +38,14 @@
 
 .option-block { margin-top: 16px; }
 .option-label { display: block; font-size: 13px; color: var(--glass-label); margin-bottom: 6px; }
-.hint { margin: 6px 0 0; font-size: 12.5px; line-height: 1.6; color: var(--glass-muted); }
 .seg { display: flex; background: var(--glass-sunken); border-radius: 10px; padding: 3px; gap: 3px; }
 .seg label { flex: 1; position: relative; min-width: 0; }
 .seg input { position: absolute; opacity: 0; pointer-events: none; }
 .seg span { display: flex; align-items: center; justify-content: center; min-height: 40px; padding: 6px 6px; border-radius: 8px; font-size: 14px; color: var(--glass-soft); cursor: pointer; text-align: center; white-space: nowrap; }
-.seg input:checked + span { background: #fff; color: var(--glass-accent-strong); font-weight: 700; box-shadow: 0 1px 2px rgba(60, 50, 30, .12); }
+.seg input:checked + span { background: #fff; color: var(--glass-accent-strong); font-weight: 700; }
 .seg input:focus-visible + span { outline: 2px solid var(--glass-accent); outline-offset: 2px; }
 
-.toggles { display: flex; flex-direction: column; gap: 8px; }
-.toggle-row { display: flex; align-items: center; gap: 8px; }
+.toggles { display: flex; flex-wrap: wrap; gap: 8px; }
 .toggle { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px 0 8px; border: 1px solid var(--glass-line); border-radius: 10px; background: #fff; font: inherit; font-size: 15px; color: var(--glass-ink); cursor: pointer; }
 .toggle[aria-pressed="true"] { border-color: var(--glass-accent); background: var(--glass-accent-soft); font-weight: 700; color: var(--glass-accent-strong); }
 .switch { position: relative; width: 36px; height: 20px; border-radius: 999px; background: var(--glass-dash); transition: background .2s; }
@@ -55,41 +53,29 @@
 .toggle[aria-pressed="true"] .switch { background: var(--glass-accent); }
 .toggle[aria-pressed="true"] .switch::after { transform: translateX(16px); }
 
-.help { position: relative; display: inline-flex; }
-.help-btn { width: 44px; height: 44px; min-width: 44px; border-radius: 50%; border: 1px solid var(--glass-line); background: #fff; color: var(--glass-soft); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
-.help-pop { display: none; position: absolute; left: 0; top: calc(100% + 6px); z-index: 20; width: max-content; max-width: 240px; padding: 8px 10px; border-radius: 8px; background: var(--glass-ink); color: #fff; font-size: 13px; line-height: 1.5; box-shadow: var(--glass-card-shadow); }
+.help { display: inline-flex; }
+/* 標題旁的「？」：點擊範圍 44px，看得到的只有一個 20px 的空心圓 */
+.option-head { position: relative; display: flex; align-items: center; gap: 0; margin: -12px 0 -6px; }
+.option-head .option-label { margin: 0; }
+.help-btn { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; background: transparent; color: var(--glass-soft); cursor: pointer; }
+.help-mark { display: grid; place-items: center; width: 20px; height: 20px; border: 1.5px solid currentColor; border-radius: 50%; font-size: 12px; font-weight: 700; line-height: 1; }
+.help-btn:hover, .help.open .help-btn { color: var(--glass-accent-strong); }
+.help-pop { display: none; position: absolute; left: 0; right: 0; top: calc(100% - 4px); z-index: 20; padding: 10px 14px; border-radius: 10px; background: var(--glass-ink); color: #fff; font-size: 13px; line-height: 1.6; box-shadow: var(--glass-card-shadow); }
+.help-pop ul { display: grid; gap: 6px; margin: 0; padding-left: 1.1em; }
 .help:hover .help-pop, .help.open .help-pop, .help:focus-within .help-pop { display: block; }
 
 .file-row, .list-actions, .preview-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .file-row { margin-top: 16px; }
 .file-row .btn { flex: 1 1 140px; }
-.save-state { min-height: 1.6em; }
 
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--glass-line); background: #fff; color: var(--glass-ink); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
-.btn.primary { background: var(--glass-accent); border-color: var(--glass-accent); color: var(--glass-accent-on); box-shadow: var(--glass-accent-shadow); }
+.btn.primary { background: var(--glass-accent); border-color: var(--glass-accent); color: var(--glass-accent-on); }
 .btn.ghost { background: transparent; color: var(--glass-muted); }
 .btn.danger { color: var(--glass-danger-ink); }
 .btn.small { min-height: 44px; padding: 0 10px; font-size: 14px; }
 .btn:focus-visible, .help-btn:focus-visible, .toggle:focus-visible { outline: 2px solid var(--glass-accent); outline-offset: 2px; }
 
-.list-actions { margin-bottom: 12px; }
-.photo-list { display: flex; flex-direction: column; gap: 10px; }
-.photo-card { border: 1px solid var(--glass-line); border-radius: 12px; background: #fff; padding: 10px; display: flex; flex-direction: column; gap: 10px; }
-.photo-card.flash { border-color: var(--glass-accent); box-shadow: 0 0 0 3px var(--glass-accent-soft); }
-.photo-card.drop-over, .sh-cell.drop-over { outline: 2px dashed var(--glass-accent); outline-offset: 2px; background: var(--glass-accent-soft); }
-.photo-card-head { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: var(--glass-muted); }
-.photo-card-head strong { color: var(--glass-accent-strong); }
-.photo-card-body { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 10px; }
-.thumb { width: 96px; height: 96px; border-radius: 8px; overflow: hidden; background: var(--glass-sunken); }
-.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.photo-card-fields { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.photo-card-fields .field > span { font-size: 12.5px; }
-.photo-card-actions { display: flex; flex-wrap: wrap; gap: 6px; }
-.locked-tag { font-size: 12px; color: var(--glass-muted); }
-.dropzone { margin-top: 10px; width: 100%; min-height: 64px; border: 1.5px dashed var(--glass-dash); border-radius: 12px; background: transparent; color: var(--glass-muted); font: inherit; font-size: 14px; cursor: pointer; }
-.dropzone.drop-over { border-color: var(--glass-accent); background: var(--glass-accent-soft); color: var(--glass-accent-strong); }
-.empty-list { margin: 0; padding: 18px 8px; text-align: center; font-size: 14px; color: var(--glass-muted); }
 
 .preview { min-width: 0; }
 .preview-head { justify-content: space-between; margin-bottom: 10px; }
@@ -164,4 +150,86 @@
   html, body { background: #fff !important; margin: 0 !important; padding: 0 !important; }
   body > *:not(#printRoot) { display: none !important; }
   #printRoot { position: static; width: auto; }
+}
+
+/* ==========================================================================
+   照片：縮圖格、底部工具列、編輯面板。按鈕一律沒有陰影，層級靠底色區分。
+   ========================================================================== */
+
+/* 分頁（手機）：表頭／照片／預覽，一次只看一個。樣式比照連續壁頁的 t-tabs，但軌道與白塊都沒有陰影 */
+.view-tabs { margin: 0 0 14px; }
+.view-tabs .t-tabs { display: flex; width: 100%; padding: 3px; border-radius: 999px; background: var(--glass-sunken); gap: 0; }
+.t-tab { flex: 1 1 0; min-height: 40px; padding: 0 10px; border: 0; border-radius: 999px; background: transparent; color: var(--glass-muted); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.t-tab[aria-selected="true"] { background: #fff; color: var(--glass-ink); font-weight: 700; }
+.t-tab:focus-visible { outline: 2px solid var(--glass-accent); outline-offset: 2px; }
+.tab-count { display: inline-block; min-width: 1.5em; margin-left: 2px; padding: 0 6px; border-radius: 999px; background: var(--glass-accent-soft); color: var(--glass-accent-strong); font-size: 12px; font-variant-numeric: tabular-nums; }
+
+/* 縮圖格：手機 3 欄，平板與電腦左欄 4～5 欄；每格只有圖與編號 */
+.tile-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+@media (min-width: 640px) { .tile-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+.tile { position: relative; display: block; aspect-ratio: 1 / 1; min-width: 0; padding: 0; border: 0; border-radius: 12px; overflow: hidden; background: var(--glass-sunken); cursor: pointer; }
+.tile img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.tile-no { position: absolute; left: 6px; bottom: 6px; padding: 1px 7px; border-radius: 999px; background: rgba(31, 42, 51, 0.72); color: #fff; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.6; }
+.tile-dot { position: absolute; top: 7px; right: 7px; width: 10px; height: 10px; border-radius: 50%; background: var(--glass-danger); box-shadow: 0 0 0 2px #fff; }
+.tile.drop-over { outline: 2px dashed var(--glass-accent); outline-offset: 2px; }
+.tile.flash { outline: 3px solid var(--glass-accent); outline-offset: 2px; }
+.tile-add { display: grid; place-items: center; align-content: center; gap: 2px; background: transparent; border: 1.5px dashed var(--glass-dash); color: var(--glass-muted); font: inherit; font-size: 12px; }
+.tile-add span:first-child { font-size: 24px; line-height: 1; color: var(--glass-accent); }
+.tile-add.drop-over { border-color: var(--glass-accent); background: var(--glass-accent-soft); }
+.tile-legend { margin: 8px 2px 0; font-size: 12px; color: var(--glass-muted); display: flex; align-items: center; gap: 6px; }
+.tile-legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--glass-danger); }
+.empty-note { margin: 10px 0 0; font-size: 13px; line-height: 1.6; color: var(--glass-muted); }
+
+/* 右下角浮動按鈕：點開是 Gooey 選單（新增／拍照／清空）。樣式用 glass.css 的 .export-fab，這裡只定位與主按鈕 */
+.ed-step:focus-visible, .ed-close:focus-visible, .ed-action:focus-visible, .tile:focus-visible { outline: 2px solid var(--glass-accent); outline-offset: 2px; }
+
+/* 編輯面板：手機從底部滑出，電腦是置中的對話框 */
+.editor { width: 100%; max-width: 560px; max-height: 88vh; margin: auto 0 0; padding: 0; border: 0; border-radius: 20px 20px 0 0; background: var(--glass-card-bg); color: var(--glass-ink); overflow: auto; }
+.editor::backdrop { background: rgba(31, 42, 51, 0.38); }
+.editor[open] { animation: ed-up .24s cubic-bezier(0.22, 1, 0.36, 1); }
+@keyframes ed-up { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (min-width: 640px) {
+  .editor { margin: auto; border-radius: 20px; }
+  .editor[open] { animation-name: ed-fade; }
+}
+@keyframes ed-fade { from { transform: scale(.98); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .editor[open] { animation: none; } }
+.ed-head { display: grid; grid-template-columns: 44px 1fr 44px auto; align-items: center; gap: 4px; padding: 12px 14px 4px; }
+.ed-head strong { text-align: center; font-size: 16px; font-variant-numeric: tabular-nums; }
+.ed-step, .ed-close { border: 0; background: var(--glass-sunken); color: var(--glass-ink); font: inherit; cursor: pointer; }
+.ed-step { width: 44px; height: 44px; border-radius: 50%; font-size: 24px; line-height: 1; }
+.ed-step:disabled { opacity: .35; cursor: default; }
+.ed-close { min-height: 44px; padding: 0 16px; border-radius: 999px; font-size: 14px; font-weight: 600; color: var(--glass-soft); }
+.ed-photo { margin: 6px 14px 0; height: min(26vh, 220px); border-radius: 12px; overflow: hidden; background: var(--glass-sunken); }
+.ed-photo img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.ed-fields { display: grid; gap: 12px; padding: 14px 14px 0; }
+.ed-fields .field > span { display: flex; align-items: center; gap: 8px; }
+.locked-tag { font-style: normal; font-size: 12px; color: var(--glass-muted); }
+.locked-tag[hidden] { display: none; }
+.ed-actions { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; padding: 14px; padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
+.ed-action { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 64px; padding: 6px 2px; border: 0; border-radius: 12px; background: var(--glass-sunken); color: var(--glass-soft); font: inherit; cursor: pointer; }
+.ed-action span { font-size: 12px; font-weight: 600; line-height: 1.2; }
+.ed-action.danger { color: var(--glass-danger-ink); }
+
+/* 分頁切換：手機一次只顯示一個分頁；電腦全部並排 */
+@media (max-width: 979px) {
+  .app-shell[data-view="info"] [data-pane]:not([data-pane="info"]),
+  .app-shell[data-view="photos"] [data-pane]:not([data-pane="photos"]),
+  .app-shell[data-view="preview"] [data-pane]:not([data-pane="preview"]) { display: none; }
+}
+@media (min-width: 980px) { .view-tabs { display: none; } }
+
+.fab-dock { position: fixed; right: 16px; bottom: max(16px, calc(env(safe-area-inset-bottom) + 8px)); z-index: 30; }
+.dock-primary { display: grid; place-items: center; width: 60px; height: 60px; padding: 0; border: 0; border-radius: 999px; background: var(--glass-accent); color: var(--glass-accent-on); cursor: pointer; }
+.dock-primary svg { display: block; transition: transform .25s; }
+.export-fab.is-open .dock-primary svg { transform: rotate(45deg); }
+.dock-primary:focus-visible { outline: 3px solid var(--glass-accent); outline-offset: 3px; }
+.export-fab-item span { font-size: 11px; }
+@media (prefers-reduced-motion: reduce) { .dock-primary svg { transition: none; } }
+/* 手機：按鈕固定在畫面角落，照片面板底部多留一塊空間，最後一排縮圖才不會被蓋住 */
+@media (max-width: 979px) { .pane[data-pane="photos"] { padding-bottom: 96px; } }
+/* 電腦：按鈕黏在左欄（照片面板）的右下角，不蓋到右邊的預覽 */
+@media (min-width: 980px) {
+  .fab-dock { position: sticky; right: auto; bottom: 12px; display: flex; justify-content: flex-end; margin-top: 12px; pointer-events: none; }
+  .fab-dock .export-fab { pointer-events: auto; }
 }

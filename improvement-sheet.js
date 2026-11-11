@@ -38,12 +38,14 @@
     return { paper: "a4", fit: "auto", side: "left", sameDate: false, sameLoc: false, project: "", work: "", contractor: "", items: [] };
   }
   let state = blank();
+  let editingId = null;          // 編輯面板目前顯示的照片；面板關閉時是 null
   let replaceId = null;          // 換照片時，選擇器選到的檔案要取代哪一張；null 代表新增
   let exporting = false;
   let saveTimer = 0;
   let toastTimer = 0;
   let previewTimer = 0;
   let dropEl = null;
+  let autosaveWarned = false;
   let lastPreviewWidth = 0;
 
   // ---------- 小工具 ----------
@@ -140,8 +142,11 @@
     }
     clearStatus();
     if (added.length) {
-      state.items.splice(clampAt(at), 0, ...added);
+      const start = clampAt(at);
+      state.items.splice(start, 0, ...added);
+      enforce();
       commit();
+      openEditor(start);   // 第一次加照片時直接進入填寫，不必再找要點哪一張
     }
     if (failed) toast(`有 ${failed} 張照片無法讀取，已略過`);
   }
@@ -163,6 +168,7 @@
     const idx = state.items.findIndex(i => i.id === id);
     if (idx < 0) return;
     const [item] = state.items.splice(idx, 1);
+    if (editingId === id) editingId = (state.items[idx] || state.items[idx - 1] || { id: null }).id;
     commit();
     toast(`已刪除 No.${idx + 1}`, {
       label: "復原",
@@ -189,6 +195,8 @@
     if (idx === 0 && ((field === "loc" && state.sameLoc) || (field === "date" && state.sameDate))) {
       enforce();
       refreshValues();
+    } else if (field === "loc") {
+      refreshGridDots();   // 地點填了或清空，紅點要跟著變
     }
     schedulePreview();
     scheduleSave();
@@ -198,8 +206,9 @@
   // 結構改變（增刪、換位、旋轉、開關）：清單與預覽整個重畫
   function render() {
     renderControls();
-    renderList();
+    renderGrid();
     renderPreview();
+    if ($("#editor").open) renderEditor();
   }
 
   function commit() {
@@ -225,53 +234,112 @@
     Object.entries(TOGGLES).forEach(([id, key]) => $("#" + id).setAttribute("aria-pressed", String(state[key])));
   }
 
-  function cardHtml(it, i, n) {
-    const lockLoc = state.sameLoc && i > 0;
-    const lockDate = state.sameDate && i > 0;
-    return `<article class="photo-card" data-id="${it.id}" data-idx="${i}">
-      <div class="photo-card-head"><strong>No.${i + 1}</strong><span>${i + 1} / ${n}</span></div>
-      <div class="photo-card-body">
-        <div class="thumb"><img src="${esc(it.src)}" alt="No.${i + 1} 照片"></div>
-        <div class="photo-card-fields">
-          <label class="field"><span>施工地點${lockLoc ? '　<em class="locked-tag">與第一張同步</em>' : ""}</span>
-            <input type="text" data-field="loc" value="${esc(it.loc)}" maxlength="60" placeholder="例：4F客室漏水" ${lockLoc ? "disabled" : ""}></label>
-          <label class="field"><span>日期${lockDate ? '　<em class="locked-tag">與第一張同步</em>' : ""}</span>
-            <input type="date" data-field="date" value="${esc(it.date)}" ${lockDate ? "disabled" : ""}></label>
-          <label class="field"><span>改善內容</span>
-            <textarea data-field="content" rows="2" maxlength="200" placeholder="例：打針改善">${esc(it.content)}</textarea></label>
-        </div>
-      </div>
-      <div class="photo-card-actions">
-        <button class="btn small" type="button" data-act="rotate">旋轉</button>
-        <button class="btn small" type="button" data-act="replace">換照片</button>
-        <button class="btn small" type="button" data-act="up" ${i === 0 ? "disabled" : ""}>上移</button>
-        <button class="btn small" type="button" data-act="down" ${i === n - 1 ? "disabled" : ""}>下移</button>
-        <button class="btn small danger" type="button" data-act="remove">刪除</button>
-      </div>
-    </article>`;
+  // ---------- 縮圖格 ----------
+  // 每格只有縮圖與編號；施工地點還沒填的，右上角有紅點。填寫在編輯面板裡，不在格子上。
+  function tileHtml(it, i) {
+    const needsLoc = !it.loc;
+    return `<button class="tile" type="button" data-id="${it.id}" data-idx="${i}" aria-label="No.${i + 1}${needsLoc ? "，施工地點還沒填" : ""}">
+      <img src="${esc(it.src)}" alt="">
+      <span class="tile-no" aria-hidden="true">${i + 1}</span>
+      ${needsLoc ? '<span class="tile-dot" aria-hidden="true"></span>' : ""}
+    </button>`;
   }
 
-  function renderList() {
-    const box = $("#list");
+  function renderGrid() {
     const n = state.items.length;
-    $("#listCount").textContent = `${n} 張`;
-    if (!n) {
-      box.innerHTML = '<p class="empty-list">還沒有照片。點「新增照片」，或直接把照片拖進來。</p>';
-      return;
-    }
-    box.innerHTML = state.items.map((it, i) => cardHtml(it, i, n)).join("");
+    $("#photoCount").textContent = `${n} 張`;
+    $("#tabCount").textContent = String(n);
+    $("#emptyNote").hidden = n > 0;
+    $("#grid").innerHTML = state.items.map((it, i) => tileHtml(it, i)).join("")
+      + '<button class="tile tile-add" type="button" data-add="1"><span aria-hidden="true">＋</span><span>新增</span></button>';
+    refreshGridDots();
   }
 
-  // 第一張的地點／日期改變時，同步其他張的欄位值（不重建清單，避免游標跳掉）
+  // ---------- 編輯面板 ----------
+  const indexOfId = id => state.items.findIndex(i => i.id === id);
+
+  function openEditor(idx) {
+    const it = state.items[idx];
+    if (!it) return;
+    editingId = it.id;
+    const dialog = $("#editor");
+    if (!dialog.open) dialog.showModal();   // 要先打開：refreshEditor 只在面板開著時才填欄位
+    renderEditor();
+  }
+
+  function closeEditor() {
+    const dialog = $("#editor");
+    if (dialog.open) dialog.close();
+    editingId = null;
+  }
+
+  function stepEditor(dir) {
+    const idx = indexOfId(editingId) + dir;
+    if (idx < 0 || idx >= state.items.length) return;
+    editingId = state.items[idx].id;
+    renderEditor();
+  }
+
+  function renderEditor() {
+    const idx = indexOfId(editingId);
+    if (idx < 0) { closeEditor(); return; }
+    const it = state.items[idx];
+    const n = state.items.length;
+    $("#edTitle").textContent = `No.${idx + 1} ／ ${n}`;
+    // 照片由 JS 放進去（不在 HTML 裡留空的 <img>）
+    const photo = document.createElement("img");
+    photo.alt = "";
+    photo.src = it.src;
+    $("#edPhoto").replaceChildren(photo);
+    $("#edPrev").disabled = idx === 0;
+    $("#edNext").disabled = idx === n - 1;
+    $("#edUp").disabled = idx === 0;
+    $("#edDown").disabled = idx === n - 1;
+    refreshEditor(true);
+  }
+
+  // force＝false 時，正在打字的欄位不覆寫，免得游標跳掉
+  function refreshEditor(force = false) {
+    if (!$("#editor").open) return;
+    const idx = indexOfId(editingId);
+    if (idx < 0) return;
+    const it = state.items[idx];
+    const locLocked = state.sameLoc && idx > 0;
+    const dateLocked = state.sameDate && idx > 0;
+    const sync = (sel, value, disabled) => {
+      const el = $(sel);
+      el.disabled = disabled;
+      if ((force || document.activeElement !== el) && el.value !== value) el.value = value;
+    };
+    sync("#edLoc", it.loc, locLocked);
+    sync("#edDate", it.date, dateLocked);
+    sync("#edContent", it.content, false);
+    $("#edLocLock").hidden = !locLocked;
+    $("#edDateLock").hidden = !dateLocked;
+  }
+
+  // 第一張的地點／日期改了：面板與紅點跟著更新（不重建縮圖，打字時不會一直重畫）
   function refreshValues() {
-    $$("#list .photo-card").forEach((card, i) => {
-      const it = state.items[i];
-      if (!it || card.dataset.id !== it.id) return;
-      card.querySelectorAll("[data-field]").forEach(el => {
-        const value = it[el.dataset.field] ?? "";
-        if (document.activeElement !== el && el.value !== value) el.value = value;
-      });
+    refreshEditor();
+    refreshGridDots();
+  }
+
+  function refreshGridDots() {
+    const byId = new Map(state.items.map(it => [it.id, it]));
+    $$("#grid .tile[data-id]").forEach(tile => {
+      const it = byId.get(tile.dataset.id);
+      if (!it) return;
+      const dot = tile.querySelector(".tile-dot");
+      if (!it.loc && !dot) {
+        const made = document.createElement("span");
+        made.className = "tile-dot";
+        made.setAttribute("aria-hidden", "true");
+        tile.append(made);
+      } else if (it.loc && dot) {
+        dot.remove();
+      }
     });
+    $("#legend").hidden = !state.items.some(it => !it.loc);
   }
 
   function emptyCellHtml(idx, forExport) {
@@ -390,14 +458,6 @@
     $("#pvMeta").textContent = `${P.label}・每頁 ${P.per} 張・共 ${pageCount()} 頁・${state.items.length} 張照片`;
   }
 
-  function flashCard(id) {
-    const card = $(`.photo-card[data-id="${id}"]`);
-    if (!card) return;
-    card.scrollIntoView({ behavior: "smooth", block: "center" });
-    card.classList.add("flash");
-    setTimeout(() => card.classList.remove("flash"), 1200);
-  }
-
   // ---------- 提示與狀態 ----------
   // 訊息文字加上選填的按鈕；toast 與狀態列共用
   function fillMessage(el, message, action, buttonClass) {
@@ -468,10 +528,12 @@
     clearTimeout(saveTimer);
     try {
       await idb("readwrite", store => store.put(state, KEY));
-      const t = new Date();
-      $("#saveState").textContent = `已自動保存（${pad(t.getHours())}:${pad(t.getMinutes())}）。資料只存在這個瀏覽器。`;
     } catch (error) {
-      $("#saveState").textContent = "這個瀏覽器無法自動保存，請用「儲存專案檔」備份。";
+      // 平常靜默保存；只有存不了時提醒一次（例如私密瀏覽），不要每次編輯都跳出來
+      if (!autosaveWarned) {
+        autosaveWarned = true;
+        toast("這個瀏覽器無法自動保存，請用「儲存專案檔」備份。");
+      }
     }
   }
 
@@ -705,11 +767,11 @@
   }
 
   function dropTarget(target) {
-    const card = target.closest(".photo-card");
-    if (card) return { el: card, at: Number(card.dataset.idx) };
+    const tile = target.closest(".tile[data-idx]");
+    if (tile) return { el: tile, at: Number(tile.dataset.idx) };
     const cell = target.closest(".sh-cell[data-idx]");
     if (cell) return { el: cell, at: Number(cell.dataset.idx) };
-    const zone = target.closest("#dropzone, .sheet-frame");
+    const zone = target.closest(".tile-add, #grid, .sheet-frame");
     if (zone) return { el: zone, at: null };
     return null;
   }
@@ -726,10 +788,11 @@
     else await importFiles(list, at);
   }
 
-  function onListField(event) {
-    const el = event.target;
-    const card = el.closest(".photo-card");
-    if (card && el.dataset.field) setField(card.dataset.id, el.dataset.field, el.value);
+  function setView(view) {
+    $("#sheet-tool").dataset.view = view;
+    $$("[data-view-tab]").forEach(btn => btn.setAttribute("aria-selected", String(btn.dataset.viewTab === view)));
+    // 預覽從隱藏變成顯示時，寬度才會有值；延後一拍再排版
+    if (view === "preview") setTimeout(layoutFrames, 0);
   }
 
   function wire() {
@@ -759,7 +822,6 @@
 
     $("#btnPick").addEventListener("click", () => pick("inPick"));
     $("#btnCamera").addEventListener("click", () => pick("inCamera"));
-    $("#dropzone").addEventListener("click", () => pick("inPick"));
     $("#inPick").addEventListener("change", handlePicked);
     $("#inCamera").addEventListener("change", handlePicked);
 
@@ -780,29 +842,38 @@
       if (file) await openProjectFile(file);
     });
 
-    ["input", "change"].forEach(type => $("#list").addEventListener(type, onListField));
-    $("#list").addEventListener("click", event => {
-      const btn = event.target.closest("button[data-act]");
-      if (!btn) return;
-      const id = btn.closest(".photo-card").dataset.id;
-      switch (btn.dataset.act) {
-        case "rotate": {
-          const it = state.items.find(i => i.id === id);
-          if (it) rotateItem(it).then(commit).catch(() => toast("旋轉失敗"));
-          break;
-        }
-        case "replace": pick("inPick", id); break;
-        case "up": moveItem(id, -1); break;
-        case "down": moveItem(id, 1); break;
-        case "remove": removeItem(id); break;
-        default: break;
-      }
+    // 縮圖格：點格子開編輯面板；最後一格是「新增」
+    $("#grid").addEventListener("click", event => {
+      if (event.target.closest("[data-add]")) { pick("inPick"); return; }
+      const tile = event.target.closest(".tile[data-idx]");
+      if (tile) openEditor(Number(tile.dataset.idx));
     });
 
+    // 編輯面板：欄位即時寫入；動作按鈕與 ‹ › 切換
+    $("#edLoc").addEventListener("input", event => setField(editingId, "loc", event.target.value));
+    $("#edContent").addEventListener("input", event => setField(editingId, "content", event.target.value));
+    $("#edDate").addEventListener("input", event => setField(editingId, "date", event.target.value));
+    $("#edDate").addEventListener("change", event => setField(editingId, "date", event.target.value));
+    $("#edPrev").addEventListener("click", () => stepEditor(-1));
+    $("#edNext").addEventListener("click", () => stepEditor(1));
+    $("#edClose").addEventListener("click", closeEditor);
+    $("#editor").addEventListener("close", () => { editingId = null; });
+    $("#edRotate").addEventListener("click", () => {
+      const it = state.items.find(i => i.id === editingId);
+      if (it) rotateItem(it).then(commit).catch(() => toast("旋轉失敗"));
+    });
+    $("#edReplace").addEventListener("click", () => pick("inPick", editingId));
+    $("#edUp").addEventListener("click", () => moveItem(editingId, -1));
+    $("#edDown").addEventListener("click", () => moveItem(editingId, 1));
+    $("#edRemove").addEventListener("click", () => removeItem(editingId));
+
+    // 手機上方的分頁：表頭／照片／預覽
+    $$("[data-view-tab]").forEach(btn => btn.addEventListener("click", () => setView(btn.dataset.viewTab)));
+
+    // 預覽：點有照片的格子開編輯面板
     $("#preview").addEventListener("click", event => {
-      if (event.target.closest("[data-add]")) { pick("inPick"); return; }
-      const cell = event.target.closest(".sh-cell[data-id]");
-      if (cell) flashCard(cell.dataset.id);
+      const cell = event.target.closest(".sh-cell[data-idx]");
+      if (cell && !cell.classList.contains("empty")) openEditor(Number(cell.dataset.idx));
     });
 
     // 拖曳：照片可拖到清單卡片、預覽格子或下方的拖曳區；拖到哪裡就插入哪一格（之後的順延）
@@ -831,16 +902,29 @@
       if (document.hidden) saveNow();
     });
 
-    // 預覽的高度是 layoutFrames 自己改的；只有寬度變了才需要重排，避免自己觸發自己
+    // 預覽的高度是 layoutFrames 自己改的：只有寬度變了才需要重排；而且不能在回呼裡直接改被觀察元素的尺寸
+    // （瀏覽器會報 "ResizeObserver loop completed with undelivered notifications"），所以延到回呼之外
     new ResizeObserver(entries => {
       const width = Math.round(entries[0].contentRect.width);
       if (width === lastPreviewWidth) return;
       lastPreviewWidth = width;
-      layoutFrames();
+      setTimeout(layoutFrames, 0);
     }).observe($("#preview"));
   }
 
+  // 右下角的浮動按鈕：Gooey 選單（export-menu.js 共用）。項目由左到上排：
+  // 清空放在離拇指最遠的位置，最不會誤觸；新增放在正上方，最順手。
+  function mountPhotoMenu() {
+    const { mount, icon } = window.GooeyMenu;
+    mount($("#photo-fab"), $("#photoMenuButton"), [
+      { id: "btnClear", label: "清空", aria: "清空全部照片", icon: icon('<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>') },
+      { id: "btnCamera", label: "拍照", aria: "拍照", icon: icon('<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>') },
+      { id: "btnPick", label: "新增", aria: "新增照片", icon: icon('<path d="M12 5v14M5 12h14"/>') }
+    ]);
+  }
+
   function init() {
+    mountPhotoMenu();   // 要在 wire() 之前：選單項目（#btnPick 等）是這裡產生的
     wire();
     render();
     restore();

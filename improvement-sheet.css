@@ -201,7 +201,9 @@ body { font-family: var(--glass-font); }
 .export-fab-item span { font-size: 11px; }
 @media (prefers-reduced-motion: reduce) { .dock-primary svg { transition: none; } }
 /* 手機：按鈕固定在畫面角落，照片面板底部多留一塊空間，最後一排縮圖才不會被蓋住 */
-@media (max-width: 979px) { .pane[data-pane="photos"] { padding-bottom: 96px; } }
+@media (max-width: 979px) { .pane { padding-bottom: 96px; } }
+/* 電腦版三個區塊同時可見，只留照片區的選單，表頭與預覽的選單隱藏 */
+@media (min-width: 980px) { .fab-dock.is-mobile-only { display: none; } }
 /* 電腦：按鈕黏在左欄（照片面板）的右下角，不蓋到右邊的預覽 */
 @media (min-width: 980px) {
   .fab-dock { position: sticky; right: auto; bottom: 12px; display: flex; justify-content: flex-end; margin-top: 12px; pointer-events: none; }

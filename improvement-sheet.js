@@ -28,14 +28,17 @@
 
   // 控制項與狀態欄位的對應：畫面同步與事件綁定都用這三張表
   const TEXT = { fProject: "project", fWork: "work", fContractor: "contractor" };
-  const RADIOS = ["paper", "fit", "side"];
+  const RADIOS = ["paper", "fit", "side", "lang"];
   const TOGGLES = { togDate: "sameDate", togLoc: "sameLoc" };
 
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
+  // 第一次開啟時，瀏覽器語言是日文就預設輸出日文；其他一律繁體中文
+  const defaultLang = () => (/^ja\b/i.test(navigator.language || "") ? "ja" : "zh");
+
   function blank() {
-    return { paper: "a4", fit: "auto", side: "left", sameDate: false, sameLoc: false, project: "", work: "", contractor: "", items: [] };
+    return { paper: "a4", fit: "auto", side: "left", lang: defaultLang(), sameDate: false, sameLoc: false, project: "", work: "", contractor: "", items: [] };
   }
   let state = blank();
   let editingId = null;          // 編輯面板目前顯示的照片；面板關閉時是 null
@@ -384,6 +387,14 @@
     });
   }
 
+  // 輸出語言：表單上印出來的欄位名稱與預設檔名。介面文字不在這裡，維持中文。
+  // 日文用語是暫定，確認後只要改這張表。
+  const SHEET_TEXT = {
+    zh: { date: "施工日期", loc: "施工地點", project: "工程名稱", work: "施工項目", contractor: "承包單位", fileFallback: "改善表" },
+    ja: { date: "施工日", loc: "施工場所", project: "工事名", work: "工種", contractor: "請負業者", fileFallback: "是正写真" }
+  };
+  const sheetText = () => SHEET_TEXT[state.lang] || SHEET_TEXT.zh;
+
   function emptyCellHtml(idx, forExport) {
     return `<div class="sh-cell empty" data-idx="${idx}">
       <div class="sh-cell-title"><span class="sh-no">No.${idx + 1}</span></div>
@@ -407,21 +418,22 @@
   function sheetHtml(p, forExport) {
     const P = PAPER[state.paper];
     const loc = shownLoc();
+    const T = sheetText();
     const cells = [];
     for (let j = 0; j < P.per; j += 1) {
       const idx = p * P.per + j;
       cells.push(idx < state.items.length ? filledCellHtml(state.items[idx], idx) : emptyCellHtml(idx, forExport));
     }
-    return `<section class="sheet ${state.paper} side-${state.side}" data-page="${p}">
+    return `<section class="sheet ${state.paper} side-${state.side}" lang="${state.lang === "ja" ? "ja" : "zh-Hant"}" data-page="${p}">
       <header class="sh-head">
         <div class="sh-top">
-          <div class="sh-date"><b>施工日期</b><span>${esc(dateRange())}</span></div>
-          <div class="sh-loc"${loc ? "" : " hidden"}><b>施工地點</b><span>${esc(loc)}</span></div>
+          <div class="sh-date"><b>${T.date}</b><span>${esc(dateRange())}</span></div>
+          <div class="sh-loc"${loc ? "" : " hidden"}><b>${T.loc}</b><span>${esc(loc)}</span></div>
         </div>
-        <div class="sh-row sh-proj"><div><b>工程名稱</b><span>${esc(state.project)}</span></div></div>
+        <div class="sh-row sh-proj"><div><b>${T.project}</b><span>${esc(state.project)}</span></div></div>
         <div class="sh-row sh-two">
-          <div><b>施工項目</b><span>${esc(state.work)}</span></div>
-          <div><b>承包單位</b><span>${esc(state.contractor)}</span></div>
+          <div><b>${T.work}</b><span>${esc(state.work)}</span></div>
+          <div><b>${T.contractor}</b><span>${esc(state.contractor)}</span></div>
         </div>
       </header>
       <div class="sh-grid">${cells.join("")}</div>
@@ -598,6 +610,7 @@
     s.paper = PAPER[d.paper] ? d.paper : "a4";
     s.fit = FIT_OPTIONS.includes(d.fit) ? d.fit : "auto";
     s.side = d.side === "right" ? "right" : "left";
+    s.lang = d.lang === "ja" ? "ja" : "zh";   // 舊專案檔沒有這欄：當時只有中文
     s.sameDate = !!d.sameDate;
     s.sameLoc = !!d.sameLoc;
     s.project = str(d.project, 60);
@@ -621,7 +634,7 @@
   function fileName(ext) {
     const clean = s => String(s || "").replace(/[\\/:*?"<>|\s]+/g, "");
     const parts = [clean(state.project), clean(state.work)].filter(Boolean);
-    return `${photoDays()[0] || today()}_${(parts.length ? parts : ["改善表"]).join("_")}.${ext}`;
+    return `${photoDays()[0] || today()}_${(parts.length ? parts : [sheetText().fileFallback]).join("_")}.${ext}`;
   }
 
   async function saveProject() {
@@ -1040,7 +1053,9 @@
   function clearEverything() {
     if (!hasContent()) { toast("目前沒有內容可以清除"); return; }
     if (!confirm("清除表頭與照片的內容？\n此動作無法復原。")) return;
+    const lang = state.lang;
     state = blank();
+    state.lang = lang;
     commit();
     saveNow();
   }

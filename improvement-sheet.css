@@ -295,3 +295,6 @@ body { font-family: var(--glass-font); }
 .header-trash { display: grid; place-items: center; width: 44px; height: 44px; margin-right: -11px; padding: 0; border: 0; background: none; box-shadow: none; color: var(--glass-icon); cursor: pointer; }
 .header-trash svg { width: 22px; height: 22px; }
 .header-trash:focus-visible { outline: 3px solid var(--glass-accent); outline-offset: 3px; }
+
+/* 日文輸出：表單標上 lang="ja"，漢字用日文字型（直、骨等字形與繁體中文不同）；找不到時退回繁中字型 */
+.sheet:lang(ja) { font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", "Noto Sans JP", "Noto Sans TC", sans-serif; }

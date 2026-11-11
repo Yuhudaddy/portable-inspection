@@ -921,9 +921,10 @@
     const ACTS = {
       pick: () => { setView("photos"); pick("inPick"); },
       camera: () => { setView("photos"); pick("inCamera"); },
-      clear: clearAll
+      clear: clearPhotos
     };
     $$(".export-fab-item[data-act]").forEach(item => item.addEventListener("click", () => ACTS[item.dataset.act]()));
+    $("#btnClearAll").addEventListener("click", clearEverything);
 
     $("#btnExport").addEventListener("click", exportPdf);
     $("#btnSaveProject").addEventListener("click", saveProject);
@@ -1007,7 +1008,7 @@
 
   // 右下角的浮動按鈕：Gooey 選單（export-menu.js 共用）。項目由左到上排：
   // 清空放在離拇指最遠的位置，最不會誤觸；新增放在正上方，最順手。
-  // 一顆 Gooey Menu，三個分頁都看得到，項目固定是新增、拍照、全部清除。
+  // 一顆 Gooey Menu，三個分頁都看得到，項目固定是新增、拍照、清除（清照片）。
   const GLYPH = {
     trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
     camera: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
@@ -1016,7 +1017,7 @@
   function mountMenus() {
     const { mount, icon } = window.GooeyMenu;
     const items = [
-      { id: "btnClear", act: "clear", label: "全部清除", aria: "全部清除（照片與表頭文字）", glyph: "trash" },
+      { id: "btnClear", act: "clear", label: "清除", aria: "清除全部照片", glyph: "trash" },
       { id: "btnCamera", act: "camera", label: "拍照", aria: "拍照", glyph: "camera" },
       { id: "btnPick", act: "pick", label: "新增", aria: "新增照片", glyph: "plus" }
     ];
@@ -1026,10 +1027,19 @@
     nodes.forEach((node, i) => { node.dataset.act = items[i].act; });
   }
 
-  // 全部清除：照片與表頭文字一起清掉（會先確認）
-  function clearAll() {
-    if (!hasContent()) return;
-    if (!confirm("清空全部照片與表頭文字？")) return;
+  // 清除照片：只清照片，表頭文字保留（照片分頁的選單）
+  function clearPhotos() {
+    if (!state.items.length) { toast("目前沒有照片可以清除"); return; }
+    if (!confirm("清除全部照片？\n表頭文字會保留，此動作無法復原。")) return;
+    state.items = [];
+    commit();
+    saveNow();
+  }
+
+  // 清除表頭與照片（標題列右上角的垃圾桶）
+  function clearEverything() {
+    if (!hasContent()) { toast("目前沒有內容可以清除"); return; }
+    if (!confirm("清除表頭與照片的內容？\n此動作無法復原。")) return;
     state = blank();
     commit();
     saveNow();

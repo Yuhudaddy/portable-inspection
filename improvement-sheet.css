@@ -288,3 +288,8 @@ body { font-family: var(--glass-font); }
   font-family: var(--glass-font-num);
   font-variant-numeric: tabular-nums;
 }
+
+/* 標題列：返回在左、垃圾桶在右；垃圾桶只畫線條，不填滿 */
+.header-nav { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.header-trash { display: inline-grid; place-items: center; width: 44px; padding: 0; color: var(--glass-icon); cursor: pointer; }
+.header-trash:focus-visible { outline: 3px solid var(--glass-accent); outline-offset: 3px; }

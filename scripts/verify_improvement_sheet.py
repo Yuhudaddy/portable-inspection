@@ -4,7 +4,7 @@
 navigator.share 換成會把檔案收起來的假的，再用 PyMuPDF 檢查收到的 PDF：頁數、紙張（A4 直式／A3 橫式）、
 每頁有內容且滿版、有照片的色彩、標題資訊、檔名、分享內容只有一個檔案。
 另外檢查：手勢失效（NotAllowedError）改顯示「分享」按鈕、產生中取消、不能分享檔案時改下載、
-電腦走 window.print()、右下角浮動按鈕（Gooey 選單）、專案檔存與開（含 iPhone 走分享）、沒有頁面錯誤或 CSP 違規。
+電腦走 window.print()、右下角浮動按鈕（Gooey 選單）、檔名帶入、編輯面板的收起手勢、專案檔存與開（含 iPhone 走分享）、沒有頁面錯誤或 CSP 違規。
 PDF 的組檔、轉圖重試、進度橫幅與分享遞送是 pdf-share.js 共用的；它自己的純函式檢查在 scripts/verify_pdf_share.mjs。
 """
 import base64
@@ -66,6 +66,35 @@ MAKE_PHOTOS = """async (n) => {
   const input = document.getElementById('inPick'); input.files = dt.files; input.dispatchEvent(new Event('change'));
 }"""
 
+# 用指定檔名產生彩色 JPEG（測試「施工地點_改善內容.jpg」的檔名帶入）
+MAKE_NAMED = """async (names) => {
+  const files = [];
+  for (const name of names) {
+    const canvas = document.createElement('canvas'); canvas.width = 1200; canvas.height = 900;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#2a7'; ctx.fillRect(0, 0, 1200, 900);
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9));
+    files.push(new File([blob], name, { type: 'image/jpeg' }));
+  }
+  const dt = new DataTransfer(); files.forEach(file => dt.items.add(file));
+  const input = document.getElementById('inPick'); input.files = dt.files; input.dispatchEvent(new Event('change'));
+}"""
+
+# 在指定元素上送出一串觸控事件（touchstart → 幾次 touchmove → touchend），模擬手指往下／往上拖
+TOUCH_SWIPE = """async ({ selector, steps }) => {
+  const el = document.querySelector(selector);
+  const r = el.getBoundingClientRect();
+  const x = r.left + r.width / 2, y = r.top + r.height / 2;
+  const make = (type, yy) => {
+    const t = new Touch({ identifier: 7, target: el, clientX: x, clientY: yy, pageX: x, pageY: yy, screenX: x, screenY: yy });
+    const live = type === 'touchend' ? [] : [t];
+    return new TouchEvent(type, { bubbles: true, cancelable: true, touches: live, targetTouches: live, changedTouches: [t] });
+  };
+  el.dispatchEvent(make('touchstart', y));
+  for (const dy of steps) { el.dispatchEvent(make('touchmove', y + dy)); await new Promise(resolve => setTimeout(resolve, 16)); }
+  el.dispatchEvent(make('touchend', y + steps[steps.length - 1]));
+}"""
+
 failures = []
 
 
@@ -76,6 +105,17 @@ def check(ok, name, detail=""):
         if detail:
             print(f"    {detail}")
     return ok
+
+
+def read_saved(page):
+    """讀 IndexedDB 裡自動保存的狀態"""
+    return page.evaluate("""() => new Promise(resolve => {
+      const request = indexedDB.open('improvement-sheet', 1);
+      request.onsuccess = () => {
+        const get = request.result.transaction('kv').objectStore('kv').get('state');
+        get.onsuccess = () => { resolve(get.result); request.result.close(); };
+      };
+    })""")
 
 
 def decode(shared):
@@ -156,6 +196,8 @@ try:
         desktop.add_init_script(STUBS)
         iphone = webkit.new_context(**p.devices["iPhone 14"], service_workers="block")
         iphone.add_init_script(STUBS)
+        android = chrome.new_context(**p.devices["Pixel 7"], service_workers="block")
+        android.add_init_script(STUBS)
 
         # ---- A3 橫式、14 張：12 ＋ 2，共 2 頁（Chrome，?export=share）----
         print("== A3 橫式 14 張（Chrome）")
@@ -341,6 +383,98 @@ try:
         page.wait_for_selector("#editor[open]", timeout=5000)
         check(page.evaluate("() => document.querySelectorAll('#grid .tile').length === document.querySelectorAll('#grid .tile[data-id]').length"), "縮圖格裡只有照片格，沒有「新增」格")
         page.click("#edClose")
+        page.close()
+
+        # ---- 檔名帶入：施工地點_改善內容.jpg ----
+        print("== 檔名帶入施工地點與改善內容")
+        page = open_sheet(desktop, paper="a4", photos=0, errors=errors)
+        names = ["4F客室漏水_打針改善.jpg", "IMG_1234.jpg", "3F走廊_補強_第二層.png", "漏水.jpg", "5F機房＿滲水 (1).jpg", "2F樓梯_補平_20261026.jpg"]
+        page.evaluate(MAKE_NAMED, names)
+        page.wait_for_function("() => document.querySelectorAll('#grid .tile[data-id]').length === 6", timeout=60000)
+        page.wait_for_selector("#editor[open]", timeout=10000)
+        check(page.inner_text("#edTitle").startswith("No.2"), f"有照片沒帶入地點時，面板直接打開在第一張沒填的（{page.inner_text('#edTitle')}）")
+        page.click("#edClose")
+        page.wait_for_timeout(1900)   # 等自動保存
+        saved_items = read_saved(page)["items"]
+        got = [(item["loc"], item["content"]) for item in saved_items]
+        want = [("4F客室漏水", "打針改善"), ("", ""), ("3F走廊", "補強 第二層"), ("", "漏水"), ("5F機房", "滲水"), ("2F樓梯", "補平")]
+        check(got == want, "檔名帶入結果正確（IMG_1234 不帶；沒有底線的「漏水」整個當改善內容）", f"實際 {got}")
+        check(saved_items[5]["date"] == "2026-10-26", f"檔名尾端的日期 20261026 帶入為 2026-10-26（{saved_items[5]['date']}）")
+        check(page.evaluate("() => document.querySelectorAll('.tile-dot').length") == 2, "沒帶入地點的 2 張有紅點")
+        page.close()
+
+        page = open_sheet(desktop, paper="a4", photos=0, errors=errors)
+        page.evaluate(MAKE_NAMED, ["4F_打針.jpg", "5F_補強.jpg"])
+        page.wait_for_function("() => document.querySelectorAll('#grid .tile[data-id]').length === 2", timeout=60000)
+        page.wait_for_timeout(600)
+        check(not page.evaluate("() => document.getElementById('editor').open"), "每張都已帶入地點時，不會自動打開面板")
+        check("已從檔名帶入 2 張" in page.inner_text("#toast"), f"改顯示提示：{page.inner_text('#toast')}")
+        page.close()
+
+        # ---- 編輯面板：初始焦點、× 按鈕、點背景、Esc ----
+        print("== 編輯面板：焦點、關閉鍵、點背景、Esc")
+        page = open_sheet(desktop, paper="a4", photos=2, errors=errors)
+        page.click('#grid .tile[data-idx="0"]')
+        page.wait_for_selector("#editor[open]", timeout=5000)
+        check(page.evaluate("() => document.activeElement && document.activeElement.id") == "editor", "打開時焦點在面板本身，不在任何按鈕上")
+        check(page.evaluate("() => !!document.querySelector('#edClose svg') && document.getElementById('edClose').textContent.trim() === ''"), "關閉鍵是 × 圖示，沒有文字")
+        page.mouse.click(5, 5)
+        page.wait_for_function("() => !document.getElementById('editor').open", timeout=3000)
+        check(True, "點背景會收起面板")
+        page.click('#grid .tile[data-idx="1"]')
+        page.wait_for_selector("#editor[open]", timeout=5000)
+        page.keyboard.press("Escape")
+        page.wait_for_function("() => !document.getElementById('editor').open", timeout=3000)
+        check(True, "按 Esc 會收起面板")
+        page.close()
+
+        print("== 編輯面板（iPhone）：焦點、點背景")
+        page = open_sheet(iphone, query="", paper="a4", photos=2, errors=errors)
+        page.click('[data-view-tab="photos"]')
+        page.click('#grid .tile[data-idx="0"]')
+        page.wait_for_selector("#editor[open]", timeout=5000)
+        check(page.evaluate("() => document.activeElement && document.activeElement.id") == "editor", "手機：打開時焦點在面板本身，右上角的關閉鍵不會被選到")
+        page.mouse.click(20, 20)
+        page.wait_for_function("() => !document.getElementById('editor').open", timeout=3000)
+        check(True, "手機：點面板外的背景會收起")
+        page.close()
+
+        print("== 編輯面板（Android 觸控）：往下滑收起")
+        page = open_sheet(android, query="", paper="a4", photos=2, errors=errors)
+        page.click('[data-view-tab="photos"]')
+
+        def open_editor():
+            page.click('#grid .tile[data-idx="0"]')
+            page.wait_for_selector("#editor[open]", timeout=5000)
+            page.wait_for_timeout(450)   # 等滑入動畫播完
+
+        def swipe(selector, steps):
+            page.evaluate(TOUCH_SWIPE, {"selector": selector, "steps": steps})
+            page.wait_for_timeout(450)
+
+        is_open = lambda: page.evaluate("() => document.getElementById('editor').open")
+        inline = lambda: page.evaluate("() => document.getElementById('editor').style.transform")
+
+        open_editor()
+        swipe(".ed-head strong", [10, 20, 40])
+        check(is_open() and inline() == "", "從標題列只往下拖一小段：面板彈回原位，不會收起")
+        swipe(".ed-head strong", [-20, -60])
+        check(is_open() and inline() == "", "往上滑：不收起，也不會被拖動")
+        swipe(".ed-head strong", [20, 80, 160, 240])
+        check(not is_open() and inline() == "", "從標題列往下拖超過一段距離：面板收起，位移也歸零")
+        open_editor()
+        swipe(".ed-photo", [30, 100, 200])
+        check(not is_open(), "從照片上往下拖：收起")
+        open_editor()
+        swipe(".ed-actions", [30, 100, 200])
+        check(not is_open(), "從下方動作列（旋轉、換照片…）往下拖：收起")
+        open_editor()
+        swipe("#edContent", [30, 100, 200])
+        check(is_open(), "從輸入框開始往下拖：不收起（要留給選字與移動游標）")
+        scrolled = page.evaluate("() => { const d = document.getElementById('editor'); d.style.maxHeight = '260px'; d.scrollTop = 40; return d.scrollTop; }")
+        swipe(".ed-actions", [30, 100, 200])
+        check(scrolled > 0 and is_open(), f"內容已經捲動過（scrollTop={scrolled}）時往下拖：是在捲動內容，不收起")
+        page.evaluate("() => { document.getElementById('editor').style.maxHeight = ''; }")
         page.close()
 
         # ---- 專案檔：iPhone 走分享，存出來再開回去 ----

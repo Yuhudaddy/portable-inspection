@@ -77,13 +77,44 @@
     if (s.sameLoc) s.items.forEach(it => { it.loc = first.loc; });
   }
 
-  function newItem(img) {
+  // 檔名自動帶入欄位。格式：「施工地點_改善內容.jpg」，後面可再加日期「施工地點_改善內容_20261026.jpg」。
+  // 規則刻意保守，寧可不帶也不要帶錯：
+  //   ・ 用底線（_ 或 ＿）切開：第一段是地點，中間是內容（多段用空白連起來）；最後一段若是日期（20261026、2026-10-26）就當日期。
+  //   ・ 沒有底線：整個檔名當「改善內容」（例如「漏水.jpg」）。
+  //   ・ 相機與通訊軟體的預設檔名一律略過：IMG_1234、IMG1234、DSC01234、PXL_2026…、20261026_153000、微信图片…、Screenshot…。
+  //   ・ 檔名尾端 Windows／Mac 重複檔案加的「 (1)」會先去掉；內容只剩數字（例如「_2」）就不當內容。
+  const CAMERA_PREFIX = /^(?:IMG|DSC|DSCN|DSCF|PXL|MVIMG|IMAG|PHOTO|VID|WP|LINE|Screenshot|image|微信图片|微信圖片|螢幕截圖|螢幕快照|截圖|相片|照片)/i;
+  const DATE_TAIL = /^(\d{4})[-./]?(\d{2})[-./]?(\d{2})$/;
+  function parseFileName(name) {
+    const base = String(name || "").replace(/\.[^.]+$/, "").replace(/\s*[(（]\d+[)）]\s*$/, "").trim();
+    if (!base || CAMERA_PREFIX.test(base) || /^[A-Za-z]{1,6}[-_ ]?\d{3,}/.test(base) || /^[\d\s._:-]*$/.test(base)) return {};
+    const parts = base.split(/[_＿]/).map(part => part.trim());
+    const hadUnderscore = parts.length > 1;
+    let date = "";
+    const m = hadUnderscore && DATE_TAIL.exec(parts[parts.length - 1]);
+    if (m && +m[2] >= 1 && +m[2] <= 12 && +m[3] >= 1 && +m[3] <= 31) {
+      date = `${m[1]}-${m[2]}-${m[3]}`;
+      parts.pop();
+    }
+    const meta = {};
+    if (hadUnderscore) {
+      if (parts[0]) meta.loc = parts[0].slice(0, 60);
+      const content = parts.slice(1).filter(Boolean).join(" ");
+      if (content && !/^[\d\s._:-]*$/.test(content)) meta.content = content.slice(0, 200);
+    } else {
+      meta.content = base.slice(0, 200);
+    }
+    if (date) meta.date = date;
+    return meta;
+  }
+
+  function newItem(img, meta = {}) {
     const first = state.items[0];
     return {
       id: uid(), src: img.src, w: img.w, h: img.h,
-      loc: first && state.sameLoc ? first.loc : "",
-      date: first && state.sameDate ? first.date : today(),
-      content: ""
+      loc: first && state.sameLoc ? first.loc : (meta.loc || ""),
+      date: first && state.sameDate ? first.date : (meta.date || today()),
+      content: meta.content || ""
     };
   }
 
@@ -137,8 +168,13 @@
     showStatus(`正在加入 ${list.length} 張照片…`);
     const added = [];
     let failed = 0;
+    let named = 0;
     for (const file of list) {
-      try { added.push(newItem(await fileToImage(file))); } catch (error) { failed += 1; }
+      try {
+        const meta = parseFileName(file.name);
+        added.push(newItem(await fileToImage(file), meta));
+        if (meta.loc || meta.content || meta.date) named += 1;
+      } catch (error) { failed += 1; }
     }
     clearStatus();
     if (added.length) {
@@ -146,7 +182,10 @@
       state.items.splice(start, 0, ...added);
       enforce();
       commit();
-      openEditor(start);   // 第一次加照片時直接進入填寫，不必再找要點哪一張
+      // 直接進入還沒填地點的第一張，用 › 一張一張填；檔名已帶入的就不用再打開
+      const missing = state.items.findIndex((it, i) => i >= start && i < start + added.length && !it.loc);
+      if (missing >= 0) openEditor(missing);
+      else if (named) toast(`已從檔名帶入 ${named} 張照片的內容`);
     }
     if (failed) toast(`有 ${failed} 張照片無法讀取，已略過`);
   }
@@ -263,6 +302,7 @@
     editingId = it.id;
     const dialog = $("#editor");
     if (!dialog.open) dialog.showModal();   // 要先打開：refreshEditor 只在面板開著時才填欄位
+    dialog.focus({ preventScroll: true });   // showModal 預設會選到第一個按鈕；改放在面板本身（手機上就不會有按鈕被反白）
     renderEditor();
   }
 
@@ -787,6 +827,58 @@
     else await importFiles(list, at);
   }
 
+  // 編輯面板的收起手勢：點背景收起；手機上手指在面板任何地方往下拖也會收起（拖得夠遠才收，不夠遠彈回去）。
+  // 用觸控事件而不是 pointer 事件：只有「內容已捲到頂、而且是往下拖」才接手並擋掉瀏覽器的捲動；
+  // 往上滑、內容還沒捲到頂、或手指從輸入框開始（要選字、移動游標），一律交還給瀏覽器。
+  // 電腦版是置中的對話框，不需要。
+  function wireSheetDismiss() {
+    const dialog = $("#editor");
+    const wide = window.matchMedia("(min-width: 640px)");
+    let drag = null;   // { startY, dy, active }
+
+    dialog.addEventListener("click", event => {
+      if (event.target !== dialog) return;   // 面板內部空白處的點擊也會落在 dialog 上，要用座標確認真的在面板外
+      const rect = dialog.getBoundingClientRect();
+      if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) closeEditor();
+    });
+
+    dialog.addEventListener("touchstart", event => {
+      if (wide.matches || event.touches.length !== 1 || event.target.closest("input, textarea, select")) { drag = null; return; }
+      drag = { startY: event.touches[0].clientY, dy: 0, active: false };
+    }, { passive: true });
+
+    dialog.addEventListener("touchmove", event => {
+      if (!drag) return;
+      const dy = event.touches[0].clientY - drag.startY;
+      if (!drag.active) {
+        if (dy < -6 || (dy > 6 && dialog.scrollTop > 0)) { drag = null; return; }   // 往上滑，或內容還沒捲到頂：是在捲動內容
+        if (dy <= 6) return;                                                          // 還沒動夠遠，先不決定
+        drag.active = true;
+      }
+      event.preventDefault();
+      drag.dy = Math.max(0, dy);
+      dialog.style.transition = "none";
+      dialog.style.transform = `translateY(${drag.dy}px)`;
+    }, { passive: false });
+
+    const release = () => {
+      if (!drag) return;
+      const { active, dy } = drag;
+      drag = null;
+      if (!active) return;
+      if (dy > 110) {
+        dialog.style.transition = "transform .18s ease-in";
+        dialog.style.transform = "translateY(100%)";
+        setTimeout(() => { closeEditor(); dialog.style.transition = ""; dialog.style.transform = ""; }, 180);
+      } else {
+        dialog.style.transition = "transform .2s cubic-bezier(0.22, 1, 0.36, 1)";
+        dialog.style.transform = "";
+      }
+    };
+    dialog.addEventListener("touchend", release);
+    dialog.addEventListener("touchcancel", release);
+  }
+
   function setView(view) {
     $("#sheet-tool").dataset.view = view;
     $$("[data-view-tab]").forEach(btn => btn.setAttribute("aria-selected", String(btn.dataset.viewTab === view)));
@@ -856,6 +948,7 @@
     $("#edNext").addEventListener("click", () => stepEditor(1));
     $("#edClose").addEventListener("click", closeEditor);
     $("#editor").addEventListener("close", () => { editingId = null; });
+    wireSheetDismiss();
     $("#edRotate").addEventListener("click", () => {
       const it = state.items.find(i => i.id === editingId);
       if (it) rotateItem(it).then(commit).catch(() => toast("旋轉失敗"));

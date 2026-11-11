@@ -183,7 +183,6 @@
     if (added.length) {
       const start = clampAt(at);
       state.items.splice(start, 0, ...added);
-      enforce();
       commit();
       // 直接進入還沒填地點的第一張，用 › 一張一張填；檔名已帶入的就不用再打開
       const missing = state.items.findIndex((it, i) => i >= start && i < start + added.length && !it.loc);
@@ -207,7 +206,7 @@
   }
 
   function removeItem(id) {
-    const idx = state.items.findIndex(i => i.id === id);
+    const idx = indexOfId(id);
     if (idx < 0) return;
     const [item] = state.items.splice(idx, 1);
     if (editingId === id) editingId = (state.items[idx] || state.items[idx - 1] || { id: null }).id;
@@ -222,7 +221,7 @@
   }
 
   function moveItem(id, dir) {
-    const idx = state.items.findIndex(i => i.id === id);
+    const idx = indexOfId(id);
     const to = idx + dir;
     if (idx < 0 || to < 0 || to >= state.items.length) return;
     [state.items[idx], state.items[to]] = [state.items[to], state.items[idx]];
@@ -230,7 +229,7 @@
   }
 
   function setField(id, field, value) {
-    const idx = state.items.findIndex(i => i.id === id);
+    const idx = indexOfId(id);
     if (idx < 0) return;
     state.items[idx][field] = value;
     // 只有第一張的地點／日期、且對應的開關開著，才需要把值帶到其他張
@@ -281,12 +280,13 @@
   // 「照片內容尚未填妥」：施工地點或改善內容任一還沒填，就在縮圖右上角顯示紅點
   const needsFill = it => !it.loc || !it.content;
 
+  const tileLabel = (it, i) => `No.${i + 1}${needsFill(it) ? "，照片內容尚未填妥" : ""}`;
+
   function tileHtml(it, i) {
-    const incomplete = needsFill(it);
-    return `<button class="tile" type="button" data-id="${it.id}" data-idx="${i}" aria-label="No.${i + 1}${incomplete ? "，照片內容尚未填妥" : ""}">
+    return `<button class="tile" type="button" data-id="${it.id}" data-idx="${i}" aria-label="${tileLabel(it, i)}">
       <img src="${esc(it.src)}" alt="">
       <span class="tile-no" aria-hidden="true">${i + 1}</span>
-      ${incomplete ? '<span class="tile-dot" aria-hidden="true"></span>' : ""}
+      <span class="tile-dot" aria-hidden="true"${needsFill(it) ? "" : " hidden"}></span>
     </button>`;
   }
 
@@ -370,20 +370,12 @@
   }
 
   function refreshGridDots() {
-    const byId = new Map(state.items.map(it => [it.id, it]));
+    const byId = new Map(state.items.map((it, i) => [it.id, { it, i }]));
     $$("#grid .tile[data-id]").forEach(tile => {
-      const it = byId.get(tile.dataset.id);
-      if (!it) return;
-      const dot = tile.querySelector(".tile-dot");
-      if (needsFill(it) && !dot) {
-        const made = document.createElement("span");
-        made.className = "tile-dot";
-        made.setAttribute("aria-hidden", "true");
-        tile.append(made);
-      } else if (!needsFill(it) && dot) {
-        dot.remove();
-      }
-      tile.setAttribute("aria-label", `No.${state.items.indexOf(it) + 1}${needsFill(it) ? "，照片內容尚未填妥" : ""}`);
+      const hit = byId.get(tile.dataset.id);
+      if (!hit) return;
+      tile.querySelector(".tile-dot").hidden = !needsFill(hit.it);
+      tile.setAttribute("aria-label", tileLabel(hit.it, hit.i));
     });
   }
 
@@ -404,10 +396,10 @@
 
   function filledCellHtml(it, idx) {
     return `<div class="sh-cell" data-idx="${idx}" data-id="${it.id}">
-      <div class="sh-cell-title"><span class="sh-no">No.${idx + 1}</span><span class="sh-loc-t">${esc(it.loc)}</span><span class="sh-date-t">${esc(fmtDate(it.date))}</span></div>
+      <div class="sh-cell-title"><span class="sh-no">No.${idx + 1}</span><span class="sh-loc-t" data-field="cellLoc">${esc(it.loc)}</span><span class="sh-date-t" data-field="cellDate">${esc(fmtDate(it.date))}</span></div>
       <div class="sh-cell-body">
         <div class="sh-photo"><img src="${esc(it.src)}" alt="" data-fit="${state.fit}" data-w="${it.w}" data-h="${it.h}"></div>
-        <div class="sh-content">${esc(it.content)}</div>
+        <div class="sh-content" data-field="content">${esc(it.content)}</div>
       </div>
     </div>`;
   }
@@ -424,16 +416,16 @@
       const idx = p * P.per + j;
       cells.push(idx < state.items.length ? filledCellHtml(state.items[idx], idx) : emptyCellHtml(idx, forExport));
     }
-    return `<section class="sheet ${state.paper} side-${state.side}" lang="${state.lang === "ja" ? "ja" : "zh-Hant"}" data-page="${p}">
+    return `<section class="sheet ${state.paper} side-${state.side}" lang="${state.lang === "ja" ? "ja" : "zh-Hant"}">
       <header class="sh-head">
         <div class="sh-top">
-          <div class="sh-date"><b>${T.date}</b><span>${esc(dateRange())}</span></div>
-          <div class="sh-loc"${loc ? "" : " hidden"}><b>${T.loc}</b><span>${esc(loc)}</span></div>
+          <div class="sh-date"><b>${T.date}</b><span data-field="date">${esc(dateRange())}</span></div>
+          <div class="sh-loc"${loc ? "" : " hidden"}><b>${T.loc}</b><span data-field="loc">${esc(loc)}</span></div>
         </div>
-        <div class="sh-row sh-proj"><div><b>${T.project}</b><span>${esc(state.project)}</span></div></div>
+        <div class="sh-row sh-proj"><div><b>${T.project}</b><span data-field="project">${esc(state.project)}</span></div></div>
         <div class="sh-row sh-two">
-          <div><b>${T.work}</b><span>${esc(state.work)}</span></div>
-          <div><b>${T.contractor}</b><span>${esc(state.contractor)}</span></div>
+          <div><b>${T.work}</b><span data-field="work">${esc(state.work)}</span></div>
+          <div><b>${T.contractor}</b><span data-field="contractor">${esc(state.contractor)}</span></div>
         </div>
       </header>
       <div class="sh-grid">${cells.join("")}</div>
@@ -456,13 +448,12 @@
     });
   }
 
+  // 框的高度由 CSS aspect-ratio 決定（依版型），這裡只縮放紙張，不改版面
   function layoutFrames() {
     $$(".sheet-frame", $("#preview")).forEach(frame => {
       const sheet = frame.firstElementChild;
       if (!sheet || !frame.clientWidth) return;
-      const k = frame.clientWidth / sheet.offsetWidth;
-      sheet.style.transform = `scale(${k})`;
-      frame.style.height = `${sheet.offsetHeight * k}px`;
+      sheet.style.transform = `scale(${frame.clientWidth / sheet.offsetWidth})`;
     });
   }
 
@@ -472,8 +463,8 @@
 
   function renderPreview() {
     const box = $("#preview");
-    box.innerHTML = Array.from({ length: pageCount() }, (_, p) => `<div class="sheet-frame">${sheetHtml(p, false)}</div>`).join("");
-    // 先讀後寫：resolveFits、checkOverflow 只讀版面（resolveFits 寫的 object-fit 不影響尺寸），layoutFrames 最後才寫尺寸
+    box.innerHTML = Array.from({ length: pageCount() }, (_, p) => `<div class="sheet-frame ${state.paper}">${sheetHtml(p, false)}</div>`).join("");
+    // 先讀後寫：resolveFits、checkOverflow 只讀版面（resolveFits 寫的 object-fit 不影響尺寸），layoutFrames 只改 transform
     resolveFits(box);
     checkOverflow(box);
     layoutFrames();
@@ -481,28 +472,28 @@
   }
 
   // 打字只改文字，不重建預覽（重建會把每張 base64 照片重新解析、解碼一次）
+  // 表頭與格子的文字：不重建頁面，只改文字。cells 為 false（只改表頭）時不重算格子溢出
+  let previewCellsDirty = false;
   function patchPreviewText() {
     const box = $("#preview");
-    const loc = shownLoc();
-    const range = dateRange();
-    $$(".sh-date span", box).forEach(el => { el.textContent = range; });
-    $$(".sh-loc", box).forEach(el => { el.hidden = !loc; el.querySelector("span").textContent = loc; });
-    $$(".sh-proj span", box).forEach(el => { el.textContent = state.project; });
-    $$(".sh-two > div:first-child span", box).forEach(el => { el.textContent = state.work; });
-    $$(".sh-two > div:last-child span", box).forEach(el => { el.textContent = state.contractor; });
+    const cellsChanged = previewCellsDirty;
+    previewCellsDirty = false;
+    const head = { date: dateRange(), loc: shownLoc(), project: state.project, work: state.work, contractor: state.contractor };
+    $$(".sh-head [data-field]", box).forEach(el => { el.textContent = head[el.dataset.field]; });
+    $$(".sh-loc", box).forEach(el => { el.hidden = !head.loc; });
     const byId = new Map(state.items.map(it => [it.id, it]));
     $$(".sh-cell[data-id]", box).forEach(cell => {
       const it = byId.get(cell.dataset.id);
       if (!it) return;
-      cell.querySelector(".sh-loc-t").textContent = it.loc;
-      cell.querySelector(".sh-date-t").textContent = fmtDate(it.date);
-      cell.querySelector(".sh-content").textContent = it.content;
+      const values = { cellLoc: it.loc, cellDate: fmtDate(it.date), content: it.content };
+      cell.querySelectorAll("[data-field]").forEach(el => { el.textContent = values[el.dataset.field]; });
     });
-    checkOverflow(box);
+    if (cellsChanged) checkOverflow(box);
   }
 
   // 用 setTimeout 而不是 requestAnimationFrame：不依賴畫面是否在前景，連續打字也順便合併成一次更新
-  function schedulePreview() {
+  function schedulePreview(cells = true) {
+    previewCellsDirty = previewCellsDirty || cells;
     clearTimeout(previewTimer);
     previewTimer = setTimeout(patchPreviewText, 80);
   }
@@ -731,9 +722,9 @@
   // 這裡只決定紙張（版型）與要轉哪幾頁。
   async function sharePdf(sheets) {
     const P = PAPER[state.paper];
-    const cancel = { requested: false };
-    const ui = PdfShare.openDialog({ onCancel: () => { cancel.requested = true; } });
-    const alive = () => { if (cancel.requested || ui.closed) throw CANCELLED; };
+    let cancelled = false;
+    const ui = PdfShare.openDialog({ onCancel: () => { cancelled = true; } });
+    const alive = () => { if (cancelled || ui.closed) throw CANCELLED; };
     try {
       ui.set("working", "正在準備 PDF", "正在載入轉圖元件…");
       ui.progress(0.04);
@@ -870,10 +861,10 @@
         if (dy < -6 || (dy > 6 && dialog.scrollTop > 0)) { drag = null; return; }   // 往上滑，或內容還沒捲到頂：是在捲動內容
         if (dy <= 6) return;                                                          // 還沒動夠遠，先不決定
         drag.active = true;
+        dialog.style.transition = "none";
       }
       event.preventDefault();
       drag.dy = Math.max(0, dy);
-      dialog.style.transition = "none";
       dialog.style.transform = `translateY(${drag.dy}px)`;
     }, { passive: false });
 
@@ -898,15 +889,13 @@
   function setView(view) {
     $("#sheet-tool").dataset.view = view;
     $$("[data-view-tab]").forEach(btn => btn.setAttribute("aria-selected", String(btn.dataset.viewTab === view)));
-    // 預覽從隱藏變成顯示時，寬度才會有值；延後一拍再排版
-    if (view === "preview") setTimeout(layoutFrames, 0);
   }
 
   function wire() {
     Object.entries(TEXT).forEach(([id, key]) => {
       $("#" + id).addEventListener("input", event => {
         state[key] = event.target.value;
-        schedulePreview();
+        schedulePreview(false);   // 表頭文字不影響格子的溢出，只更新表頭
         scheduleSave();
       });
     });
@@ -930,13 +919,6 @@
     $("#inPick").addEventListener("change", handlePicked);
     $("#inCamera").addEventListener("change", handlePicked);
 
-    // 新增、拍照只能在照片分頁做，所以先切過去再開選檔（手機上另外兩個分頁也能直接按）
-    const ACTS = {
-      pick: () => { setView("photos"); pick("inPick"); },
-      camera: () => { setView("photos"); pick("inCamera"); },
-      clear: clearPhotos
-    };
-    $$(".export-fab-item[data-act]").forEach(item => item.addEventListener("click", () => ACTS[item.dataset.act]()));
     $("#btnClearAll").addEventListener("click", clearEverything);
 
     $("#btnExport").addEventListener("click", exportPdf);
@@ -1009,35 +991,40 @@
       if (document.hidden) saveNow();
     });
 
-    // 預覽的高度是 layoutFrames 自己改的：只有寬度變了才需要重排；而且不能在回呼裡直接改被觀察元素的尺寸
-    // （瀏覽器會報 "ResizeObserver loop completed with undelivered notifications"），所以延到回呼之外
+    // 框高由 CSS 決定，layoutFrames 只改 transform，不會改變被觀察元素的尺寸，所以寬度變了直接重排。
+    // 預覽從隱藏變顯示（寬度 0 → W）也會在這裡觸發，不需要另外處理
     new ResizeObserver(entries => {
       const width = Math.round(entries[0].contentRect.width);
       if (width === lastPreviewWidth) return;
       lastPreviewWidth = width;
-      setTimeout(layoutFrames, 0);
+      layoutFrames();
     }).observe($("#preview"));
   }
 
   // 右下角的浮動按鈕：Gooey 選單（export-menu.js 共用）。項目由左到上排：
   // 清空放在離拇指最遠的位置，最不會誤觸；新增放在正上方，最順手。
   // 一顆 Gooey Menu，三個分頁都看得到，項目固定是新增、拍照、清除（清照片）。
-  const GLYPH = {
-    trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
-    camera: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
-    plus: '<path d="M12 5v14M5 12h14"/>'
-  };
+  // 一顆 Gooey Menu，三個分頁都看得到，項目固定是新增、拍照、清除（清照片）。
+  // 新增、拍照只能在照片分頁做，所以先切過去再開選檔（手機上另外兩個分頁也能直接按）
   function mountMenus() {
     const { mount, icon } = window.GooeyMenu;
+    const ACTS = {
+      pick: () => { setView("photos"); pick("inPick"); },
+      camera: () => { setView("photos"); pick("inCamera"); },
+      clear: clearPhotos
+    };
     const items = [
-      { id: "btnClear", act: "clear", label: "清除", aria: "清除全部照片", glyph: "trash" },
-      { id: "btnCamera", act: "camera", label: "拍照", aria: "拍照", glyph: "camera" },
-      { id: "btnPick", act: "pick", label: "新增", aria: "新增照片", glyph: "plus" }
+      { id: "btnClear", act: "clear", label: "清除", aria: "清除全部照片", glyph: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>' },
+      { id: "btnCamera", act: "camera", label: "拍照", aria: "拍照", glyph: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>' },
+      { id: "btnPick", act: "pick", label: "新增", aria: "新增照片", glyph: '<path d="M12 5v14M5 12h14"/>' }
     ];
     const { items: nodes } = mount($("#photo-fab"), $("#photoMenuButton"), items.map(it => ({
-      id: it.id, label: it.label, aria: it.aria, icon: icon(GLYPH[it.glyph])
+      id: it.id, label: it.label, aria: it.aria, icon: icon(it.glyph)
     })));
-    nodes.forEach((node, i) => { node.dataset.act = items[i].act; });
+    nodes.forEach((node, i) => {
+      node.dataset.act = items[i].act;
+      node.addEventListener("click", ACTS[items[i].act]);
+    });
   }
 
   // 清除照片：只清照片，表頭文字保留（照片分頁的選單）
@@ -1053,9 +1040,7 @@
   function clearEverything() {
     if (!hasContent()) { toast("目前沒有內容可以清除"); return; }
     if (!confirm("清除表頭與照片的內容？\n此動作無法復原。")) return;
-    const lang = state.lang;
-    state = blank();
-    state.lang = lang;
+    state = { ...blank(), lang: state.lang };
     commit();
     saveNow();
   }

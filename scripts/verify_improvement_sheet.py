@@ -107,6 +107,12 @@ def check(ok, name, detail=""):
     return ok
 
 
+def pick_lang(page, lang):
+    """用右上角的地球按鈕切換語言（與使用者的操作一致）"""
+    page.click("#btnLang")
+    page.click(f'#langMenu [data-lang="{lang}"]')
+
+
 def read_saved(page):
     """讀 IndexedDB 裡自動保存的狀態"""
     return page.evaluate("""() => new Promise(resolve => {
@@ -558,14 +564,52 @@ try:
         page.click("#edClose")
         page.close()
 
+        # ---- 日文介面：地球按鈕切換、文字、截斷檢查 ----
+        print("== 日文介面")
+        OVERFLOW_JS = """() => {
+          const sel = '.seg span, .toggle, .btn, .t-tab, .ed-action span, .export-fab-item span, .lang-pop button, .help-pop li, .help-title, .help-format, .panel-heading h2, .panel-title, .option-label, .field > span, .locked-tag, .empty-note, .meta, .tab-count, .toast';
+          const out = [];
+          document.querySelectorAll(sel).forEach(el => {
+            if (!el.getClientRects().length || el.closest('[hidden]')) return;
+            if (el.scrollWidth > el.clientWidth + 1) out.push(`${el.className || el.tagName}「${el.textContent.trim().slice(0, 18)}」`);
+          });
+          return out;
+        }"""
+        for ctx_name, ctx in [("桌機", desktop), ("iPhone", iphone)]:
+            page = open_sheet(ctx, paper="a4", photos=3, errors=errors)
+            pick_lang(page, "ja")
+            page.wait_for_timeout(400)
+            check(page.evaluate("() => document.documentElement.lang") == "ja", f"{ctx_name}：切到日文後 html lang=ja")
+            tabs = page.evaluate("() => [...document.querySelectorAll('[data-view-tab]')].map(b => b.textContent.trim())")
+            check(tabs == ["見出し", "写真 3", "プレビュー"] or tabs == ["見出し", "写真3", "プレビュー"], f"{ctx_name}：分頁名稱（{tabs}）")
+            check(page.evaluate("() => document.querySelector('label.field span').textContent") == "工事名", f"{ctx_name}：欄位名稱切成日文")
+            check(page.locator("#btnSaveProject").inner_text() == "ファイルを保存", f"{ctx_name}：按鈕文字切成日文")
+            check(page.locator("#btnClearAll").get_attribute("aria-label") == "見出しと写真をすべて消去", f"{ctx_name}：垃圾桶的無障礙標籤切成日文")
+            page.click("#btnLang")
+            check(page.locator("#langMenu").is_visible() and page.locator("#btnLang").get_attribute("aria-expanded") == "true", f"{ctx_name}：點地球按鈕會彈出語言選單")
+            page.keyboard.press("Escape")
+            check(not page.locator("#langMenu").is_visible(), f"{ctx_name}：按 Esc 收起語言選單")
+            page.click("#btnLang")
+            page.click("body", position={"x": 5, "y": 5})
+            check(not page.locator("#langMenu").is_visible(), f"{ctx_name}：點選單外面會收起")
+            pick_lang(page, "zh")
+            check(page.evaluate("() => document.documentElement.lang") == "zh-Hant" and page.locator("#btnSaveProject").inner_text() == "儲存專案檔", f"{ctx_name}：切回繁體中文")
+            pick_lang(page, "ja")
+            page.click('[data-view-tab="photos"]') if ctx_name == "iPhone" else None
+            menu_labels = page.evaluate("() => [...document.querySelectorAll('#photo-fab .export-fab-item span')].map(e => e.textContent)")
+            check(sorted(menu_labels) == sorted(["消去", "撮影", "追加"]), f"{ctx_name}：照片選單的文字（{menu_labels}）")
+            offenders = page.evaluate(OVERFLOW_JS)
+            check(not offenders, f"{ctx_name}：日文介面沒有文字被截掉或擠出（{offenders}）")
+            page.close()
+
         # ---- 輸出語言：繁體中文／日本語 ----
         print("== 輸出語言")
         page = open_sheet(desktop, paper="a4", photos=2, errors=errors)
         head = lambda: page.inner_text("#preview .sheet-frame:first-child .sh-head")
-        check(page.evaluate("() => document.querySelector('input[name=lang]:checked').value") == "zh", "預設輸出語言是繁體中文（瀏覽器語言不是日文）")
+        check(page.evaluate("() => document.querySelector('#langMenu [aria-checked=true]').dataset.lang") == "zh", "預設輸出語言是繁體中文（瀏覽器語言不是日文）")
         check(all(w in head() for w in ["施工日期", "工程名稱", "施工項目", "承包單位"]), f"中文欄位名稱（{head()[:30]!r}）")
         check(page.evaluate("() => document.querySelector('#preview .sheet').lang") == "zh-Hant", "中文表單標上 zh-Hant")
-        page.click('input[name="lang"][value="ja"] + span')
+        pick_lang(page, "ja")
         page.wait_for_function("() => document.querySelector('#preview .sheet .sh-proj b').textContent === '工事名'", timeout=5000)
         text = head()
         check(all(w in text for w in ["施工日", "工事名", "工種", "請負業者"]) and "工程名稱" not in text, f"切到日本語：欄位名稱變日文（{text[:30]!r}）")
@@ -578,7 +622,7 @@ try:
         page.wait_for_timeout(1800)
         check(read_saved(page)["lang"] == "ja", "輸出語言存進自動保存")
         page.reload(wait_until="networkidle")
-        check(page.evaluate("() => document.querySelector('input[name=lang]:checked').value") == "ja" and "工事名" in head(), "重新整理後輸出語言還在")
+        check(page.evaluate("() => document.querySelector('#langMenu [aria-checked=true]').dataset.lang") == "ja" and "工事名" in head(), "重新整理後輸出語言還在")
         def saved_name(n):
             page.click("#btnSaveProject")
             page.wait_for_function(f"() => window.__shared.length === {n}", timeout=30000)
@@ -588,7 +632,7 @@ try:
         page.fill("#fWork", "")
         name = saved_name(1)
         check(name.endswith("_是正写真.json"), f"日本語：沒填名稱時的預設檔名（{name}）")
-        page.click('input[name="lang"][value="zh"] + span')
+        pick_lang(page, "zh")
         page.wait_for_function("() => document.querySelector('#preview .sheet .sh-proj b').textContent === '工程名稱'", timeout=5000)
         name = saved_name(2)
         check(name.endswith("_改善表.json"), f"繁體中文：沒填名稱時的預設檔名（{name}）")
@@ -598,20 +642,20 @@ try:
         page.once("dialog", lambda d: d.accept())
         page.click("#btnClearAll")
         page.wait_for_function("() => document.querySelectorAll('#grid .tile[data-id]').length === 0", timeout=5000)
-        check(page.evaluate("() => document.querySelector('input[name=lang]:checked').value") == "zh", "清除表頭與照片：輸出語言保留")
+        check(page.evaluate("() => document.querySelector('#langMenu [aria-checked=true]').dataset.lang") == "zh", "清除表頭與照片：輸出語言保留")
         page.close()
 
         ja_context = chrome.new_context(locale="ja-JP", viewport={"width": 1100, "height": 900}, service_workers="block")
         page = ja_context.new_page()
         page.goto(f"{BASE}/improvement-sheet", wait_until="networkidle")
-        check(page.evaluate("() => document.querySelector('input[name=lang]:checked').value") == "ja", "瀏覽器語言是日文：第一次開啟預設日本語")
+        check(page.evaluate("() => document.querySelector('#langMenu [aria-checked=true]').dataset.lang") == "ja", "瀏覽器語言是日文：第一次開啟預設日本語")
         old = json.loads(saved.read_text(encoding="utf8"))
         old["data"].pop("lang", None)
         old_file = OUT / "old-project.json"
         old_file.write_text(json.dumps(old, ensure_ascii=False), encoding="utf8")
         page.set_input_files("#inOpen", str(old_file))
         page.wait_for_function("() => document.querySelectorAll('#grid .tile[data-id]').length === 3", timeout=15000)
-        check(page.evaluate("() => document.querySelector('input[name=lang]:checked').value") == "zh" and "工程名稱" in page.inner_text("#preview .sheet-frame:first-child .sh-head"),
+        check(page.evaluate("() => document.querySelector('#langMenu [aria-checked=true]').dataset.lang") == "zh" and "工程名稱" in page.inner_text("#preview .sheet-frame:first-child .sh-head"),
               "沒有語言欄位的舊專案檔：開啟後視為繁體中文")
         page.close()
         ja_context.close()

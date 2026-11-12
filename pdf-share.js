@@ -15,6 +15,80 @@
 //
 // 網址參數 ?export=print 強制走列印、?export=share 在能分享檔案的裝置上強制走分享（電腦驗證用，不出現在畫面上）。
 (function () {
+
+  // ---------- 介面文字（繁體中文預設；改善表會切換成日文） ----------
+  // 其他工具頁不呼叫 setLang，所以維持原本的繁體中文。
+  const TEXT = {
+    zh: {
+      noPages: "沒有可以放進 PDF 的頁面",
+      badPaper: "紙張尺寸不正確",
+      progressAria: "PDF 產生進度",
+      share: "分享",
+      lineHint: "找不到 LINE？點「列印」，再按右上角的分享圖示。",
+      cancel: "取消",
+      close: "關閉",
+      preparing: "正在準備 PDF",
+      layout: "正在整理版面…",
+      loadingLib: "正在載入轉圖元件…",
+      printBlockedTitle: "這個模式無法列印",
+      printBlockedBody: "iPhone 的主畫面 App 目前無法開啟列印畫面。請改用 Safari 開啟這一頁，再按輸出。",
+      loadFailed: "檔案載入失敗",
+      loadTimeout: "載入轉圖函式庫逾時（請確認網路後再試）",
+      loadTimeoutStyles: "載入樣式或轉圖函式庫逾時（請確認網路後再試）",
+      libMissing: "轉圖函式庫沒有載入成功",
+      pageTimeout: "轉換頁面逾時",
+      toImage: "無法把頁面轉成圖片（記憶體不足？）",
+      noPagesFound: "找不到可以輸出的頁面",
+      noPagesOut: "沒有可以輸出的頁面",
+      converting: (i, n) => `正在轉換第 ${i} ／ ${n} 頁…`,
+      assembling: "正在組成檔案…",
+      pdfFailed: "無法產生 PDF",
+      unknownError: "發生未知的錯誤，請再試一次。",
+      pdfReady: "PDF 已準備好",
+      pickApp: "請在分享選單中選擇要傳送的 App。",
+      shareOpenFailed: "無法開啟分享選單",
+      error: "錯誤",
+      retry: "請再試一次",
+      describe: (pages, size) => `（${pages} 頁，${size}）`
+    },
+    ja: {
+      noPages: "PDF に入れられるページがありません",
+      badPaper: "用紙サイズが正しくありません",
+      progressAria: "PDF 作成の進行状況",
+      share: "共有",
+      lineHint: "LINE が見つからない場合は「印刷」を押し、右上の共有アイコンを押してください。",
+      cancel: "キャンセル",
+      close: "閉じる",
+      preparing: "PDF を準備しています",
+      layout: "レイアウトを整えています…",
+      loadingLib: "変換部品を読み込んでいます…",
+      printBlockedTitle: "このモードでは印刷できません",
+      printBlockedBody: "iPhone のホーム画面アプリでは印刷画面を開けません。Safari でこのページを開き、出力を押してください。",
+      loadFailed: "ファイルの読み込みに失敗しました",
+      loadTimeout: "変換部品の読み込みがタイムアウトしました（通信状況を確認して、もう一度お試しください）",
+      loadTimeoutStyles: "スタイルと変換部品の読み込みがタイムアウトしました（通信状況を確認して、もう一度お試しください）",
+      libMissing: "変換部品の読み込みに失敗しました",
+      pageTimeout: "ページの変換がタイムアウトしました",
+      toImage: "ページを画像に変換できません（メモリ不足の可能性があります）",
+      noPagesFound: "出力できるページが見つかりません",
+      noPagesOut: "出力できるページがありません",
+      converting: (i, n) => `${i} ／ ${n} ページを変換しています…`,
+      assembling: "ファイルを作成しています…",
+      pdfFailed: "PDF を作成できません",
+      unknownError: "不明なエラーが発生しました。もう一度お試しください。",
+      pdfReady: "PDF の準備ができました",
+      pickApp: "共有メニューから送信先のアプリを選んでください。",
+      shareOpenFailed: "共有メニューを開けませんでした",
+      error: "エラー",
+      retry: "もう一度お試しください",
+      describe: (pages, size) => `（${pages}ページ、${size}）`
+    }
+  };
+  let uiLang = "zh";
+  const S = (key, ...args) => {
+    const v = (TEXT[uiLang] || TEXT.zh)[key] ?? TEXT.zh[key];
+    return typeof v === "function" ? v(...args) : v;
+  };
   "use strict";
 
   const MM_TO_PT = 72 / 25.4;
@@ -67,12 +141,12 @@
   // 圖片超出可用範圍時等比縮小。標題用 UTF-16BE 十六進位字串寫進 Info，中文才不會亂碼。
   // paper：{ mm: [寬, 高], marginMm }，沒傳就是 A4 直式、邊界 10mm（各工具頁的行為，輸出與以前逐位元組相同）。
   function buildPdf(pages, { title = "", paper = DEFAULT_PAPER } = {}) {
-    if (!pages || !pages.length) throw new Error("沒有可以放進 PDF 的頁面");
+    if (!pages || !pages.length) throw new Error(S("noPages"));
     const sizeMm = paper && paper.mm;
     const marginMm = paper && (paper.marginMm ?? DEFAULT_PAPER.marginMm);
     if (!Array.isArray(sizeMm) || sizeMm.length !== 2 || !sizeMm.every(value => Number.isFinite(value) && value > 0)
       || !Number.isFinite(marginMm) || marginMm < 0 || marginMm * 2 >= Math.min(...sizeMm)) {
-      throw new Error("紙張尺寸不正確");
+      throw new Error(S("badPaper"));
     }
     const paperPt = sizeMm.map(value => Number((value * MM_TO_PT).toFixed(2))); // A4 → [595.28, 841.89]
     const marginPt = marginMm * MM_TO_PT;
@@ -154,14 +228,14 @@
         <div class="pdf-share-text">
           <div class="pdf-share-head"><h2 id="pdf-share-title"></h2><span class="pdf-share-percent" aria-hidden="true"></span></div>
           <p id="pdf-share-message" aria-live="polite"></p>
-          <div class="pdf-share-bar" role="progressbar" aria-label="PDF 產生進度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span class="pdf-share-bar-fill"></span></div>
+          <div class="pdf-share-bar" role="progressbar" aria-label="${S("progressAria")}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span class="pdf-share-bar-fill"></span></div>
         </div>
       </div>
       <div class="pdf-share-actions">
         <button type="button" class="pdf-share-secondary"></button>
-        <button type="button" class="pdf-share-primary">分享</button>
+        <button type="button" class="pdf-share-primary">${S("share")}</button>
       </div>
-      <p class="pdf-share-hint" hidden>找不到 LINE？點「列印」，再按右上角的分享圖示。</p>`;
+      <p class="pdf-share-hint" hidden>${S("lineHint")}</p>`;
     const title = dialog.querySelector("h2");
     const message = dialog.querySelector("#pdf-share-message");
     const hint = dialog.querySelector(".pdf-share-hint");
@@ -192,7 +266,7 @@
         dialog.setAttribute("aria-busy", String(state === "working"));
         title.textContent = heading;
         message.textContent = text;
-        secondary.textContent = state === "working" ? "取消" : "關閉";
+        secondary.textContent = state === "working" ? S("cancel") : S("close");
         secondary.hidden = state === "sharing"; // 分享選單開著時只留完成提示，不放按鈕
         primary.hidden = state !== "ready";
         hint.hidden = state !== "ready";
@@ -210,7 +284,7 @@
     secondary.addEventListener("click", () => { if (dialog.dataset.state === "working" && onCancel) onCancel(); close(); });
     document.addEventListener("keydown", onKey); // Esc：產生中視同取消，其他狀態就是關閉
     document.body.append(dialog);
-    controller.set("working", "正在準備 PDF", "正在整理版面…");
+    controller.set("working", S("preparing"), S("layout"));
     controller.progress(0);
     if (typeof dialog.show === "function") dialog.show(); else dialog.setAttribute("open", "");
     // show() 會把焦點放到第一個按鈕，觸控裝置上會看到一圈外框；這是狀態列不是要輸入的視窗，立刻放掉
@@ -220,7 +294,7 @@
 
   function showPrintBlockedHint() {
     const dialog = openDialog();
-    dialog.set("message", "這個模式無法列印", "iPhone 的主畫面 App 目前無法開啟列印畫面。請改用 Safari 開啟這一頁，再按輸出。");
+    dialog.set("message", S("printBlockedTitle"), S("printBlockedBody"));
   }
 
   // ---- 轉圖 ---------------------------------------------------------------------------------------
@@ -230,7 +304,7 @@
   function waitFor(target, ok = "load", fail = "error") {
     return new Promise((resolve, reject) => {
       target.addEventListener(ok, () => resolve(), { once: true });
-      target.addEventListener(fail, () => reject(new Error("檔案載入失敗")), { once: true });
+      target.addEventListener(fail, () => reject(new Error(S("loadFailed"))), { once: true });
     });
   }
 
@@ -306,8 +380,8 @@
     script.src = new URL(LIBRARY, document.baseURI).href;
     const loaded = waitFor(script);
     document.head.append(script);
-    await withTimeout(loaded, LOAD_TIMEOUT_MS, "載入轉圖函式庫逾時（請確認網路後再試）");
-    if (!window.htmlToImage) throw new Error("轉圖函式庫沒有載入成功");
+    await withTimeout(loaded, LOAD_TIMEOUT_MS, S("loadTimeout"));
+    if (!window.htmlToImage) throw new Error(S("libMissing"));
   }
 
   // 把一頁節點轉成 { jpeg, px, mm }；整片空白（Safari 第一次畫圖的老毛病）會重畫。view 預設是目前視窗。
@@ -316,11 +390,11 @@
     let canvas;
     for (let tries = 0; tries < BLANK_RETRIES; tries += 1) {
       if (tries) await sleep(RETRY_WAIT_MS);
-      canvas = await withTimeout(view.htmlToImage.toCanvas(node, { pixelRatio: PIXEL_RATIO, backgroundColor: PAGE_BACKGROUND, cacheBust: false }), PAGE_TIMEOUT_MS, "轉換頁面逾時");
+      canvas = await withTimeout(view.htmlToImage.toCanvas(node, { pixelRatio: PIXEL_RATIO, backgroundColor: PAGE_BACKGROUND, cacheBust: false }), PAGE_TIMEOUT_MS, S("pageTimeout"));
       if (!imagesBlank(node, canvas, PIXEL_RATIO)) break;
     }
     const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", JPEG_QUALITY));
-    if (!blob) throw new Error("無法把頁面轉成圖片（記憶體不足？）");
+    if (!blob) throw new Error(S("toImage"));
     const rect = node.getBoundingClientRect();
     const page = { jpeg: new Uint8Array(await blob.arrayBuffer()), px: [canvas.width, canvas.height], mm: [rect.width / PX_PER_MM, rect.height / PX_PER_MM] };
     canvas.width = canvas.height = 0; // 立刻釋放 canvas 記憶體（iOS 對 canvas 總量很吝嗇）
@@ -367,8 +441,8 @@
     script.src = new URL(LIBRARY, document.baseURI).href;
     doc.head.append(script);
     loads.push(waitFor(script));
-    await withTimeout(Promise.all(loads), LOAD_TIMEOUT_MS, "載入樣式或轉圖函式庫逾時（請確認網路後再試）");
-    if (!view.htmlToImage) throw new Error("轉圖函式庫沒有載入成功");
+    await withTimeout(Promise.all(loads), LOAD_TIMEOUT_MS, S("loadTimeoutStyles"));
+    if (!view.htmlToImage) throw new Error(S("libMissing"));
     // html-to-image 每畫完一張圖會等一次 requestAnimationFrame。WebKit 對畫面外 iframe 的 rAF 會節流到約 10 秒一次
     // （實測每頁多等 10 秒，第一次沒被節流所以很快）。這個 iframe 本來就不給人看，改用上層視窗的計時器立刻放行。
     view.requestAnimationFrame = callback => window.setTimeout(() => callback(performance.now()), 0);
@@ -410,27 +484,27 @@
       const fileName = fileNameFor(document.title);
       if (typeof window.restorePrintDocumentTitle === "function") window.restorePrintDocumentTitle();
       const sources = [...document.querySelectorAll(".print-report .print-page")];
-      if (!sources.length) throw new Error("找不到可以輸出的頁面");
+      if (!sources.length) throw new Error(S("noPagesFound"));
 
-      ui.set("working", "正在準備 PDF", "正在整理版面…");
+      ui.set("working", S("preparing"), S("layout"));
       ui.progress(0.04);
       const built = await buildFrame(sources);
       frame = built.frame;
       alive();
-      if (!built.pages.length) throw new Error("沒有可以輸出的頁面");
+      if (!built.pages.length) throw new Error(S("noPagesOut"));
       await prepareImages(built.doc.body);
       alive();
       ui.progress(0.12);
 
       const rendered = [];
       for (const [index, node] of built.pages.entries()) {
-        ui.set("working", "正在準備 PDF", `正在轉換第 ${index + 1} ／ ${built.pages.length} 頁…`);
+        ui.set("working", S("preparing"), S("converting", index + 1, built.pages.length));
         await sleep(0); // 讓進度文字有機會先畫出來
         rendered.push(await renderPage(node, built.view));
         alive();
         ui.progress(0.12 + 0.83 * ((index + 1) / built.pages.length));
       }
-      ui.set("working", "正在準備 PDF", "正在組成檔案…");
+      ui.set("working", S("preparing"), S("assembling"));
       ui.progress(0.97);
       const pdf = buildPdf(rendered, { title: fileName.replace(/\.pdf$/i, "") });
       const file = new File([pdf], fileName, { type: "application/pdf" });
@@ -441,7 +515,7 @@
     } catch (error) {
       if (error !== CANCELLED) {
         console.error(error);
-        if (!ui.closed) ui.set("error", "無法產生 PDF", error && error.message ? error.message : "發生未知的錯誤，請再試一次。");
+        if (!ui.closed) ui.set("error", S("pdfFailed"), error && error.message ? error.message : S("unknownError"));
       }
     } finally {
       if (frame) frame.remove();
@@ -454,23 +528,23 @@
   // 分享選單開著時，這個對話框還在它後面：只留一個「PDF 已準備好」的完成提示（不能停在「正在轉換…」加轉圈，像是還沒做完），
   // 約 2 秒後自己關掉，使用者不必再點關閉，也不會同時看到兩個要處理的視窗。
   function enterSharing(ui) {
-    ui.set("sharing", "PDF 已準備好", "請在分享選單中選擇要傳送的 App。");
+    ui.set("sharing", S("pdfReady"), S("pickApp"));
     ui.closeAfter(AUTO_CLOSE_MS);
   }
 
   // 對話框可能已經自動關掉了，這時另開一個顯示原因
   function reportShareError(ui, error) {
     console.error(error);
-    (ui.closed ? openDialog() : ui).set("error", "無法開啟分享選單", `${error && error.name ? error.name : "錯誤"}：${error && error.message ? error.message : "請再試一次"}`);
+    (ui.closed ? openDialog() : ui).set("error", S("shareOpenFailed"), `${error && error.name ? error.name : S("error")}：${error && error.message ? error.message : S("retry")}`);
   }
 
   // 先直接嘗試分享（點擊後很快就好的話手勢還有效）；被擋就改成讓使用者再點一次
   async function deliver(file, pageCount, ui) {
     // 只交檔案，不帶 title／text：iOS 會把 title 當成第二個項目（存到「檔案」會多一個 文字.txt，傳 LINE 可能多一則文字訊息）
     const data = { files: [file] };
-    const describe = `${file.name}（${pageCount} 頁，${formatSize(file.size)}）`;
+    const describe = `${file.name}${S("describe", pageCount, formatSize(file.size))}`;
     const showReady = () => {
-      ui.set("ready", "PDF 已準備好", describe);
+      ui.set("ready", S("pdfReady"), describe);
       ui.onPrimary(() => {
         // 這裡必須在點擊的同步流程裡呼叫 share：中間不能 await 任何東西（同步丟出的例外也要接住，變成同樣的錯誤處理）
         let pending;
@@ -498,7 +572,11 @@
   // ---- 對外介面 -----------------------------------------------------------------------------------
 
   // loadLibrary、prepareImages、renderPage、openDialog、deliver 給不走 run() 流程的頁面用（改善表：自己排版成固定紙張，直接轉圖）
-  const api = { buildPdf, isIosDevice, canShareFiles, exportMode, fileNameFor, printWithWatchdog, run, loadLibrary, prepareImages, renderPage, openDialog, deliver };
+  const api = {
+    buildPdf, isIosDevice, canShareFiles, exportMode, fileNameFor, printWithWatchdog, run, loadLibrary, prepareImages, renderPage, openDialog, deliver,
+    setLang(lang) { uiLang = lang === "ja" ? "ja" : "zh"; },
+    t: (key, ...args) => S(key, ...args)
+  };
   window.PdfShare = api;
 
   // 各工具頁把原本的 window.print() 換成這個。{ pdf: false } 只走列印（施工計畫頁自己先排出 .print-page 再呼叫 run()，電腦則走這條）。

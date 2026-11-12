@@ -23,92 +23,93 @@
     <title>改善表｜Portable Inspection</title>
   </head>
   <body>
-    <a class="skip-link" href="#sheet-tool">跳至改善表</a>
+    <a class="skip-link" href="#sheet-tool" data-i18n="skip">跳至改善表</a>
 
     <header class="app-header">
-      <nav class="header-nav" aria-label="主要功能">
-        <a class="glass-pill header-back" href="./" aria-label="返回工具首頁"><svg width="10" height="16" viewBox="0 0 12 20" fill="none" aria-hidden="true"><path d="M10 2L2 10l8 8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span>工具首頁</span></a>
-        <button class="header-trash" id="btnClearAll" type="button" aria-label="清除表頭與照片" title="清除表頭與照片"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>
+      <nav class="header-nav" aria-label="主要功能" data-i18n-aria="navAria">
+        <a class="glass-pill header-back" href="./" aria-label="返回工具首頁" data-i18n-aria="back"><svg width="10" height="16" viewBox="0 0 12 20" fill="none" aria-hidden="true"><path d="M10 2L2 10l8 8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span>工具首頁</span></a>
+        <div class="header-actions">
+          <div class="lang-wrap">
+            <button class="header-icon" id="btnLang" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="langMenu" data-i18n-aria="langBtn" data-i18n-title="langBtn" title="語言" aria-label="語言"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18z"/></svg></button>
+            <div class="lang-pop" id="langMenu" role="menu" hidden>
+              <button type="button" role="menuitemradio" aria-checked="true" data-lang="zh">繁體中文</button>
+              <button type="button" role="menuitemradio" aria-checked="false" data-lang="ja">日本語</button>
+            </div>
+          </div>
+          <button class="header-icon" id="btnClearAll" type="button" data-i18n-aria="trash" data-i18n-title="trash" aria-label="清除表頭與照片" title="清除表頭與照片"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>
+        </div>
       </nav>
     </header>
 
     <main class="app-shell" id="sheet-tool" data-view="info">
       <div class="tool-title">
-        <p>缺失改善照</p>
-        <h1>改善表</h1>
+        <p data-i18n="toolSub">缺失改善照</p>
+        <h1 data-i18n="toolName">改善表</h1>
       </div>
 
-      <nav class="view-tabs" role="tablist" aria-label="改善表分頁">
+      <nav class="view-tabs" role="tablist" aria-label="改善表分頁" data-i18n-aria="tabsAria">
         <div class="t-tabs">
-          <button class="t-tab" role="tab" type="button" aria-selected="true" data-view-tab="info">表頭</button>
-          <button class="t-tab" role="tab" type="button" aria-selected="false" data-view-tab="photos">照片 <span class="tab-count" id="tabCount">0</span></button>
-          <button class="t-tab" role="tab" type="button" aria-selected="false" data-view-tab="preview">預覽</button>
+          <button class="t-tab" role="tab" type="button" aria-selected="true" data-view-tab="info" data-i18n="tab.info">表頭</button>
+          <button class="t-tab" role="tab" type="button" aria-selected="false" data-view-tab="photos"><span data-i18n="tab.photos">照片</span> <span class="tab-count" id="tabCount">0</span></button>
+          <button class="t-tab" role="tab" type="button" aria-selected="false" data-view-tab="preview" data-i18n="tab.preview">預覽</button>
         </div>
       </nav>
 
       <div class="sheet-layout">
         <div class="col col-input">
           <section class="panel pane" data-pane="info" aria-labelledby="sec-info">
-            <div class="panel-heading"><div><span>01</span><h2 id="sec-info">表頭資料</h2></div></div>
+            <div class="panel-heading"><div><span>01</span><h2 id="sec-info" data-i18n="panel.info">表頭資料</h2></div></div>
             <div class="form-grid">
-              <label class="field span-two"><span>工程名稱</span><input id="fProject" type="text" maxlength="60" autocomplete="off" /></label>
-              <label class="field"><span>施工項目</span><input id="fWork" type="text" maxlength="60" autocomplete="off" /></label>
-              <label class="field"><span>承包單位</span><input id="fContractor" type="text" maxlength="60" autocomplete="off" /></label>
+              <label class="field span-two"><span data-i18n="field.project">工程名稱</span><input id="fProject" type="text" maxlength="60" autocomplete="off" /></label>
+              <label class="field"><span data-i18n="field.work">施工項目</span><input id="fWork" type="text" maxlength="60" autocomplete="off" /></label>
+              <label class="field"><span data-i18n="field.contractor">承包單位</span><input id="fContractor" type="text" maxlength="60" autocomplete="off" /></label>
             </div>
 
             <div class="option-block">
-              <span class="option-label">版型</span>
-              <div class="seg" role="radiogroup" aria-label="版型">
-                <label title="每頁 3 張"><input type="radio" name="paper" value="a4" /><span>A4・3 張</span></label>
-                <label title="每頁 12 張"><input type="radio" name="paper" value="a3" /><span>A3・12 張</span></label>
-              </div>
-            </div>
-
-            <div class="option-block">
-              <span class="option-label">輸出語言</span>
-              <div class="seg" role="radiogroup" aria-label="輸出語言（表單上的欄位名稱與預設檔名）">
-                <label><input type="radio" name="lang" value="zh" /><span>繁體中文</span></label>
-                <label><input type="radio" name="lang" value="ja" /><span>日本語</span></label>
+              <span class="option-label" data-i18n="opt.paper">版型</span>
+              <div class="seg" role="radiogroup" aria-label="版型" data-i18n-aria="opt.paper">
+                <label title="每頁 3 張" data-i18n-title="seg.a4Title"><input type="radio" name="paper" value="a4" /><span data-i18n="seg.a4">A4・3 張</span></label>
+                <label title="每頁 12 張" data-i18n-title="seg.a3Title"><input type="radio" name="paper" value="a3" /><span data-i18n="seg.a3">A3・12 張</span></label>
               </div>
             </div>
 
             <div class="option-block">
               <div class="option-head">
-                <span class="option-label">照片顯示</span>
+                <span class="option-label" data-i18n="opt.fit">照片顯示</span>
                 <span class="help">
-                  <button class="help-btn" type="button" aria-label="說明：照片顯示" aria-expanded="false"><span class="help-mark" aria-hidden="true">?</span></button>
+                  <button class="help-btn" type="button" aria-label="說明：照片顯示" data-i18n-aria="help.fitAria" aria-expanded="false"><span class="help-mark" aria-hidden="true">?</span></button>
                   <span class="help-pop" role="tooltip">
                     <ul>
-                      <li><b>自動</b>：照片比例接近格子時填滿，否則完整</li>
-                      <li><b>完整</b>：整張照片都看得到，可能留白</li>
-                      <li><b>填滿</b>：蓋滿格子，邊緣可能被裁掉</li>
+                      <li data-i18n-html="help.fitAuto"><b>自動</b>：照片比例接近格子時填滿，否則完整</li>
+                      <li data-i18n-html="help.fitContain"><b>完整</b>：整張照片都看得到，可能留白</li>
+                      <li data-i18n-html="help.fitCover"><b>填滿</b>：蓋滿格子，邊緣可能被裁掉</li>
                     </ul>
                   </span>
                 </span>
               </div>
-              <div class="seg n3" role="radiogroup" aria-label="照片顯示">
-                <label><input type="radio" name="fit" value="auto" /><span>自動</span></label>
-                <label><input type="radio" name="fit" value="contain" /><span>完整</span></label>
-                <label><input type="radio" name="fit" value="cover" /><span>填滿</span></label>
+              <div class="seg n3" role="radiogroup" aria-label="照片顯示" data-i18n-aria="opt.fit">
+                <label><input type="radio" name="fit" value="auto" /><span data-i18n="fit.auto">自動</span></label>
+                <label><input type="radio" name="fit" value="contain" /><span data-i18n="fit.contain">完整</span></label>
+                <label><input type="radio" name="fit" value="cover" /><span data-i18n="fit.cover">填滿</span></label>
               </div>
             </div>
 
             <div class="option-block" id="sideBlock">
-              <span class="option-label">照片位置</span>
-              <div class="seg" role="radiogroup" aria-label="照片位置">
-                <label><input type="radio" name="side" value="left" /><span>照片左側</span></label>
-                <label><input type="radio" name="side" value="right" /><span>照片右側</span></label>
+              <span class="option-label" data-i18n="opt.side">照片位置</span>
+              <div class="seg" role="radiogroup" aria-label="照片位置" data-i18n-aria="opt.side">
+                <label><input type="radio" name="side" value="left" /><span data-i18n="side.left">照片左側</span></label>
+                <label><input type="radio" name="side" value="right" /><span data-i18n="side.right">照片右側</span></label>
               </div>
             </div>
 
             <div class="option-block toggles">
-              <button class="toggle" id="togDate" type="button" aria-pressed="false" title="全項目與第一張照片的日期同步"><span class="switch" aria-hidden="true"></span>同日施工</button>
-              <button class="toggle" id="togLoc" type="button" aria-pressed="false" title="全項目與第一張照片的施工地點同步"><span class="switch" aria-hidden="true"></span>同地點施工</button>
+              <button class="toggle" id="togDate" type="button" aria-pressed="false" title="全項目與第一張照片的日期同步" data-i18n-title="toggle.dateTitle"><span class="switch" aria-hidden="true"></span><span data-i18n="toggle.date">同日施工</span></button>
+              <button class="toggle" id="togLoc" type="button" aria-pressed="false" title="全項目與第一張照片的施工地點同步" data-i18n-title="toggle.locTitle"><span class="switch" aria-hidden="true"></span><span data-i18n="toggle.loc">同地點施工</span></button>
             </div>
 
             <div class="file-row">
-              <button class="btn" type="button" id="btnSaveProject">儲存專案檔</button>
-              <button class="btn" type="button" id="btnOpenProject">開啟專案檔</button>
+              <button class="btn" type="button" id="btnSaveProject" data-i18n="btn.save">儲存專案檔</button>
+              <button class="btn" type="button" id="btnOpenProject" data-i18n="btn.open">開啟專案檔</button>
             </div>
           </section>
 
@@ -116,33 +117,33 @@
             <div class="panel-heading">
               <div class="panel-title-row">
                 <span>02</span>
-                <h2 id="sec-list">照片</h2>
+                <h2 id="sec-list" data-i18n="photos.heading">照片</h2>
                 <span class="help">
-                  <button class="help-btn" type="button" aria-label="說明：檔名怎麼帶入欄位" aria-expanded="false"><span class="help-mark" aria-hidden="true">?</span></button>
+                  <button class="help-btn" type="button" aria-label="說明：檔名怎麼帶入欄位" data-i18n-aria="help.nameAria" aria-expanded="false"><span class="help-mark" aria-hidden="true">?</span></button>
                   <span class="help-pop" role="tooltip">
-                    <p class="help-title">檔名格式</p>
-                    <code class="help-format">施工地點_改善內容_日期.jpg</code>
+                    <p class="help-title" data-i18n="help.nameTitle">檔名格式</p>
+                    <code class="help-format" data-i18n="help.nameFormat">施工地點_改善內容_日期.jpg</code>
                     <ul>
-                      <li><b>第 1 段</b>：自動填入「施工地點」</li>
-                      <li><b>第 2 段</b>：自動填入「改善內容」</li>
-                      <li><b>第 3 段</b>：自動填入「日期」，可省略。寫成 20261026 或 2026-10-26</li>
-                      <li>副檔名 png、jpg、jpeg、webp 都可以</li>
-                      <li>[文字].png：無底線文字判定為「改善內容」</li>
+                      <li data-i18n-html="help.seg1"><b>第 1 段</b>：自動填入「施工地點」</li>
+                      <li data-i18n-html="help.seg2"><b>第 2 段</b>：自動填入「改善內容」</li>
+                      <li data-i18n-html="help.seg3"><b>第 3 段</b>：自動填入「日期」，可省略。寫成 20261026 或 2026-10-26</li>
+                      <li data-i18n="help.ext">副檔名 png、jpg、jpeg、webp 都可以</li>
+                      <li data-i18n="help.noUnderscore">[文字].png：無底線文字判定為「改善內容」</li>
                     </ul>
-                    <p class="help-note">※其他格式不支援自動輸入</p>
-                    <p class="help-note">🔴：照片內容尚未填妥</p>
+                    <p class="help-note" data-i18n="help.unsupported">※其他格式不支援自動輸入</p>
+                    <p class="help-note" data-i18n="help.redDot">🔴：照片內容尚未填妥</p>
                   </span>
                 </span>
               </div>
               <p id="photoCount">0 張</p>
             </div>
             <div id="grid" class="tile-grid"></div>
-            <p class="empty-note" id="emptyNote">還沒有照片。按右下角的＋，或直接把照片拖進來。</p>
+            <p class="empty-note" id="emptyNote" data-i18n="empty">還沒有照片。按右下角的＋，或直接把照片拖進來。</p>
 
           </section>
             <div class="fab-dock">
               <div class="export-fab" id="photo-fab">
-                <button class="dock-primary" id="photoMenuButton" type="button" aria-label="照片：新增、拍照、清除" aria-haspopup="true" aria-expanded="false">
+                <button class="dock-primary" id="photoMenuButton" type="button" data-i18n-aria="menu.aria" aria-label="照片：新增、拍照、清除" aria-haspopup="true" aria-expanded="false">
                   <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
                 </button>
               </div>
@@ -152,10 +153,10 @@
         <section class="preview pane" data-pane="preview" aria-labelledby="sec-preview">
           <div class="preview-head">
             <div>
-              <div class="panel-title" id="sec-preview">預覽</div>
+              <div class="panel-title" id="sec-preview" data-i18n="tab.preview">預覽</div>
               <div class="meta" id="pvMeta"></div>
             </div>
-            <button class="btn primary" type="button" id="btnExport">輸出 PDF</button>
+            <button class="btn primary" type="button" id="btnExport" data-i18n="btn.exportPdf">輸出 PDF</button>
           </div>
           <div class="share-slot" id="shareSlot" role="status" aria-live="polite"></div>
           <div id="preview" class="pages"></div>
@@ -166,23 +167,23 @@
       <dialog class="editor" id="editor" aria-labelledby="edTitle" tabindex="-1">
         <div class="ed-grab" aria-hidden="true"></div>
         <header class="ed-head">
-          <button class="ed-step" id="edPrev" type="button" aria-label="上一張">‹</button>
+          <button class="ed-step" id="edPrev" type="button" aria-label="上一張" data-i18n-aria="ed.prev">‹</button>
           <strong id="edTitle">No.1</strong>
-          <button class="ed-step" id="edNext" type="button" aria-label="下一張">›</button>
-          <button class="ed-close" id="edClose" type="button" aria-label="關閉"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+          <button class="ed-step" id="edNext" type="button" aria-label="下一張" data-i18n-aria="ed.next">›</button>
+          <button class="ed-close" id="edClose" type="button" aria-label="關閉" data-i18n-aria="ed.close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
         </header>
         <div class="ed-photo" id="edPhoto"></div>
         <div class="ed-fields">
-          <label class="field"><span>施工地點<em class="locked-tag" id="edLocLock" hidden>與第一張同步</em></span><input id="edLoc" type="text" maxlength="60" placeholder="例：4F客室漏水" /></label>
-          <label class="field"><span>改善內容</span><textarea id="edContent" rows="2" maxlength="200" placeholder="例：打針改善"></textarea></label>
-          <label class="field"><span>日期<em class="locked-tag" id="edDateLock" hidden>與第一張同步</em></span><input id="edDate" type="date" /></label>
+          <label class="field"><span><span data-i18n="field.loc">施工地點</span><em class="locked-tag" id="edLocLock" hidden data-i18n="locked">與第一張同步</em></span><input id="edLoc" type="text" maxlength="60" data-i18n-placeholder="ph.loc" placeholder="例：4F客室漏水" /></label>
+          <label class="field"><span data-i18n="field.content">改善內容</span><textarea id="edContent" rows="2" maxlength="200" data-i18n-placeholder="ph.content" placeholder="例：打針改善"></textarea></label>
+          <label class="field"><span><span data-i18n="field.date">日期</span><em class="locked-tag" id="edDateLock" hidden data-i18n="locked">與第一張同步</em></span><input id="edDate" type="date" /></label>
         </div>
         <div class="ed-actions">
-          <button class="ed-action" id="edRotate" type="button"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v5h-5"/></svg><span>旋轉</span></button>
-          <button class="ed-action" id="edReplace" type="button"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/><path d="M3.5 16l5-5 4 4 3-3 5 5"/></svg><span>換照片</span></button>
-          <button class="ed-action" id="edUp" type="button"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg><span>上移</span></button>
-          <button class="ed-action" id="edDown" type="button"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg><span>下移</span></button>
-          <button class="ed-action danger" id="edRemove" type="button"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg><span>刪除</span></button>
+          <button class="ed-action" id="edRotate" type="button"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v5h-5"/></svg><span data-i18n="ed.rotate">旋轉</span></button>
+          <button class="ed-action" id="edReplace" type="button"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/><path d="M3.5 16l5-5 4 4 3-3 5 5"/></svg><span data-i18n="ed.replace">換照片</span></button>
+          <button class="ed-action" id="edUp" type="button"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg><span data-i18n="ed.up">上移</span></button>
+          <button class="ed-action" id="edDown" type="button"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg><span data-i18n="ed.down">下移</span></button>
+          <button class="ed-action danger" id="edRemove" type="button"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg><span data-i18n="ed.remove">刪除</span></button>
         </div>
       </dialog>
 

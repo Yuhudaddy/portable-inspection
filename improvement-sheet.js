@@ -11,6 +11,103 @@
 
   const SCHEMA = "improvement-sheet";
   const VERSION = 1;
+  // ---------- 介面文字（繁體中文／日本語） ----------
+  // 語言跟著專案的 state.lang 走：切換後介面、表單與 PDF 一起換。日文用語是暫定的，待確認後只改這張表。
+  const UI = {
+    zh: {
+      skip: "跳至改善表", back: "返回工具首頁", navAria: "主要功能", trash: "清除表頭與照片", langBtn: "語言",
+      toolSub: "缺失改善照", toolName: "改善表", tabsAria: "改善表分頁",
+      "tab.info": "表頭", "tab.photos": "照片", "tab.preview": "預覽", "panel.info": "表頭資料",
+      "field.project": "工程名稱", "field.work": "施工項目", "field.contractor": "承包單位",
+      "opt.paper": "版型", "seg.a4": "A4・3 張", "seg.a3": "A3・12 張", "seg.a4Title": "每頁 3 張", "seg.a3Title": "每頁 12 張",
+      "opt.fit": "照片顯示", "fit.auto": "自動", "fit.contain": "完整", "fit.cover": "填滿", "help.fitAria": "說明：照片顯示",
+      "help.fitAuto": "<b>自動</b>：照片比例接近格子時填滿，否則完整",
+      "help.fitContain": "<b>完整</b>：整張照片都看得到，可能留白",
+      "help.fitCover": "<b>填滿</b>：蓋滿格子，邊緣可能被裁掉",
+      "opt.side": "照片位置", "side.left": "照片左側", "side.right": "照片右側",
+      "toggle.date": "同日施工", "toggle.loc": "同地點施工",
+      "toggle.dateTitle": "全項目與第一張照片的日期同步", "toggle.locTitle": "全項目與第一張照片的施工地點同步",
+      "btn.save": "儲存專案檔", "btn.open": "開啟專案檔", "btn.exportPdf": "輸出 PDF", "btn.share": "分享", "btn.undo": "復原",
+      "photos.heading": "照片", "photos.count": "{n} 張", "empty": "還沒有照片。按右下角的＋，或直接把照片拖進來。",
+      "help.nameAria": "說明：檔名怎麼帶入欄位", "help.nameTitle": "檔名格式", "help.nameFormat": "施工地點_改善內容_日期.jpg",
+      "help.seg1": "<b>第 1 段</b>：自動填入「施工地點」", "help.seg2": "<b>第 2 段</b>：自動填入「改善內容」",
+      "help.seg3": "<b>第 3 段</b>：自動填入「日期」，可省略。寫成 20261026 或 2026-10-26",
+      "help.ext": "副檔名 png、jpg、jpeg、webp 都可以", "help.noUnderscore": "[文字].png：無底線文字判定為「改善內容」",
+      "help.unsupported": "※其他格式不支援自動輸入", "help.redDot": "🔴：照片內容尚未填妥",
+      "menu.aria": "照片：新增、拍照、清除", "menu.add": "新增", "menu.addAria": "新增照片",
+      "menu.camera": "拍照", "menu.cameraAria": "拍照", "menu.clear": "清除", "menu.clearAria": "清除全部照片",
+      "preview.heading": "預覽", "preview.meta": "{paper}・每頁 {per} 張・共 {pages} 頁・{n} 張照片",
+      "sheet.date": "施工日期", "sheet.loc": "施工地點", "sheet.addPhoto": "＋ 新增照片",
+      "ed.prev": "上一張", "ed.next": "下一張", "ed.close": "關閉", "field.loc": "施工地點", "field.content": "改善內容",
+      "field.date": "日期", "locked": "與第一張同步", "ph.loc": "例：4F客室漏水", "ph.content": "例：打針改善",
+      "ed.rotate": "旋轉", "ed.replace": "換照片", "ed.up": "上移", "ed.down": "下移", "ed.remove": "刪除",
+      "tile.label": "No.{n}", "tile.incomplete": "，照片內容尚未填妥", "file.fallback": "改善表",
+      "toast.notPhotos": "這些檔案不是照片", "status.adding": "正在加入 {n} 張照片…",
+      "toast.namedFill": "已從檔名帶入 {n} 張照片的內容", "toast.failed": "有 {n} 張照片無法讀取，已略過",
+      "toast.notPhoto": "這不是照片", "toast.readFail": "無法讀取這張照片", "toast.deleted": "已刪除 No.{n}",
+      "toast.noAutosave": "這個瀏覽器無法自動保存，請用「儲存專案檔」備份。", "toast.restored": "已還原上次未存的內容",
+      "toast.nothingToSave": "目前沒有內容可以儲存", "toast.notProject": "這不是改善表的專案檔",
+      "confirm.openProject": "開啟專案檔會取代目前的內容。\n還沒存的照片與文字會消失，要繼續嗎？",
+      "toast.opened": "已開啟 {name}", "status.readyShare": "檔案已準備好，請再按一次分享。", "status.shareFailed": "分享失敗：{msg}",
+      "toast.addFirst": "請先加入照片", "confirm.overflow": "有 {n} 格改善內容超出格子，超出的文字會被截掉。\n要繼續輸出嗎？",
+      "status.printHint": "請在列印視窗選擇「另存為 PDF」。紙張已依版型設定為 {paper}。", "status.exportFailed": "輸出失敗：{msg}",
+      "toast.rotateFailed": "旋轉失敗", "toast.noPhotos": "目前沒有照片可以清除",
+      "confirm.clearPhotos": "清除全部照片？\n表頭文字會保留，此動作無法復原。",
+      "toast.nothingToClear": "目前沒有內容可以清除", "confirm.clearAll": "清除表頭與照片的內容？\n此動作無法復原。"
+    },
+    ja: {
+      skip: "改善表へ移動", back: "ツールのトップへ戻る", navAria: "主な機能", trash: "見出しと写真をすべて消去", langBtn: "言語",
+      toolSub: "是正写真", toolName: "是正写真表", tabsAria: "是正写真表のタブ",
+      "tab.info": "見出し", "tab.photos": "写真", "tab.preview": "プレビュー", "panel.info": "見出しデータ",
+      "field.project": "工事名", "field.work": "工種", "field.contractor": "請負業者",
+      "opt.paper": "用紙", "seg.a4": "A4・3枚", "seg.a3": "A3・12枚", "seg.a4Title": "1ページ3枚", "seg.a3Title": "1ページ12枚",
+      "opt.fit": "写真表示", "fit.auto": "自動", "fit.contain": "全体", "fit.cover": "全面", "help.fitAria": "説明：写真の表示",
+      "help.fitAuto": "<b>自動</b>：写真の比率がマスに近いときは全面、それ以外は全体",
+      "help.fitContain": "<b>全体</b>：写真全体が見えます。余白ができることがあります",
+      "help.fitCover": "<b>全面</b>：マス全体を埋めます。端が切れることがあります",
+      "opt.side": "写真の位置", "side.left": "左に写真", "side.right": "右に写真",
+      "toggle.date": "同日施工", "toggle.loc": "同じ場所で施工",
+      "toggle.dateTitle": "全項目を1枚目の写真の日付に合わせます", "toggle.locTitle": "全項目を1枚目の写真の施工場所に合わせます",
+      "btn.save": "ファイルを保存", "btn.open": "ファイルを開く", "btn.exportPdf": "PDF を出力", "btn.share": "共有", "btn.undo": "元に戻す",
+      "photos.heading": "写真", "photos.count": "{n}枚", "empty": "まだ写真がありません。右下の＋を押すか、写真をここにドラッグしてください。",
+      "help.nameAria": "説明：ファイル名から項目への入力", "help.nameTitle": "ファイル名の形式", "help.nameFormat": "施工場所_改善内容_日付.jpg",
+      "help.seg1": "<b>1つ目</b>：「施工場所」に自動入力", "help.seg2": "<b>2つ目</b>：「改善内容」に自動入力",
+      "help.seg3": "<b>3つ目</b>：「日付」に自動入力（省略可）。20261026 または 2026-10-26 と書きます",
+      "help.ext": "拡張子は png・jpg・jpeg・webp に対応", "help.noUnderscore": "[文字].png：アンダーバーのない文字は「改善内容」として扱います",
+      "help.unsupported": "※ほかの形式は自動入力に対応していません", "help.redDot": "🔴：写真の内容が未入力です",
+      "menu.aria": "写真：追加・撮影・消去", "menu.add": "追加", "menu.addAria": "写真を追加",
+      "menu.camera": "撮影", "menu.cameraAria": "撮影", "menu.clear": "消去", "menu.clearAria": "写真をすべて消去",
+      "preview.heading": "プレビュー", "preview.meta": "{paper}・1ページ {per}枚・全{pages}ページ・写真{n}枚",
+      "sheet.date": "施工日", "sheet.loc": "施工場所", "sheet.addPhoto": "＋ 写真を追加",
+      "ed.prev": "前の写真", "ed.next": "次の写真", "ed.close": "閉じる", "field.loc": "施工場所", "field.content": "改善内容",
+      "field.date": "日付", "locked": "1枚目と同じ", "ph.loc": "例：4F客室の漏水", "ph.content": "例：注入による補修",
+      "ed.rotate": "回転", "ed.replace": "差し替え", "ed.up": "前へ", "ed.down": "後ろへ", "ed.remove": "削除",
+      "tile.label": "No.{n}", "tile.incomplete": "、写真の内容が未入力です", "file.fallback": "是正写真",
+      "toast.notPhotos": "これらのファイルは写真ではありません", "status.adding": "{n}枚の写真を追加しています…",
+      "toast.namedFill": "ファイル名から {n} 枚の写真の内容を入力しました", "toast.failed": "{n}枚の写真を読み込めず、スキップしました",
+      "toast.notPhoto": "写真ではありません", "toast.readFail": "この写真を読み込めませんでした", "toast.deleted": "No.{n} を削除しました",
+      "toast.noAutosave": "このブラウザでは自動保存できません。「プロジェクトを保存」でバックアップしてください。",
+      "toast.restored": "前回保存していない内容を復元しました", "toast.nothingToSave": "保存する内容がありません",
+      "toast.notProject": "是正写真表のプロジェクトファイルではありません",
+      "confirm.openProject": "プロジェクトを開くと、今の内容は置き換えられます。\n保存していない写真と文字は消えます。続けますか？",
+      "toast.opened": "{name} を開きました", "status.readyShare": "ファイルの準備ができました。もう一度「共有」を押してください。",
+      "status.shareFailed": "共有に失敗しました：{msg}",
+      "toast.addFirst": "先に写真を追加してください",
+      "confirm.overflow": "{n} 件の改善内容がマスからはみ出しています。はみ出た文字は切れます。\n出力を続けますか？",
+      "status.printHint": "印刷画面で「PDF として保存」を選んでください。用紙は {paper} に設定済みです。",
+      "status.exportFailed": "出力に失敗しました：{msg}", "toast.rotateFailed": "回転に失敗しました",
+      "toast.noPhotos": "消去する写真がありません",
+      "confirm.clearPhotos": "写真をすべて消去しますか？\n見出しの文字は残ります。この操作は元に戻せません。",
+      "toast.nothingToClear": "消去する内容がありません",
+      "confirm.clearAll": "見出しと写真の内容を消去しますか？\nこの操作は元に戻せません。"
+    }
+  };
+  const uiLang = () => (state.lang === "ja" ? "ja" : "zh");
+  function t(key, vars = {}) {
+    const text = UI[uiLang()][key] ?? UI.zh[key] ?? key;
+    return text.replace(/\{(\w+)\}/g, (_, name) => (name in vars ? vars[name] : `{${name}}`));
+  }
+
   const PAPER = {
     a4: { per: 3, wmm: 210, hmm: 297, label: "A4" },
     a3: { per: 12, wmm: 420, hmm: 297, label: "A3" }
@@ -28,7 +125,7 @@
 
   // 控制項與狀態欄位的對應：畫面同步與事件綁定都用這三張表
   const TEXT = { fProject: "project", fWork: "work", fContractor: "contractor" };
-  const RADIOS = ["paper", "fit", "side", "lang"];
+  const RADIOS = ["paper", "fit", "side"];
   const TOGGLES = { togDate: "sameDate", togLoc: "sameLoc" };
 
   const $ = (sel, root = document) => root.querySelector(sel);
@@ -167,8 +264,8 @@
   // ---------- 照片清單的編輯動作 ----------
   async function importFiles(files, at) {
     const list = [...files].filter(isImageFile);
-    if (!list.length) { toast("這些檔案不是照片"); return; }
-    showStatus(`正在加入 ${list.length} 張照片…`);
+    if (!list.length) { toast(t("toast.notPhotos")); return; }
+    showStatus(t("status.adding", { n: list.length }));
     const added = [];
     let failed = 0;
     let named = 0;
@@ -187,21 +284,21 @@
       // 直接進入還沒填地點的第一張，用 › 一張一張填；檔名已帶入的就不用再打開
       const missing = state.items.findIndex((it, i) => i >= start && i < start + added.length && !it.loc);
       if (missing >= 0) openEditor(missing);
-      else if (named) toast(`已從檔名帶入 ${named} 張照片的內容`);
+      else if (named) toast(t("toast.namedFill", { n: named }));
     }
-    if (failed) toast(`有 ${failed} 張照片無法讀取，已略過`);
+    if (failed) toast(t("toast.failed", { n: failed }));
   }
 
   async function replacePhoto(id, file) {
     const it = state.items.find(i => i.id === id);
     if (!it) return;
-    if (!isImageFile(file)) { toast("這不是照片"); return; }
+    if (!isImageFile(file)) { toast(t("toast.notPhoto")); return; }
     try {
       const img = await fileToImage(file);
       Object.assign(it, { src: img.src, w: img.w, h: img.h });
       commit();
     } catch (error) {
-      toast("無法讀取這張照片");
+      toast(t("toast.readFail"));
     }
   }
 
@@ -211,8 +308,8 @@
     const [item] = state.items.splice(idx, 1);
     if (editingId === id) editingId = (state.items[idx] || state.items[idx - 1] || { id: null }).id;
     commit();
-    toast(`已刪除 No.${idx + 1}`, {
-      label: "復原",
+    toast(t("toast.deleted", { n: idx + 1 }), {
+      label: t("btn.undo"),
       run: () => {
         state.items.splice(Math.min(idx, state.items.length), 0, item);
         commit();
@@ -246,6 +343,7 @@
   // ---------- 畫面渲染 ----------
   // 結構改變（增刪、換位、旋轉、開關）：清單與預覽整個重畫
   function render() {
+    applyStaticText();
     renderControls();
     renderGrid();
     renderPreview();
@@ -280,7 +378,7 @@
   // 「照片內容尚未填妥」：施工地點或改善內容任一還沒填，就在縮圖右上角顯示紅點
   const needsFill = it => !it.loc || !it.content;
 
-  const tileLabel = (it, i) => `No.${i + 1}${needsFill(it) ? "，照片內容尚未填妥" : ""}`;
+  const tileLabel = (it, i) => `${t("tile.label", { n: i + 1 })}${needsFill(it) ? t("tile.incomplete") : ""}`;
 
   function tileHtml(it, i) {
     return `<button class="tile" type="button" data-id="${it.id}" data-idx="${i}" aria-label="${tileLabel(it, i)}">
@@ -292,7 +390,7 @@
 
   function renderGrid() {
     const n = state.items.length;
-    $("#photoCount").textContent = `${n} 張`;
+    $("#photoCount").textContent = t("photos.count", { n });
     $("#tabCount").textContent = String(n);
     $("#emptyNote").hidden = n > 0;
     $("#grid").innerHTML = state.items.map((it, i) => tileHtml(it, i)).join("");
@@ -379,18 +477,10 @@
     });
   }
 
-  // 輸出語言：表單上印出來的欄位名稱與預設檔名。介面文字不在這裡，維持中文。
-  // 日文用語是暫定，確認後只要改這張表。
-  const SHEET_TEXT = {
-    zh: { date: "施工日期", loc: "施工地點", project: "工程名稱", work: "施工項目", contractor: "承包單位", fileFallback: "改善表" },
-    ja: { date: "施工日", loc: "施工場所", project: "工事名", work: "工種", contractor: "請負業者", fileFallback: "是正写真" }
-  };
-  const sheetText = () => SHEET_TEXT[state.lang] || SHEET_TEXT.zh;
-
   function emptyCellHtml(idx, forExport) {
     return `<div class="sh-cell empty" data-idx="${idx}">
       <div class="sh-cell-title"><span class="sh-no">No.${idx + 1}</span></div>
-      ${forExport ? "" : '<button class="sh-add" type="button" data-add="1">＋ 新增照片</button>'}
+      ${forExport ? "" : `<button class="sh-add" type="button" data-add="1">${t("sheet.addPhoto")}</button>`}
     </div>`;
   }
 
@@ -410,7 +500,6 @@
   function sheetHtml(p, forExport) {
     const P = PAPER[state.paper];
     const loc = shownLoc();
-    const T = sheetText();
     const cells = [];
     for (let j = 0; j < P.per; j += 1) {
       const idx = p * P.per + j;
@@ -419,13 +508,13 @@
     return `<section class="sheet ${state.paper} side-${state.side}" lang="${state.lang === "ja" ? "ja" : "zh-Hant"}">
       <header class="sh-head">
         <div class="sh-top">
-          <div class="sh-date"><b>${T.date}</b><span data-field="date">${esc(dateRange())}</span></div>
-          <div class="sh-loc"${loc ? "" : " hidden"}><b>${T.loc}</b><span data-field="loc">${esc(loc)}</span></div>
+          <div class="sh-date"><b>${t("sheet.date")}</b><span data-field="date">${esc(dateRange())}</span></div>
+          <div class="sh-loc"${loc ? "" : " hidden"}><b>${t("sheet.loc")}</b><span data-field="loc">${esc(loc)}</span></div>
         </div>
-        <div class="sh-row sh-proj"><div><b>${T.project}</b><span data-field="project">${esc(state.project)}</span></div></div>
+        <div class="sh-row sh-proj"><div><b>${t("field.project")}</b><span data-field="project">${esc(state.project)}</span></div></div>
         <div class="sh-row sh-two">
-          <div><b>${T.work}</b><span data-field="work">${esc(state.work)}</span></div>
-          <div><b>${T.contractor}</b><span data-field="contractor">${esc(state.contractor)}</span></div>
+          <div><b>${t("field.work")}</b><span data-field="work">${esc(state.work)}</span></div>
+          <div><b>${t("field.contractor")}</b><span data-field="contractor">${esc(state.contractor)}</span></div>
         </div>
       </header>
       <div class="sh-grid">${cells.join("")}</div>
@@ -500,7 +589,7 @@
 
   function updateMeta() {
     const P = PAPER[state.paper];
-    $("#pvMeta").textContent = `${P.label}・每頁 ${P.per} 張・共 ${pageCount()} 頁・${state.items.length} 張照片`;
+    $("#pvMeta").textContent = t("preview.meta", { paper: P.label, per: P.per, pages: pageCount(), n: state.items.length });
   }
 
   // ---------- 提示與狀態 ----------
@@ -577,7 +666,7 @@
       // 平常靜默保存；只有存不了時提醒一次（例如私密瀏覽），不要每次編輯都跳出來
       if (!autosaveWarned) {
         autosaveWarned = true;
-        toast("這個瀏覽器無法自動保存，請用「儲存專案檔」備份。");
+        toast(t("toast.noAutosave"));
       }
     }
   }
@@ -588,7 +677,7 @@
       if (!saved) return;
       state = sanitize(saved);
       render();   // 不論有沒有內容都要重繪：只改過版型（例如 A3）時，畫面也要跟著狀態走
-      if (hasContent()) toast("已還原上次未存的內容");
+      if (hasContent()) toast(t("toast.restored"));
     } catch (error) {
       // 無法讀取（隱私模式等）就從空白開始，不影響編輯
     }
@@ -625,11 +714,11 @@
   function fileName(ext) {
     const clean = s => String(s || "").replace(/[\\/:*?"<>|\s]+/g, "");
     const parts = [clean(state.project), clean(state.work)].filter(Boolean);
-    return `${photoDays()[0] || today()}_${(parts.length ? parts : [sheetText().fileFallback]).join("_")}.${ext}`;
+    return `${photoDays()[0] || today()}_${(parts.length ? parts : [t("file.fallback")]).join("_")}.${ext}`;
   }
 
   async function saveProject() {
-    if (!hasContent()) { toast("目前沒有內容可以儲存"); return; }
+    if (!hasContent()) { toast(t("toast.nothingToSave")); return; }
     const payload = { schema: SCHEMA, version: VERSION, savedAt: new Date().toISOString(), data: state };
     await deliverFile(new File([JSON.stringify(payload)], fileName("json"), { type: "application/json" }));
   }
@@ -641,13 +730,13 @@
       if (!parsed || parsed.schema !== SCHEMA || !parsed.data) throw new Error("schema");
       data = sanitize(parsed.data);
     } catch (error) {
-      toast("這不是改善表的專案檔");
+      toast(t("toast.notProject"));
       return;
     }
-    if (hasContent() && !confirm("開啟專案檔會取代目前的內容。\n還沒存的照片與文字會消失，要繼續嗎？")) return;
+    if (hasContent() && !confirm(t("confirm.openProject"))) return;
     state = data;
     commit();
-    toast(`已開啟 ${file.name}`);
+    toast(t("toast.opened", { name: file.name }));
   }
 
   // ---------- 分享與下載 ----------
@@ -691,8 +780,8 @@
       const name = error && error.name;
       if (name === "AbortError") clearStatus();
       else if (name === "NotAllowedError" && !retried) {
-        showStatus("檔案已準備好，請再按一次分享。", { action: { label: "分享", run: () => shareFile(file, true) } });
-      } else showStatus(`分享失敗：${(error && error.message) || error}`, { error: true });
+        showStatus(t("status.readyShare"), { action: { label: t("btn.share"), run: () => shareFile(file, true) } });
+      } else showStatus(t("status.shareFailed", { msg: (error && error.message) || error }), { error: true });
     }
   }
 
@@ -726,20 +815,20 @@
     const ui = PdfShare.openDialog({ onCancel: () => { cancelled = true; } });
     const alive = () => { if (cancelled || ui.closed) throw CANCELLED; };
     try {
-      ui.set("working", "正在準備 PDF", "正在載入轉圖元件…");
+      ui.set("working", PdfShare.t("preparing"), PdfShare.t("loadingLib"));
       ui.progress(0.04);
       await PdfShare.loadLibrary();
       alive();
       const pages = [];
       for (const [index, sheet] of sheets.entries()) {
-        ui.set("working", "正在準備 PDF", `正在轉換第 ${index + 1} ／ ${sheets.length} 頁…`);
+        ui.set("working", PdfShare.t("preparing"), PdfShare.t("converting", index + 1, sheets.length));
         await new Promise(resolve => setTimeout(resolve, 0));   // 讓進度文字有機會先畫出來
         // 頁面尺寸直接用版型設定，不用量測值（量測會有小數誤差）
         pages.push({ ...(await PdfShare.renderPage(sheet)), mm: [P.wmm, P.hmm] });
         alive();
         ui.progress(0.1 + 0.85 * ((index + 1) / sheets.length));
       }
-      ui.set("working", "正在準備 PDF", "正在組成檔案…");
+      ui.set("working", PdfShare.t("preparing"), PdfShare.t("assembling"));
       ui.progress(0.97);
       const name = fileName("pdf");
       const pdf = PdfShare.buildPdf(pages, { title: name.replace(/\.pdf$/i, ""), paper: { mm: [P.wmm, P.hmm], marginMm: 0 } });
@@ -754,12 +843,12 @@
     } catch (error) {
       if (error === CANCELLED) return;
       console.error(error);
-      if (!ui.closed) ui.set("error", "無法產生 PDF", error && error.message ? error.message : "發生未知的錯誤，請再試一次。");
+      if (!ui.closed) ui.set("error", PdfShare.t("pdfFailed"), error && error.message ? error.message : PdfShare.t("unknownError"));
     }
   }
 
   async function exportPdf() {
-    if (!state.items.length) { toast("請先加入照片"); return; }
+    if (!state.items.length) { toast(t("toast.addFirst")); return; }
     if (exporting) return;
     exporting = true;
     try {
@@ -768,7 +857,7 @@
       resolveFits($("#printRoot"));
       // 在實際輸出的副本上量溢位（不加 .over 類別，免得輸出的字變紅），不依賴預覽是不是最新的
       const over = $$(".sh-content", $("#printRoot")).filter(isOver).length;
-      if (over && !confirm(`有 ${over} 格改善內容超出格子，超出的文字會被截掉。\n要繼續輸出嗎？`)) {
+      if (over && !confirm(t("confirm.overflow", { n: over }))) {
         clearPrintRoot();
         return;
       }
@@ -777,12 +866,12 @@
         clearPrintRoot();
       } else {
         window.addEventListener("afterprint", () => { clearPrintRoot(); clearStatus(); }, { once: true });
-        showStatus(`請在列印視窗選擇「另存為 PDF」。紙張已依版型設定為 ${PAPER[state.paper].label}。`);
+        showStatus(t("status.printHint", { paper: PAPER[state.paper].label }));
         window.print();
       }
     } catch (error) {
       clearPrintRoot();
-      showStatus(`輸出失敗：${error.message || error}`, { error: true });
+      showStatus(t("status.exportFailed", { msg: error.message || error }), { error: true });
     } finally {
       exporting = false;
     }
@@ -922,6 +1011,7 @@
     $("#btnClearAll").addEventListener("click", clearEverything);
 
     $("#btnExport").addEventListener("click", exportPdf);
+    wireLang();
     $("#btnSaveProject").addEventListener("click", saveProject);
     $("#btnOpenProject").addEventListener("click", () => $("#inOpen").click());
     $("#inOpen").addEventListener("change", async event => {
@@ -948,7 +1038,7 @@
     wireSheetDismiss();
     $("#edRotate").addEventListener("click", () => {
       const it = state.items.find(i => i.id === editingId);
-      if (it) rotateItem(it).then(commit).catch(() => toast("旋轉失敗"));
+      if (it) rotateItem(it).then(commit).catch(() => toast(t("toast.rotateFailed")));
     });
     $("#edReplace").addEventListener("click", () => pick("inPick", editingId));
     $("#edUp").addEventListener("click", () => moveItem(editingId, -1));
@@ -1004,8 +1094,8 @@
   // 右下角的浮動按鈕：Gooey 選單（export-menu.js 共用）。項目由左到上排：
   // 清空放在離拇指最遠的位置，最不會誤觸；新增放在正上方，最順手。
   // 一顆 Gooey Menu，三個分頁都看得到，項目固定是新增、拍照、清除（清照片）。
-  // 一顆 Gooey Menu，三個分頁都看得到，項目固定是新增、拍照、清除（清照片）。
   // 新增、拍照只能在照片分頁做，所以先切過去再開選檔（手機上另外兩個分頁也能直接按）
+  let menuItems = [];   // { node, it }：切換語言時更新標籤用
   function mountMenus() {
     const { mount, icon } = window.GooeyMenu;
     const ACTS = {
@@ -1014,23 +1104,77 @@
       clear: clearPhotos
     };
     const items = [
-      { id: "btnClear", act: "clear", label: "清除", aria: "清除全部照片", glyph: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>' },
-      { id: "btnCamera", act: "camera", label: "拍照", aria: "拍照", glyph: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>' },
-      { id: "btnPick", act: "pick", label: "新增", aria: "新增照片", glyph: '<path d="M12 5v14M5 12h14"/>' }
+      { id: "btnClear", act: "clear", labelKey: "menu.clear", ariaKey: "menu.clearAria", glyph: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>' },
+      { id: "btnCamera", act: "camera", labelKey: "menu.camera", ariaKey: "menu.cameraAria", glyph: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>' },
+      { id: "btnPick", act: "pick", labelKey: "menu.add", ariaKey: "menu.addAria", glyph: '<path d="M12 5v14M5 12h14"/>' }
     ];
     const { items: nodes } = mount($("#photo-fab"), $("#photoMenuButton"), items.map(it => ({
-      id: it.id, label: it.label, aria: it.aria, icon: icon(it.glyph)
+      id: it.id, label: t(it.labelKey), aria: t(it.ariaKey), icon: icon(it.glyph)
     })));
-    nodes.forEach((node, i) => {
+    menuItems = nodes.map((node, i) => {
       node.dataset.act = items[i].act;
       node.addEventListener("click", ACTS[items[i].act]);
+      return { node, it: items[i] };
+    });
+  }
+
+  function refreshMenuLabels() {
+    menuItems.forEach(({ node, it }) => {
+      node.querySelector("span").textContent = t(it.labelKey);
+      node.setAttribute("aria-label", t(it.ariaKey));
+    });
+  }
+
+  // ---------- 語言 ----------
+  // 靜態文字（標了 data-i18n 的節點）與選單標籤、PDF 文字一起換；由 render() 與 setLang() 呼叫
+  function applyStaticText() {
+    document.documentElement.lang = uiLang() === "ja" ? "ja" : "zh-Hant";
+    $$("[data-i18n]").forEach(el => { el.textContent = t(el.dataset.i18n); });
+    $$("[data-i18n-html]").forEach(el => { el.innerHTML = t(el.dataset.i18nHtml); });
+    $$("[data-i18n-aria]").forEach(el => el.setAttribute("aria-label", t(el.dataset.i18nAria)));
+    $$("[data-i18n-title]").forEach(el => el.setAttribute("title", t(el.dataset.i18nTitle)));
+    $$("[data-i18n-placeholder]").forEach(el => el.setAttribute("placeholder", t(el.dataset.i18nPlaceholder)));
+    $$("#langMenu [data-lang]").forEach(b => b.setAttribute("aria-checked", String(b.dataset.lang === state.lang)));
+    refreshMenuLabels();
+    PdfShare.setLang(state.lang);
+  }
+
+  function setLang(lang) {
+    if (state.lang === lang) return;
+    state.lang = lang;
+    commit();                 // 重畫清單與預覽（含文字），並自動保存
+    applyStaticText();
+    if (editingId) renderEditor();
+  }
+
+  function wireLang() {
+    const btn = $("#btnLang");
+    const menu = $("#langMenu");
+    const close = () => { menu.hidden = true; btn.setAttribute("aria-expanded", "false"); };
+    btn.addEventListener("click", event => {
+      event.stopPropagation();
+      const open = menu.hidden;
+      menu.hidden = !open;
+      btn.setAttribute("aria-expanded", String(open));
+    });
+    menu.addEventListener("click", event => {
+      const choice = event.target.closest("[data-lang]");
+      if (!choice) return;
+      close();
+      setLang(choice.dataset.lang);
+    });
+    document.addEventListener("click", event => {
+      if (!menu.hidden && !menu.contains(event.target) && event.target !== btn) close();
+    });
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && !menu.hidden) { close(); btn.focus(); }
     });
   }
 
   // 清除照片：只清照片，表頭文字保留（照片分頁的選單）
   function clearPhotos() {
-    if (!state.items.length) { toast("目前沒有照片可以清除"); return; }
-    if (!confirm("清除全部照片？\n表頭文字會保留，此動作無法復原。")) return;
+    if (!state.items.length) { toast(t("toast.noPhotos")); return; }
+    if (!confirm(t("confirm.clearPhotos"))) return;
     state.items = [];
     commit();
     saveNow();
@@ -1038,8 +1182,8 @@
 
   // 清除表頭與照片（標題列右上角的垃圾桶）
   function clearEverything() {
-    if (!hasContent()) { toast("目前沒有內容可以清除"); return; }
-    if (!confirm("清除表頭與照片的內容？\n此動作無法復原。")) return;
+    if (!hasContent()) { toast(t("toast.nothingToClear")); return; }
+    if (!confirm(t("confirm.clearAll"))) return;
     state = { ...blank(), lang: state.lang };
     commit();
     saveNow();

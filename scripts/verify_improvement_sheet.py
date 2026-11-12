@@ -564,6 +564,19 @@ try:
         page.click("#edClose")
         page.close()
 
+        # ---- 標題列固定在上方（與連續壁頁相同）----
+        print("== 標題列固定")
+        for ctx_name, ctx in [("桌機", desktop), ("iPhone", iphone)]:
+            page = open_sheet(ctx, paper="a4", photos=3, errors=errors)
+            page.click('[data-view-tab="photos"]') if ctx_name == "iPhone" else None
+            page.evaluate("() => { const s = document.createElement('div'); s.style.height = '2400px'; document.querySelector('main').after(s); }")
+            page.evaluate("() => window.scrollTo(0, 800)")
+            page.wait_for_timeout(300)
+            top = page.evaluate("() => Math.round(document.querySelector('.header-back').getBoundingClientRect().top)")
+            hit = page.evaluate("() => { const r = document.getElementById('btnClearAll').getBoundingClientRect(); const el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!(el && el.closest('#btnClearAll')); }")
+            check(top <= 12 and hit, f"{ctx_name}：捲動後標題列還在上方、垃圾桶點得到（返回鈕 top={top}）")
+            page.close()
+
         # ---- 日文介面：地球按鈕切換、文字、截斷檢查 ----
         print("== 日文介面")
         OVERFLOW_JS = """() => {

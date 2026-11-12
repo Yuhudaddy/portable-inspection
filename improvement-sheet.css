@@ -287,6 +287,9 @@ body { font-family: var(--glass-font); }
 
 /* 標題列：返回在左、語言與垃圾桶在右，左右內距與下方面板對齊（頁面外層 body 有 8px、面板本身 16px，合計 24px）。垃圾桶沒有底色，只留線條圖示；
    44px 的點擊範圍往右多出 11px，所以用負邊界讓圖示本身的右邊剛好對齊面板 */
+/* 標題列固定在畫面上方（與連續壁頁相同，原本是 app.css 的 .app-header）：捲動時返回、語言、垃圾桶都點得到 */
+.app-header { position: sticky; top: 0; z-index: 200; padding-top: max(8px, env(safe-area-inset-top)); pointer-events: none; }
+.header-nav > * { pointer-events: auto; }
 .header-nav { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-inline: 16px; }
 .header-icon { display: grid; place-items: center; width: 44px; height: 44px; margin-right: -11px; padding: 0; border: 0; background: none; box-shadow: none; color: var(--glass-icon); cursor: pointer; }
 .header-icon svg { width: 22px; height: 22px; }

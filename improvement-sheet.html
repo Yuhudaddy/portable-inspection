@@ -29,6 +29,7 @@
       <nav class="header-nav" aria-label="主要功能" data-i18n-aria="navAria">
         <a class="glass-pill header-back" href="./" aria-label="返回工具首頁" data-i18n-aria="back"><svg width="10" height="16" viewBox="0 0 12 20" fill="none" aria-hidden="true"><path d="M10 2L2 10l8 8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span>工具首頁</span></a>
         <div class="header-actions">
+          <button class="header-icon" id="btnSaveProject" type="button" data-i18n-aria="btn.save" data-i18n-title="btn.save" aria-label="儲存專案檔" title="儲存專案檔"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h11l3 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><path d="M8 4v5h7V4"/><rect x="7" y="13" width="10" height="7" rx="1"/></svg></button>
           <div class="lang-wrap">
             <button class="header-icon" id="btnLang" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="langMenu" data-i18n-aria="langBtn" data-i18n-title="langBtn" title="語言" aria-label="語言"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18z"/></svg></button>
             <div class="lang-pop" id="langMenu" role="menu" hidden>
@@ -58,7 +59,7 @@
       <div class="sheet-layout">
         <div class="col col-input">
           <section class="panel pane" data-pane="info" aria-labelledby="sec-info">
-            <div class="panel-heading"><div><span>01</span><h2 id="sec-info" data-i18n="panel.info">表頭資料</h2></div></div>
+            <div class="panel-heading"><div><span>01</span><h2 id="sec-info" data-i18n="panel.info">表單設定</h2></div></div>
             <div class="form-grid">
               <label class="field span-two"><span data-i18n="field.project">工程名稱</span><input id="fProject" type="text" maxlength="60" autocomplete="off" /></label>
               <label class="field"><span data-i18n="field.work">施工項目</span><input id="fWork" type="text" maxlength="60" autocomplete="off" /></label>
@@ -105,11 +106,6 @@
             <div class="option-block toggles">
               <button class="toggle" id="togDate" type="button" aria-pressed="false" title="全項目與第一張照片的日期同步" data-i18n-title="toggle.dateTitle"><span class="switch" aria-hidden="true"></span><span data-i18n="toggle.date">同日施工</span></button>
               <button class="toggle" id="togLoc" type="button" aria-pressed="false" title="全項目與第一張照片的施工地點同步" data-i18n-title="toggle.locTitle"><span class="switch" aria-hidden="true"></span><span data-i18n="toggle.loc">同地點施工</span></button>
-            </div>
-
-            <div class="file-row">
-              <button class="btn" type="button" id="btnSaveProject" data-i18n="btn.save">儲存專案檔</button>
-              <button class="btn" type="button" id="btnOpenProject" data-i18n="btn.open">開啟專案檔</button>
             </div>
           </section>
 
@@ -188,6 +184,16 @@
       </dialog>
 
       <input class="file-hidden" id="inPick" type="file" accept="image/*" multiple tabindex="-1" aria-hidden="true" />
+      <dialog class="choose" id="addDialog" aria-labelledby="addTitle">
+        <h2 id="addTitle" data-i18n="add.title">新增照片</h2>
+        <div class="choose-list">
+          <button class="choose-item" type="button" data-add-src="gallery" data-i18n="add.gallery">照片圖庫</button>
+          <button class="choose-item" type="button" data-add-src="camera" data-i18n="add.camera">拍照</button>
+          <button class="choose-item" type="button" data-add-src="file" data-i18n="add.file">選擇檔案</button>
+        </div>
+        <button class="choose-cancel" id="addCancel" type="button" data-i18n="add.cancel">取消</button>
+      </dialog>
+      <input class="file-hidden" id="inFiles" type="file" accept=".jpg,.jpeg,.png,.webp,.heic,.heif" multiple tabindex="-1" aria-hidden="true" />
       <input class="file-hidden" id="inCamera" type="file" accept="image/*" capture="environment" tabindex="-1" aria-hidden="true" />
       <input class="file-hidden" id="inOpen" type="file" accept="application/json,.json" tabindex="-1" aria-hidden="true" />
     </main>

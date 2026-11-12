@@ -17,7 +17,7 @@
     zh: {
       skip: "跳至改善表", back: "返回工具首頁", navAria: "主要功能", trash: "清除表頭與照片", langBtn: "語言",
       toolSub: "缺失改善照", toolName: "改善表", tabsAria: "改善表分頁",
-      "tab.info": "表頭", "tab.photos": "照片", "tab.preview": "預覽", "panel.info": "表頭資料",
+      "tab.info": "表頭", "tab.photos": "照片", "tab.preview": "預覽", "panel.info": "表單設定",
       "field.project": "工程名稱", "field.work": "施工項目", "field.contractor": "承包單位",
       "opt.paper": "版型", "seg.a4": "A4・3 張", "seg.a3": "A3・12 張", "seg.a4Title": "每頁 3 張", "seg.a3Title": "每頁 12 張",
       "opt.fit": "照片顯示", "fit.auto": "自動", "fit.contain": "完整", "fit.cover": "填滿", "help.fitAria": "說明：照片顯示",
@@ -27,15 +27,15 @@
       "opt.side": "照片位置", "side.left": "照片左側", "side.right": "照片右側",
       "toggle.date": "同日施工", "toggle.loc": "同地點施工",
       "toggle.dateTitle": "全項目與第一張照片的日期同步", "toggle.locTitle": "全項目與第一張照片的施工地點同步",
-      "btn.save": "儲存專案檔", "btn.open": "開啟專案檔", "btn.exportPdf": "輸出 PDF", "btn.share": "分享", "btn.undo": "復原",
+      "btn.save": "儲存專案檔", "btn.exportPdf": "輸出 PDF", "btn.share": "分享", "btn.undo": "復原",
       "photos.heading": "照片", "photos.count": "{n} 張", "empty": "還沒有照片。按右下角的＋，或直接把照片拖進來。",
       "help.nameAria": "說明：檔名怎麼帶入欄位", "help.nameTitle": "檔名格式", "help.nameFormat": "施工地點_改善內容_日期.jpg",
       "help.seg1": "<b>第 1 段</b>：自動填入「施工地點」", "help.seg2": "<b>第 2 段</b>：自動填入「改善內容」",
       "help.seg3": "<b>第 3 段</b>：自動填入「日期」，可省略。寫成 20261026 或 2026-10-26",
       "help.ext": "副檔名 png、jpg、jpeg、webp 都可以", "help.noUnderscore": "[文字].png：無底線文字判定為「改善內容」",
       "help.unsupported": "※其他格式不支援自動輸入", "help.redDot": "🔴：照片內容尚未填妥",
-      "menu.aria": "照片：新增、拍照、清除", "menu.add": "新增", "menu.addAria": "新增照片",
-      "menu.camera": "拍照", "menu.cameraAria": "拍照", "menu.clear": "清除", "menu.clearAria": "清除全部照片",
+      "menu.aria": "照片：新增、匯入、清除", "menu.add": "新增", "menu.addAria": "新增照片",
+      "menu.import": "匯入", "menu.importAria": "匯入專案檔", "add.title": "新增照片", "add.gallery": "照片圖庫", "add.camera": "拍照", "add.file": "選擇檔案", "add.cancel": "取消", "menu.clear": "清除", "menu.clearAria": "清除全部照片",
       "preview.heading": "預覽", "preview.meta": "{paper}・每頁 {per} 張・共 {pages} 頁・{n} 張照片",
       "sheet.date": "施工日期", "sheet.loc": "施工地點", "sheet.addPhoto": "＋ 新增照片",
       "ed.prev": "上一張", "ed.next": "下一張", "ed.close": "關閉", "field.loc": "施工地點", "field.content": "改善內容",
@@ -58,7 +58,7 @@
     ja: {
       skip: "改善表へ移動", back: "ツールのトップへ戻る", navAria: "主な機能", trash: "見出しと写真をすべて消去", langBtn: "言語",
       toolSub: "是正写真", toolName: "是正写真表", tabsAria: "是正写真表のタブ",
-      "tab.info": "見出し", "tab.photos": "写真", "tab.preview": "プレビュー", "panel.info": "見出しデータ",
+      "tab.info": "見出し", "tab.photos": "写真", "tab.preview": "プレビュー", "panel.info": "見出し設定",
       "field.project": "工事名", "field.work": "工種", "field.contractor": "請負業者",
       "opt.paper": "用紙", "seg.a4": "A4・3枚", "seg.a3": "A3・12枚", "seg.a4Title": "1ページ3枚", "seg.a3Title": "1ページ12枚",
       "opt.fit": "写真表示", "fit.auto": "自動", "fit.contain": "全体", "fit.cover": "全面", "help.fitAria": "説明：写真の表示",
@@ -68,15 +68,15 @@
       "opt.side": "写真の位置", "side.left": "左に写真", "side.right": "右に写真",
       "toggle.date": "同日施工", "toggle.loc": "同じ場所で施工",
       "toggle.dateTitle": "全項目を1枚目の写真の日付に合わせます", "toggle.locTitle": "全項目を1枚目の写真の施工場所に合わせます",
-      "btn.save": "ファイルを保存", "btn.open": "ファイルを開く", "btn.exportPdf": "PDF を出力", "btn.share": "共有", "btn.undo": "元に戻す",
+      "btn.save": "プロジェクトを保存", "btn.exportPdf": "PDF を出力", "btn.share": "共有", "btn.undo": "元に戻す",
       "photos.heading": "写真", "photos.count": "{n}枚", "empty": "まだ写真がありません。右下の＋を押すか、写真をここにドラッグしてください。",
       "help.nameAria": "説明：ファイル名から項目への入力", "help.nameTitle": "ファイル名の形式", "help.nameFormat": "施工場所_改善内容_日付.jpg",
       "help.seg1": "<b>1つ目</b>：「施工場所」に自動入力", "help.seg2": "<b>2つ目</b>：「改善内容」に自動入力",
       "help.seg3": "<b>3つ目</b>：「日付」に自動入力（省略可）。20261026 または 2026-10-26 と書きます",
       "help.ext": "拡張子は png・jpg・jpeg・webp に対応", "help.noUnderscore": "[文字].png：アンダーバーのない文字は「改善内容」として扱います",
       "help.unsupported": "※ほかの形式は自動入力に対応していません", "help.redDot": "🔴：写真の内容が未入力です",
-      "menu.aria": "写真：追加・撮影・消去", "menu.add": "追加", "menu.addAria": "写真を追加",
-      "menu.camera": "撮影", "menu.cameraAria": "撮影", "menu.clear": "消去", "menu.clearAria": "写真をすべて消去",
+      "menu.aria": "写真：追加・読み込み・消去", "menu.add": "追加", "menu.addAria": "写真を追加",
+      "menu.import": "読み込み", "menu.importAria": "プロジェクトファイルを読み込む", "add.title": "写真を追加", "add.gallery": "写真ライブラリ", "add.camera": "撮影", "add.file": "ファイルを選ぶ", "add.cancel": "キャンセル", "menu.clear": "消去", "menu.clearAria": "写真をすべて消去",
       "preview.heading": "プレビュー", "preview.meta": "{paper}・1ページ {per}枚・全{pages}ページ・写真{n}枚",
       "sheet.date": "施工日", "sheet.loc": "施工場所", "sheet.addPhoto": "＋ 写真を追加",
       "ed.prev": "前の写真", "ed.next": "次の写真", "ed.close": "閉じる", "field.loc": "施工場所", "field.content": "改善内容",
@@ -1007,13 +1007,23 @@
 
     $("#inPick").addEventListener("change", handlePicked);
     $("#inCamera").addEventListener("change", handlePicked);
+    $("#inFiles").addEventListener("change", handlePicked);
+    $$("[data-add-src]").forEach(btn => btn.addEventListener("click", () => {
+      $("#addDialog").close();
+      pick({ gallery: "inPick", camera: "inCamera", file: "inFiles" }[btn.dataset.addSrc]);
+    }));
+    $("#addCancel").addEventListener("click", () => $("#addDialog").close());
+    $("#addDialog").addEventListener("click", event => {   // 點對話框外面（背景）收起
+      if (event.target !== $("#addDialog")) return;
+      const r = event.target.getBoundingClientRect();
+      if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) event.target.close();
+    });
 
     $("#btnClearAll").addEventListener("click", clearEverything);
 
     $("#btnExport").addEventListener("click", exportPdf);
     wireLang();
     $("#btnSaveProject").addEventListener("click", saveProject);
-    $("#btnOpenProject").addEventListener("click", () => $("#inOpen").click());
     $("#inOpen").addEventListener("change", async event => {
       const file = event.target.files[0];
       event.target.value = "";
@@ -1093,19 +1103,25 @@
 
   // 右下角的浮動按鈕：Gooey 選單（export-menu.js 共用）。項目由左到上排：
   // 清空放在離拇指最遠的位置，最不會誤觸；新增放在正上方，最順手。
-  // 一顆 Gooey Menu，三個分頁都看得到，項目固定是新增、拍照、清除（清照片）。
-  // 新增、拍照只能在照片分頁做，所以先切過去再開選檔（手機上另外兩個分頁也能直接按）
+  // 一顆 Gooey Menu，三個分頁都看得到，項目是新增、匯入、清除。
+  // 新增：電腦直接開啟選檔；手機（觸控）先跳出三選一（照片圖庫、拍照、選擇檔案）。
+  // 匯入：開啟專案檔（JSON）。
+  const isTouchDevice = () => window.matchMedia("(pointer: coarse)").matches;
+  function openAddDialog() {
+    const dialog = $("#addDialog");
+    if (!dialog.open) dialog.showModal();
+  }
   let menuItems = [];   // { node, it }：切換語言時更新標籤用
   function mountMenus() {
     const { mount, icon } = window.GooeyMenu;
     const ACTS = {
-      pick: () => { setView("photos"); pick("inPick"); },
-      camera: () => { setView("photos"); pick("inCamera"); },
+      pick: () => { setView("photos"); if (isTouchDevice()) openAddDialog(); else pick("inPick"); },
+      import: () => $("#inOpen").click(),
       clear: clearPhotos
     };
     const items = [
       { id: "btnClear", act: "clear", labelKey: "menu.clear", ariaKey: "menu.clearAria", glyph: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>' },
-      { id: "btnCamera", act: "camera", labelKey: "menu.camera", ariaKey: "menu.cameraAria", glyph: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>' },
+      { id: "btnImport", act: "import", labelKey: "menu.import", ariaKey: "menu.importAria", glyph: '<path d="M4 8V6a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v2"/><path d="M4 8h16v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/>' },
       { id: "btnPick", act: "pick", labelKey: "menu.add", ariaKey: "menu.addAria", glyph: '<path d="M12 5v14M5 12h14"/>' }
     ];
     const { items: nodes } = mount($("#photo-fab"), $("#photoMenuButton"), items.map(it => ({
